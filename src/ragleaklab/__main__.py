@@ -21,6 +21,9 @@ def run(
     config: Path = typer.Option(
         None, "--config", help="Path to YAML config file (alternative to --corpus/--attacks)"
     ),
+    format: list[str] = typer.Option(
+        [], "--format", "-f", help="Additional output formats: junit, sarif"
+    ),
 ) -> None:
     """Run attack test cases against a corpus and generate reports.
 
@@ -196,6 +199,24 @@ def run(
         for case_result in case_results:
             f.write(case_result.model_dump_json() + "\n")
     typer.echo(f"📄 Wrote {runs_path}")
+
+    # Export additional formats
+    for fmt in format:
+        fmt_lower = fmt.lower()
+        if fmt_lower == "junit":
+            from ragleaklab.reporting import export_junit
+
+            junit_path = out / "junit.xml"
+            export_junit(report, case_results, junit_path)
+            typer.echo(f"📄 Wrote {junit_path}")
+        elif fmt_lower == "sarif":
+            from ragleaklab.reporting import export_sarif
+
+            sarif_path = out / "results.sarif"
+            export_sarif(report, case_results, sarif_path)
+            typer.echo(f"📄 Wrote {sarif_path}")
+        else:
+            typer.echo(f"⚠️  Unknown format: {fmt}", err=True)
 
     # Summary
     status_icon = "✅" if report.overall_pass else "❌"

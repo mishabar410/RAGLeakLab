@@ -59,11 +59,36 @@ RAGLeakLab is designed for CI pipelines. The `diff` command exits with code 1 on
 ```yaml
 # .github/workflows/ci.yml
 - name: Security audit
-  run: uv run python -m ragleaklab run --corpus data/corpus_private_canary --attacks data/attacks --out out/
+  run: |
+    uv run python -m ragleaklab run \
+      --corpus data/corpus_private_canary \
+      --attacks data/attacks \
+      --out out/ \
+      --format junit \
+      --format sarif
+
+- name: Upload test results
+  uses: dorny/test-reporter@v1
+  with:
+    name: RAGLeakLab Results
+    path: out/junit.xml
+    reporter: java-junit
+
+- name: Upload SARIF
+  uses: github/codeql-action/upload-sarif@v2
+  with:
+    sarif_file: out/results.sarif
 
 - name: Regression gate
   run: uv run python -m ragleaklab diff --baseline baselines/v1/report.json --current out/report.json
 ```
+
+### Output Formats
+
+| Format | File | Purpose |
+|--------|------|---------|
+| `--format junit` | `junit.xml` | Test results in CI UI |
+| `--format sarif` | `results.sarif` | GitHub Security alerts |
 
 ### Regression Rules
 
