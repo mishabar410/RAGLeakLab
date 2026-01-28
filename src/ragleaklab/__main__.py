@@ -21,13 +21,19 @@ def run(
     config: Path = typer.Option(
         None, "--config", help="Path to YAML config file (alternative to --corpus/--attacks)"
     ),
+    pack: list[str] = typer.Option(
+        [],
+        "--pack",
+        "-p",
+        help="Built-in attack pack: canary-basic, verbatim-basic, membership-basic",
+    ),
     format: list[str] = typer.Option(
         [], "--format", "-f", help="Additional output formats: junit, sarif"
     ),
 ) -> None:
     """Run attack test cases against a corpus and generate reports.
 
-    Use either --config for full configuration, or --corpus/--attacks for simple mode.
+    Use either --config for full configuration, --pack for built-in packs, or --corpus/--attacks for custom mode.
     """
     from ragleaklab.attacks import load_cases, run_all, run_all_with_target
     from ragleaklab.corpus import load_corpus
@@ -39,6 +45,22 @@ def run(
     )
     from ragleaklab.rag import Document, RAGPipeline
     from ragleaklab.reporting.schema import CaseResult, FailureReason, Report
+
+    # Load pack cases if specified
+    pack_cases = []
+    if pack:
+        from ragleaklab.packs import get_pack_path, get_pack_version
+
+        typer.echo(f"📦 Loading packs (version {get_pack_version()}):")
+        for pack_name in pack:
+            try:
+                pack_path = get_pack_path(pack_name)
+                cases = load_cases(pack_path)
+                pack_cases.extend(cases)
+                typer.echo(f"   {pack_name}: {len(cases)} cases")
+            except ValueError as e:
+                typer.echo(f"❌ {e}", err=True)
+                raise typer.Exit(1) from None
 
     # Determine mode: config file or CLI args
     if config is not None:
@@ -54,20 +76,24 @@ def run(
         if cfg.corpus is None:
             typer.echo("❌ Config missing 'corpus.path'", err=True)
             raise typer.Exit(1)
-        if cfg.attacks is None:
-            typer.echo("❌ Config missing 'attacks.path'", err=True)
+        # attacks can be None if using packs
+        if cfg.attacks is None and not pack_cases:
+            typer.echo("❌ Config missing 'attacks.path' (or use --pack)", err=True)
             raise typer.Exit(1)
 
         corpus_path = Path(cfg.corpus.path)
-        attacks_path = Path(cfg.attacks.path)
+        attacks_path = Path(cfg.attacks.path) if cfg.attacks else None
         use_http_target = isinstance(cfg.target, HttpTargetConfig)
     else:
         # CLI args mode
-        if corpus is None or attacks is None:
-            typer.echo("❌ Either --config or both --corpus and --attacks required", err=True)
+        if corpus is None:
+            typer.echo("❌ --corpus required", err=True)
+            raise typer.Exit(1)
+        if attacks is None and not pack_cases:
+            typer.echo("❌ --attacks or --pack required", err=True)
             raise typer.Exit(1)
         corpus_path = corpus
-        attacks_path = attacks
+        attacks_path = attacks if attacks else None
         use_http_target = False
         cfg = None
 
@@ -76,7 +102,7 @@ def run(
         typer.echo(f"❌ Corpus path not found: {corpus_path}", err=True)
         raise typer.Exit(1)
 
-    if not attacks_path.exists():
+    if attacks_path is not None and not attacks_path.exists():
         typer.echo(f"❌ Attacks path not found: {attacks_path}", err=True)
         raise typer.Exit(1)
 
@@ -92,10 +118,14 @@ def run(
     # Build sources for verbatim check
     sources = [(d.doc_id, d.text) for d in corpus_docs]
 
-    # Load attack cases
-    typer.echo(f"🎯 Loading attacks from: {attacks_path}")
-    cases = load_cases(attacks_path)
-    typer.echo(f"   Loaded {len(cases)} test cases")
+    # Load attack cases (pack + custom)
+    cases = list(pack_cases)  # Start with pack cases
+    if attacks_path is not None:
+        typer.echo(f"🎯 Loading attacks from: {attacks_path}")
+        custom_cases = load_cases(attacks_path)
+        cases.extend(custom_cases)
+        typer.echo(f"   Loaded {len(custom_cases)} custom test cases")
+    typer.echo(f"   Total: {len(cases)} test cases")
 
     # Run attacks
     typer.echo("⚡ Running attacks...")
@@ -184,7 +214,7 @@ def run(
         overall_pass=verdict.status == "pass",
         failures=failures,
         corpus_path=str(corpus_path.resolve()),
-        attacks_path=str(attacks_path.resolve()),
+        attacks_path=str(attacks_path.resolve()) if attacks_path else "built-in packs",
     )
 
     # Write report.json
