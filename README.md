@@ -32,6 +32,33 @@ uv sync
 uv sync --all-extras
 ```
 
+## Quickstart
+
+```bash
+# Run security audit on a corpus
+uv run ragleaklab run \
+  --corpus data/corpus_private_canary \
+  --attacks data/attacks \
+  --out ./output
+
+# Output files:
+# - output/report.json: Summary metrics, pass/fail verdict
+# - output/runs.jsonl: Per-case results (1 JSON per line)
+```
+
+### Example Output
+
+```json
+{
+  "schema_version": "1.0.0",
+  "canary_extracted": true,
+  "verbatim_leakage_rate": 0.05,
+  "membership_confidence": 0.42,
+  "overall_pass": false,
+  "failures": [{"threat": "canary", "reason": "Canary tokens detected"}]
+}
+```
+
 ## Development
 
 ```bash
