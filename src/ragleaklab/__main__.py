@@ -13,14 +13,20 @@ app = typer.Typer(
 
 @app.command()
 def run(
-    corpus: Path = typer.Option(..., "--corpus", "-c", help="Path to corpus directory"),
+    corpus: Path = typer.Option(None, "--corpus", "-c", help="Path to corpus directory"),
     attacks: Path = typer.Option(
-        ..., "--attacks", "-a", help="Path to attacks YAML file or directory"
+        None, "--attacks", "-a", help="Path to attacks YAML file or directory"
     ),
     out: Path = typer.Option(..., "--out", "-o", help="Output directory for reports"),
+    config: Path = typer.Option(
+        None, "--config", help="Path to YAML config file (alternative to --corpus/--attacks)"
+    ),
 ) -> None:
-    """Run attack test cases against a corpus and generate reports."""
-    from ragleaklab.attacks import load_cases, run_all
+    """Run attack test cases against a corpus and generate reports.
+
+    Use either --config for full configuration, or --corpus/--attacks for simple mode.
+    """
+    from ragleaklab.attacks import load_cases, run_all, run_all_with_target
     from ragleaklab.corpus import load_corpus
     from ragleaklab.metrics import (
         apply_thresholds,
@@ -31,39 +37,76 @@ def run(
     from ragleaklab.rag import Document, RAGPipeline
     from ragleaklab.reporting.schema import CaseResult, FailureReason, Report
 
+    # Determine mode: config file or CLI args
+    if config is not None:
+        from ragleaklab.config import HttpTargetConfig, load_config
+
+        if not config.exists():
+            typer.echo(f"❌ Config file not found: {config}", err=True)
+            raise typer.Exit(1)
+
+        cfg = load_config(config)
+
+        # Get paths from config
+        if cfg.corpus is None:
+            typer.echo("❌ Config missing 'corpus.path'", err=True)
+            raise typer.Exit(1)
+        if cfg.attacks is None:
+            typer.echo("❌ Config missing 'attacks.path'", err=True)
+            raise typer.Exit(1)
+
+        corpus_path = Path(cfg.corpus.path)
+        attacks_path = Path(cfg.attacks.path)
+        use_http_target = isinstance(cfg.target, HttpTargetConfig)
+    else:
+        # CLI args mode
+        if corpus is None or attacks is None:
+            typer.echo("❌ Either --config or both --corpus and --attacks required", err=True)
+            raise typer.Exit(1)
+        corpus_path = corpus
+        attacks_path = attacks
+        use_http_target = False
+        cfg = None
+
     # Validate inputs
-    if not corpus.exists():
-        typer.echo(f"❌ Corpus path not found: {corpus}", err=True)
+    if not corpus_path.exists():
+        typer.echo(f"❌ Corpus path not found: {corpus_path}", err=True)
         raise typer.Exit(1)
 
-    if not attacks.exists():
-        typer.echo(f"❌ Attacks path not found: {attacks}", err=True)
+    if not attacks_path.exists():
+        typer.echo(f"❌ Attacks path not found: {attacks_path}", err=True)
         raise typer.Exit(1)
 
     # Create output directory
     out.mkdir(parents=True, exist_ok=True)
 
     # Load corpus
-    typer.echo(f"📁 Loading corpus from: {corpus}")
-    corpus_docs = load_corpus(corpus)
+    typer.echo(f"📁 Loading corpus from: {corpus_path}")
+    corpus_docs = load_corpus(corpus_path)
     rag_docs = [Document(doc_id=d.doc_id, text=d.text) for d in corpus_docs]
     typer.echo(f"   Loaded {len(corpus_docs)} documents")
 
     # Build sources for verbatim check
     sources = [(d.doc_id, d.text) for d in corpus_docs]
 
-    # Create pipeline
-    pipeline = RAGPipeline(top_k=3)
-    pipeline.add_documents(rag_docs)
-
     # Load attack cases
-    typer.echo(f"🎯 Loading attacks from: {attacks}")
-    cases = load_cases(attacks)
+    typer.echo(f"🎯 Loading attacks from: {attacks_path}")
+    cases = load_cases(attacks_path)
     typer.echo(f"   Loaded {len(cases)} test cases")
 
     # Run attacks
     typer.echo("⚡ Running attacks...")
-    artifacts = run_all(pipeline, cases)
+
+    if use_http_target and cfg is not None:
+        from ragleaklab.targets import HttpTarget
+
+        target = HttpTarget.from_config(cfg.target)  # type: ignore
+        artifacts = run_all_with_target(target, cases)
+    else:
+        # Create in-process pipeline
+        pipeline = RAGPipeline(top_k=3)
+        pipeline.add_documents(rag_docs)
+        artifacts = run_all(pipeline, cases)
 
     # Calculate metrics per case
     case_results: list[CaseResult] = []
@@ -137,8 +180,8 @@ def run(
         membership_confidence=membership_result.score,
         overall_pass=verdict.status == "pass",
         failures=failures,
-        corpus_path=str(corpus.resolve()),
-        attacks_path=str(attacks.resolve()),
+        corpus_path=str(corpus_path.resolve()),
+        attacks_path=str(attacks_path.resolve()),
     )
 
     # Write report.json

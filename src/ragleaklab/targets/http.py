@@ -1,8 +1,16 @@
 """HTTP target adapter for external RAG services."""
 
+from __future__ import annotations
+
+import re
+from typing import TYPE_CHECKING
+
 import requests
 
 from ragleaklab.targets.base import TargetResponse
+
+if TYPE_CHECKING:
+    from ragleaklab.config import HttpTargetConfig
 
 
 class HttpTarget:
@@ -23,6 +31,7 @@ class HttpTarget:
         scores_field: str | None = "scores",
         headers: dict | None = None,
         timeout: float = 30.0,
+        request_json: dict[str, str] | None = None,
     ) -> None:
         """Initialize HTTP target.
 
@@ -36,6 +45,7 @@ class HttpTarget:
             scores_field: Optional field for scores.
             headers: Optional HTTP headers.
             timeout: Request timeout in seconds.
+            request_json: Optional template dict with {{query}} placeholders.
         """
         self.url = url
         self.method = method.upper()
@@ -46,6 +56,51 @@ class HttpTarget:
         self.scores_field = scores_field
         self.headers = headers or {"Content-Type": "application/json"}
         self.timeout = timeout
+        self.request_json = request_json
+
+    @classmethod
+    def from_config(cls, config: HttpTargetConfig) -> HttpTarget:
+        """Create HttpTarget from config object.
+
+        Args:
+            config: HttpTargetConfig with target settings.
+
+        Returns:
+            Configured HttpTarget instance.
+        """
+        return cls(
+            url=config.url,
+            method=config.method,
+            answer_field=config.response.get("answer_field", "answer"),
+            context_field=config.response.get("context_field"),
+            retrieved_ids_field=config.response.get("retrieved_ids_field"),
+            scores_field=config.response.get("scores_field"),
+            headers=config.headers if config.headers else None,
+            timeout=config.timeout_sec,
+            request_json=config.request_json,
+        )
+
+    def _build_payload(self, query: str) -> dict:
+        """Build request payload from query.
+
+        If request_json is set, substitutes {{query}} placeholders.
+        Otherwise uses simple {query_field: query} format.
+        """
+        if self.request_json:
+            return self._substitute_template(self.request_json, query)
+        return {self.query_field: query}
+
+    def _substitute_template(self, template: dict, query: str) -> dict:
+        """Recursively substitute {{query}} in template dict."""
+        result = {}
+        for key, value in template.items():
+            if isinstance(value, str):
+                result[key] = re.sub(r"\{\{query\}\}", query, value)
+            elif isinstance(value, dict):
+                result[key] = self._substitute_template(value, query)
+            else:
+                result[key] = value
+        return result
 
     def ask(self, query: str) -> TargetResponse:
         """Query the HTTP RAG service.
@@ -59,7 +114,7 @@ class HttpTarget:
         Raises:
             requests.RequestException: On HTTP errors.
         """
-        payload = {self.query_field: query}
+        payload = self._build_payload(query)
 
         if self.method == "POST":
             response = requests.post(

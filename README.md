@@ -92,20 +92,42 @@ git add baselines/v1/report.json
 git commit -m "baseline: update after [reason]"
 ```
 
-## HTTP Target (External RAG)
+## Configuration File
 
-Test external RAG services via HTTP:
+Use `--config` for full configuration including HTTP targets:
 
-```python
-from ragleaklab.targets import HttpTarget
-from ragleaklab.attacks import load_cases, run_all_with_target
+```bash
+uv run python -m ragleaklab run --config ragleaklab.yaml --out out/
+```
 
-target = HttpTarget(
-    url="https://your-rag-service.com/api/ask",
-    query_field="query",
-    answer_field="response",
-)
-artifacts = run_all_with_target(target, load_cases("data/attacks"))
+Example config (see [examples/ragleaklab.yaml](examples/ragleaklab.yaml)):
+
+```yaml
+corpus:
+  path: data/corpus_private_canary
+attacks:
+  path: data/attacks
+thresholds:
+  verbatim_delta: 0.01
+  membership_delta: 0.05
+
+# Built-in pipeline (default)
+target:
+  type: inprocess
+  top_k: 3
+
+# OR: External HTTP RAG service
+# target:
+#   type: http
+#   url: http://localhost:8000/ask
+#   method: POST
+#   request_json:
+#     question: "{{query}}"
+#   response:
+#     answer_field: "answer"
+#   headers:
+#     Authorization: "Bearer ${API_TOKEN}"
+#   timeout_sec: 30
 ```
 
 > [!WARNING]

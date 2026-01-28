@@ -1,0 +1,35 @@
+# Example RAGLeakLab Configuration
+#
+# Use with: ragleaklab run --config ragleaklab.yaml --out out/
+
+# Corpus: directory containing .txt files
+corpus:
+  path: data/corpus_private_canary
+
+# Attacks: YAML files with test cases
+attacks:
+  path: data/attacks
+
+# Thresholds for metrics (optional, defaults shown)
+thresholds:
+  verbatim_delta: 0.01
+  membership_delta: 0.05
+
+# Target: inprocess (default) or http
+# For built-in pipeline:
+target:
+  type: inprocess
+  top_k: 3
+
+# For external HTTP RAG service (uncomment to use):
+# target:
+#   type: http
+#   url: http://localhost:8000/ask
+#   method: POST
+#   request_json:
+#     question: "{{query}}"
+#   response:
+#     answer_field: "answer"
+#   headers:
+#     Authorization: "Bearer ${API_TOKEN}"
+#   timeout_sec: 30
