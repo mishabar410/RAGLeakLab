@@ -93,3 +93,33 @@ docs/              # Threat model and specs
 examples/          # Usage examples
 data/              # Data files
 ```
+
+## Testing Real RAG Services (HTTP Target)
+
+RAGLeakLab can test external RAG services via HTTP:
+
+```python
+from ragleaklab.targets import HttpTarget
+from ragleaklab.attacks import load_cases, run_all_with_target
+
+# Configure HTTP target
+target = HttpTarget(
+    url="https://your-rag-service.com/api/ask",
+    query_field="query",        # Request field name
+    answer_field="response",    # Response field name
+    context_field="context",    # Optional
+)
+
+# Load attacks and run
+cases = load_cases("data/attacks")
+artifacts = run_all_with_target(target, cases)
+```
+
+> [!WARNING]
+> **Do not include HTTP target tests in CI pipelines.**
+> - HTTP tests hit real services with real costs
+> - They may trigger rate limits or security alerts
+> - Results are non-deterministic
+>
+> Use `InProcessTarget` with the built-in pipeline for CI.
+

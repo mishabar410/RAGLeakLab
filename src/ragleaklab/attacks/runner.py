@@ -1,13 +1,16 @@
 """Attack test runner."""
 
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import yaml
 
 from ragleaklab.attacks.catalog import get_strategy
 from ragleaklab.attacks.schema import RunArtifact, TestCase
 from ragleaklab.rag.pipeline import RAGPipeline
+
+if TYPE_CHECKING:
+    from ragleaklab.targets.base import Target
 
 
 def load_cases(path: Path | str) -> list[TestCase]:
@@ -120,3 +123,71 @@ def run_all(
         List of RunArtifact with results.
     """
     return [run_case(pipeline, case, apply_strategy) for case in cases]
+
+
+def run_case_with_target(
+    target: "Target",
+    case: TestCase,
+    apply_strategy: bool = True,
+) -> RunArtifact:
+    """Run a single test case through a target adapter.
+
+    Args:
+        target: Target adapter (implements ask() method).
+        case: Test case to run.
+        apply_strategy: Whether to apply strategy transformation.
+
+    Returns:
+    RunArtifact with results.
+    """
+    # Get query (optionally transformed by strategy)
+    if apply_strategy:
+        strategy = get_strategy(case.strategy)
+        query = strategy.transform(case.query)
+    else:
+        query = case.query
+
+    # Run through target
+    response = target.ask(query)
+
+    # Build metadata
+    metadata: dict[str, Any] = {
+        "strategy": case.strategy,
+        "original_query": case.query,
+        "transformed_query": query,
+    }
+    if case.expected:
+        metadata["expected"] = case.expected
+    if case.description:
+        metadata["description"] = case.description
+    if case.tags:
+        metadata["tags"] = case.tags
+
+    return RunArtifact(
+        test_id=case.test_id,
+        threat=case.threat,
+        query=query,
+        answer=response.answer,
+        context=response.context,
+        retrieved_ids=response.retrieved_ids,
+        scores=response.scores,
+        metadata=metadata,
+    )
+
+
+def run_all_with_target(
+    target: "Target",
+    cases: list[TestCase],
+    apply_strategy: bool = True,
+) -> list[RunArtifact]:
+    """Run all test cases through a target adapter.
+
+    Args:
+        target: Target adapter to test.
+        cases: List of test cases.
+        apply_strategy: Whether to apply strategy transformations.
+
+    Returns:
+        List of RunArtifact with results.
+    """
+    return [run_case_with_target(target, case, apply_strategy) for case in cases]
