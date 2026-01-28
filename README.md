@@ -1,125 +1,172 @@
 # RAGLeakLab
 
-MVP security testing framework for RAG systems.
+Security testing framework for RAG systems. Measures information leakage from private corpus.
 
 ## What This Tool Does
 
-- **Tests RAG pipelines** for information leakage from private corpus
-- **Measures three threats**: verbatim extraction, canary detection, membership inference
+- **Tests RAG pipelines** for three threat types
 - **Produces actionable reports** with pass/fail verdicts
+- **Integrates with CI** for regression detection
+
+| Threat | Description |
+|--------|-------------|
+| Canary Extraction | Detects planted secret tokens in outputs |
+| Verbatim Extraction | Measures direct text reproduction |
+| Membership Inference | Detects if specific documents were in corpus |
 
 ## What This Tool Does NOT Do
 
 - Test LLM pre-training data leakage (out of scope)
 - Provide privacy guarantees (we measure, not enforce)
 - Test non-text modalities (images, audio)
-- Defend against adversarial corpus poisoning
-
-## Documentation
-
-- [Threat Model](docs/threat_model.md) — Formal model and attribution principle
-- [Verbatim Extraction](docs/threats/verbatim.md) — Direct text reproduction attacks
-- [Canary Extraction](docs/threats/canary.md) — Planted secret detection
-- [Membership Inference](docs/threats/membership.md) — Document presence detection
-
-## Setup
-
-```bash
-# Install dependencies
-uv sync
-
-# Install with dev dependencies
-uv sync --all-extras
-```
+- Defend against corpus poisoning
 
 ## Quickstart
 
 ```bash
-# Run security audit on a corpus
-uv run ragleaklab run \
+# Install
+uv sync --all-extras
+
+# Run security audit
+uv run python -m ragleaklab run \
   --corpus data/corpus_private_canary \
   --attacks data/attacks \
-  --out ./output
+  --out out/
 
-# Output files:
-# - output/report.json: Summary metrics, pass/fail verdict
-# - output/runs.jsonl: Per-case results (1 JSON per line)
+# Compare against baseline (for CI)
+uv run python -m ragleaklab diff \
+  --baseline baselines/v1/report.json \
+  --current out/report.json
 ```
 
-### Example Output
+### Output Files
 
-```json
-{
-  "schema_version": "1.0.0",
-  "canary_extracted": true,
-  "verbatim_leakage_rate": 0.05,
-  "membership_confidence": 0.42,
-  "overall_pass": false,
-  "failures": [{"threat": "canary", "reason": "Canary tokens detected"}]
-}
+| File | Purpose |
+|------|---------|
+| `out/report.json` | Summary metrics, pass/fail verdict |
+| `out/runs.jsonl` | Per-case results (1 JSON per line) |
+
+See [examples/sample_report.json](examples/sample_report.json) and [examples/sample_runs.jsonl](examples/sample_runs.jsonl).
+
+## CI Integration
+
+RAGLeakLab is designed for CI pipelines. The `diff` command exits with code 1 on regression:
+
+```yaml
+# .github/workflows/ci.yml
+- name: Security audit
+  run: uv run python -m ragleaklab run --corpus data/corpus_private_canary --attacks data/attacks --out out/
+
+- name: Regression gate
+  run: uv run python -m ragleaklab diff --baseline baselines/v1/report.json --current out/report.json
 ```
+
+### Regression Rules
+
+| Metric | Fail Condition |
+|--------|----------------|
+| `canary_extracted` | `false → true` |
+| `verbatim_leakage_rate` | Increase > 1% |
+| `membership_confidence` | Increase > 5% |
+
+See [docs/CI.md](docs/CI.md) for anti-patterns and best practices.
+
+## Updating Baseline
+
+Baselines are updated manually to ensure human review:
+
+```bash
+# Generate new baseline
+uv run python -m ragleaklab run \
+  --corpus data/corpus_private_canary \
+  --attacks data/attacks \
+  --out baselines/v1/
+
+# Review and commit
+git diff baselines/v1/report.json
+git add baselines/v1/report.json
+git commit -m "baseline: update after [reason]"
+```
+
+## HTTP Target (External RAG)
+
+Test external RAG services via HTTP:
+
+```python
+from ragleaklab.targets import HttpTarget
+from ragleaklab.attacks import load_cases, run_all_with_target
+
+target = HttpTarget(
+    url="https://your-rag-service.com/api/ask",
+    query_field="query",
+    answer_field="response",
+)
+artifacts = run_all_with_target(target, load_cases("data/attacks"))
+```
+
+> [!WARNING]
+> Do not use HTTP targets in CI — non-deterministic and may incur costs.
+
+## Documentation
+
+| Document | Description |
+|----------|-------------|
+| [docs/threat_model.md](docs/threat_model.md) | Formal threat model |
+| [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Module structure and data flow |
+| [docs/REPORT_SCHEMA.md](docs/REPORT_SCHEMA.md) | Report field descriptions |
+| [docs/CI.md](docs/CI.md) | CI integration guide |
+| [docs/threats/](docs/threats/) | Individual threat specifications |
 
 ## Development
 
 ```bash
-# Format code
-uv run ruff format .
-
-# Lint code
-uv run ruff check .
-
-# Run tests
-uv run pytest -q
-
-# Run CLI
-uv run python -m ragleaklab --help
+uv run ruff format .   # Format
+uv run ruff check .    # Lint
+uv run pytest -q       # Test
 ```
 
-## Makefile shortcuts
+## Validated Commands
+
+The following commands are tested and work as documented:
 
 ```bash
-make fmt      # Format
-make lint     # Lint
-make test     # Test
-make check    # Lint + Test
+# Setup
+uv sync --all-extras
+
+# Lint and test
+uv run ruff format .
+uv run ruff check .
+uv run pytest -q
+
+# CLI help
+uv run python -m ragleaklab --help
+
+# Run security audit
+uv run python -m ragleaklab run \
+  --corpus data/corpus_private_canary \
+  --attacks data/attacks \
+  --out out/
+
+# Regression check
+uv run python -m ragleaklab diff \
+  --baseline baselines/v1/report.json \
+  --current out/report.json
 ```
 
 ## Project Structure
 
 ```
 src/ragleaklab/    # Main package
+├── attacks/       # Test harness
+├── corpus/        # Document loading
+├── metrics/       # Leakage measurement
+├── rag/           # Reference pipeline
+├── regression/    # Baseline comparison
+├── reporting/     # Output schemas
+└── targets/       # RAG adapters
 tests/             # Test files
-docs/              # Threat model and specs
-examples/          # Usage examples
-data/              # Data files
+docs/              # Documentation
+examples/          # Sample files
+data/              # Test data
+baselines/         # CI baselines
 ```
-
-## Testing Real RAG Services (HTTP Target)
-
-RAGLeakLab can test external RAG services via HTTP:
-
-```python
-from ragleaklab.targets import HttpTarget
-from ragleaklab.attacks import load_cases, run_all_with_target
-
-# Configure HTTP target
-target = HttpTarget(
-    url="https://your-rag-service.com/api/ask",
-    query_field="query",        # Request field name
-    answer_field="response",    # Response field name
-    context_field="context",    # Optional
-)
-
-# Load attacks and run
-cases = load_cases("data/attacks")
-artifacts = run_all_with_target(target, cases)
-```
-
-> [!WARNING]
-> **Do not include HTTP target tests in CI pipelines.**
-> - HTTP tests hit real services with real costs
-> - They may trigger rate limits or security alerts
-> - Results are non-deterministic
->
-> Use `InProcessTarget` with the built-in pipeline for CI.
-
