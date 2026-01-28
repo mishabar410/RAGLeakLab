@@ -15,6 +15,6 @@
       "threshold": 0.1
     }
   ],
-  "corpus_path": "/Users/misha/RAGLeakLab/data/corpus_private_canary",
-  "attacks_path": "/Users/misha/RAGLeakLab/data/attacks"
+  "corpus_path": "data/corpus_private_canary",
+  "attacks_path": "data/attacks"
 }

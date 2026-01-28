@@ -1,5 +1,9 @@
 # RAGLeakLab
 
+[![CI](https://github.com/mishabar410/RAGLeakLab/actions/workflows/ci.yml/badge.svg)](https://github.com/mishabar410/RAGLeakLab/actions/workflows/ci.yml)
+[![Release](https://img.shields.io/github/v/release/mishabar410/RAGLeakLab)](https://github.com/mishabar410/RAGLeakLab/releases)
+[![Python 3.12+](https://img.shields.io/badge/python-3.12+-blue.svg)](https://www.python.org/downloads/)
+
 Security testing framework for RAG systems. Measures information leakage from private corpus.
 
 ## What This Tool Does

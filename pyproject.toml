@@ -11,6 +11,9 @@ dependencies = [
     "requests>=2.31.0",
 ]
 
+[project.scripts]
+ragleaklab = "ragleaklab.__main__:app"
+
 [project.optional-dependencies]
 dev = [
     "pytest>=8.0.0",
