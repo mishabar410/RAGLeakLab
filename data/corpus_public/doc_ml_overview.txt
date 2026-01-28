@@ -1,0 +1,12 @@
+Machine Learning Overview
+
+Machine learning is a subset of artificial intelligence that enables systems 
+to learn and improve from experience without being explicitly programmed.
+
+Types of Machine Learning:
+1. Supervised Learning - Training with labeled data
+2. Unsupervised Learning - Finding patterns in unlabeled data  
+3. Reinforcement Learning - Learning through trial and error
+
+Common algorithms include decision trees, neural networks, and support vector machines.
+Applications range from image recognition to natural language processing.

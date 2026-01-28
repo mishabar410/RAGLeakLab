@@ -1,0 +1,14 @@
+Data Processing Best Practices
+
+When working with large datasets, consider the following guidelines:
+
+- Always validate input data before processing
+- Use streaming for files larger than available memory
+- Implement proper error handling and logging
+- Consider data privacy regulations (GDPR, CCPA)
+
+Performance tips:
+- Batch operations when possible
+- Use appropriate data structures
+- Profile code to identify bottlenecks
+- Cache frequently accessed data
