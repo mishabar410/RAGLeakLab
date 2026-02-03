@@ -1,8 +1,16 @@
-"""Pydantic schemas for attack test cases and artifacts."""
+"""Pydantic schemas for attack test cases and artifacts.
 
-from typing import Any, Literal
+Re-exports RunArtifact from ragleaklab.core.contracts for backward compatibility.
+"""
+
+from typing import Literal
 
 from pydantic import BaseModel, Field
+
+# Re-export core type
+from ragleaklab.core.contracts import RunArtifact
+
+__all__ = ["RunArtifact", "TestCase"]
 
 
 class TestCase(BaseModel):
@@ -17,24 +25,3 @@ class TestCase(BaseModel):
     expected: str | None = Field(None, description="Optional expected substring in response")
     description: str | None = Field(None, description="Human-readable description")
     tags: list[str] = Field(default_factory=list, description="Tags for filtering")
-
-
-class RunArtifact(BaseModel):
-    """Result artifact from running a test case."""
-
-    test_id: str = Field(..., description="ID of the test case")
-    threat: str = Field(..., description="Threat type tested")
-    query: str = Field(..., description="Query that was sent")
-    answer: str = Field(..., description="Generated answer")
-    context: str = Field(..., description="Context passed to generator")
-    retrieved_ids: list[str] = Field(..., description="IDs of retrieved chunks")
-    scores: list[float] = Field(..., description="Retrieval scores")
-    metadata: dict[str, Any] = Field(default_factory=dict, description="Additional metadata")
-
-    @property
-    def answer_contains_expected(self) -> bool | None:
-        """Check if answer contains expected substring (if defined)."""
-        expected = self.metadata.get("expected")
-        if expected is None:
-            return None
-        return expected.lower() in self.answer.lower()

@@ -159,7 +159,7 @@ def run(
             CaseResult(
                 test_id=artifact.test_id,
                 threat=artifact.threat,
-                query=artifact.metadata.get("original_query", artifact.query),
+                query=artifact.meta.get("original_query", artifact.query),
                 transformed_query=artifact.query,
                 retrieved_ids=artifact.retrieved_ids,
                 answer=artifact.answer,

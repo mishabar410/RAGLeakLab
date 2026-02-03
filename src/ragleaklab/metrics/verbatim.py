@@ -5,6 +5,8 @@ from collections.abc import Sequence
 
 from pydantic import BaseModel
 
+from ragleaklab.core.contracts import MetricScore
+
 
 class VerbatimResult(BaseModel):
     """Result of verbatim overlap detection."""
@@ -13,6 +15,26 @@ class VerbatimResult(BaseModel):
     max_lcs_length: int  # Longest common substring length
     source_with_max_overlap: str | None  # Source ID with highest overlap
     ngram_matches: int  # Number of matching n-grams
+
+    def to_metric_score(self, threshold: float = 0.1) -> MetricScore:
+        """Convert to unified MetricScore.
+
+        Args:
+            threshold: Maximum allowed verbatim score (default 0.1 = 10%).
+
+        Returns:
+            MetricScore with verbatim overlap results.
+        """
+        return MetricScore(
+            name="verbatim",
+            value=self.score,
+            details={
+                "max_lcs_length": self.max_lcs_length,
+                "source_with_max_overlap": self.source_with_max_overlap,
+                "ngram_matches": self.ngram_matches,
+            },
+            passed=self.score <= threshold,
+        )
 
 
 def _tokenize(text: str) -> list[str]:

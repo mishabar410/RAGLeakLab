@@ -6,14 +6,20 @@ from ragleaklab.reporting.export import (
 )
 from ragleaklab.reporting.schema import (
     CaseResult,
+    CoreCaseResult,
     FailureReason,
+    MetricScore,
     Report,
+    ReportSummary,
 )
 
 __all__ = [
     "CaseResult",
+    "CoreCaseResult",
     "FailureReason",
+    "MetricScore",
     "Report",
+    "ReportSummary",
     "export_junit",
     "export_sarif",
 ]

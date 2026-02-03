@@ -5,6 +5,7 @@ from collections.abc import Sequence
 from pydantic import BaseModel
 
 from ragleaklab.attacks.schema import RunArtifact
+from ragleaklab.core.contracts import MetricScore
 
 
 class MembershipResult(BaseModel):
@@ -13,6 +14,25 @@ class MembershipResult(BaseModel):
     score: float  # 0.0 - 1.0, confidence of membership
     signal_strength: float  # How strong the membership signal is
     artifacts_analyzed: int
+
+    def to_metric_score(self, threshold: float = 0.65) -> MetricScore:
+        """Convert to unified MetricScore.
+
+        Args:
+            threshold: Maximum allowed membership confidence (default 0.65 = 65%).
+
+        Returns:
+            MetricScore with membership inference results.
+        """
+        return MetricScore(
+            name="membership",
+            value=self.score,
+            details={
+                "signal_strength": self.signal_strength,
+                "artifacts_analyzed": self.artifacts_analyzed,
+            },
+            passed=self.score <= threshold,
+        )
 
 
 def membership_confidence(

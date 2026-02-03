@@ -7,6 +7,7 @@ import yaml
 
 from ragleaklab.attacks.catalog import get_strategy
 from ragleaklab.attacks.schema import RunArtifact, TestCase
+from ragleaklab.core.contracts import Chunk, RetrievalHit
 from ragleaklab.rag.pipeline import RAGPipeline
 
 if TYPE_CHECKING:
@@ -82,18 +83,30 @@ def run_case(
     # Run through pipeline
     result = pipeline.run(query)
 
+    # Build retrieved list from chunks and scores
+    retrieved: list[RetrievalHit] = []
+    for chunk, score in zip(result.retrieved_chunks, result.scores, strict=False):
+        # Convert rag.types.Chunk to core.contracts.Chunk
+        core_chunk = Chunk(
+            doc_id=chunk.doc_id,
+            chunk_id=chunk.chunk_id,
+            text=chunk.text,
+            metadata=chunk.metadata,
+        )
+        retrieved.append(RetrievalHit(chunk=core_chunk, score=score))
+
     # Build metadata
-    metadata: dict[str, Any] = {
+    meta: dict[str, Any] = {
         "strategy": case.strategy,
         "original_query": case.query,
         "transformed_query": query,
     }
     if case.expected:
-        metadata["expected"] = case.expected
+        meta["expected"] = case.expected
     if case.description:
-        metadata["description"] = case.description
+        meta["description"] = case.description
     if case.tags:
-        metadata["tags"] = case.tags
+        meta["tags"] = case.tags
 
     return RunArtifact(
         test_id=case.test_id,
@@ -101,9 +114,8 @@ def run_case(
         query=query,
         answer=result.answer,
         context=result.context,
-        retrieved_ids=[c.full_id for c in result.retrieved_chunks],
-        scores=result.scores,
-        metadata=metadata,
+        retrieved=retrieved,
+        meta=meta,
     )
 
 
@@ -138,7 +150,7 @@ def run_case_with_target(
         apply_strategy: Whether to apply strategy transformation.
 
     Returns:
-    RunArtifact with results.
+        RunArtifact with results.
     """
     # Get query (optionally transformed by strategy)
     if apply_strategy:
@@ -150,18 +162,30 @@ def run_case_with_target(
     # Run through target
     response = target.ask(query)
 
+    # Build retrieved list from target response
+    retrieved: list[RetrievalHit] = []
+    for i, chunk_id in enumerate(response.retrieved_ids):
+        # Parse chunk_id format: doc_id:chunk_id
+        parts = chunk_id.split(":", 1)
+        doc_id = parts[0]
+        c_id = parts[1] if len(parts) > 1 else "0"
+        score = response.scores[i] if i < len(response.scores) else None
+
+        chunk = Chunk(doc_id=doc_id, chunk_id=c_id, text="")  # Text not available from target
+        retrieved.append(RetrievalHit(chunk=chunk, score=score))
+
     # Build metadata
-    metadata: dict[str, Any] = {
+    meta: dict[str, Any] = {
         "strategy": case.strategy,
         "original_query": case.query,
         "transformed_query": query,
     }
     if case.expected:
-        metadata["expected"] = case.expected
+        meta["expected"] = case.expected
     if case.description:
-        metadata["description"] = case.description
+        meta["description"] = case.description
     if case.tags:
-        metadata["tags"] = case.tags
+        meta["tags"] = case.tags
 
     return RunArtifact(
         test_id=case.test_id,
@@ -169,9 +193,8 @@ def run_case_with_target(
         query=query,
         answer=response.answer,
         context=response.context,
-        retrieved_ids=response.retrieved_ids,
-        scores=response.scores,
-        metadata=metadata,
+        retrieved=retrieved,
+        meta=meta,
     )
 
 

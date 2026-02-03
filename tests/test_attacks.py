@@ -45,19 +45,26 @@ class TestSchema:
 
     def test_runartifact_structure(self):
         """RunArtifact has expected structure."""
+        from ragleaklab.core.contracts import Chunk, RetrievalHit
+
+        chunk1 = Chunk(doc_id="doc1", chunk_id="c0", text="text1")
+        chunk2 = Chunk(doc_id="doc2", chunk_id="c1", text="text2")
         artifact = RunArtifact(
             test_id="test_01",
             threat="canary",
             query="test query",
             answer="test answer",
             context="test context",
-            retrieved_ids=["doc1:c0", "doc2:c1"],
-            scores=[0.8, 0.5],
-            metadata={"expected": "answer"},
+            retrieved=[
+                RetrievalHit(chunk=chunk1, score=0.8),
+                RetrievalHit(chunk=chunk2, score=0.5),
+            ],
+            meta={"expected": "answer"},
         )
         assert artifact.test_id == "test_01"
         assert len(artifact.retrieved_ids) == 2
-        assert artifact.answer_contains_expected is True
+        assert artifact.retrieved_ids == ["doc1:c0", "doc2:c1"]
+        assert artifact.scores == [0.8, 0.5]
 
 
 class TestCatalog:

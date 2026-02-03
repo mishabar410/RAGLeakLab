@@ -1,30 +1,22 @@
-"""Type definitions for RAG pipeline."""
+"""Type definitions for RAG pipeline.
+
+Re-exports core types from ragleaklab.core.contracts for backward compatibility.
+"""
 
 from pydantic import BaseModel
 
+# Re-export core types
+from ragleaklab.core.contracts import Chunk, Document
 
-class Document(BaseModel):
-    """A document in the corpus."""
-
-    doc_id: str
-    text: str
-
-
-class Chunk(BaseModel):
-    """A chunk of a document."""
-
-    doc_id: str
-    chunk_id: str
-    text: str
-
-    @property
-    def full_id(self) -> str:
-        """Return full chunk identifier."""
-        return f"{self.doc_id}:{self.chunk_id}"
+__all__ = ["Chunk", "Document", "RetrievalResult"]
 
 
 class RetrievalResult(BaseModel):
-    """Result from retrieval operation."""
+    """Result from retrieval operation.
+
+    Note: This is a pipeline-internal type. For run artifacts, use
+    ragleaklab.core.contracts.RetrievalHit instead.
+    """
 
     chunks: list[Chunk]
     scores: list[float]
