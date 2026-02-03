@@ -384,6 +384,53 @@ def assets_build(
     typer.echo(f"   Manifest: {out / 'manifest.json'}")
 
 
+@assets_app.command("validate")
+def assets_validate(
+    path: Path = typer.Option(Path("."), "--path", "-p", help="Directory to scan for manifests"),
+    strict: bool = typer.Option(False, "--strict", help="Treat warnings as errors"),
+) -> None:
+    """Validate asset manifests.
+
+    Checks all *.corpus.yaml, *.attacks.yaml, and *.pack.yaml files:
+    - Schema validity
+    - Hash integrity
+    - Reference resolution
+    - Report field validity
+    """
+    from ragleaklab.assets.validate import validate_assets
+
+    if not path.exists():
+        typer.echo(f"❌ Path not found: {path}", err=True)
+        raise typer.Exit(1)
+
+    typer.echo(f"🔍 Validating assets in: {path}")
+
+    result = validate_assets(path)
+
+    # Print results
+    typer.echo(f"   Found {result.manifests_found} manifest(s)")
+    typer.echo(f"   Valid: {result.manifests_valid}/{result.manifests_found}")
+
+    if result.warnings:
+        typer.echo("\n⚠️  Warnings:")
+        for w in result.warnings:
+            typer.echo(f"   {w.path}: {w.message}")
+
+    if result.errors:
+        typer.echo("\n❌ Errors:")
+        for e in result.errors:
+            typer.echo(f"   {e.path}: {e.message}")
+
+    # Determine exit status
+    has_failures = len(result.errors) > 0 or (strict and len(result.warnings) > 0)
+
+    if has_failures:
+        typer.echo("\n❌ Validation failed")
+        raise typer.Exit(1)
+    else:
+        typer.echo("\n✅ All manifests valid")
+
+
 @app.command()
 def version() -> None:
     """Show version information."""

@@ -170,3 +170,25 @@ h = compute_tree_hash(Path("data/corpus_public"))
 print(h)  # 64-character hex string
 ```
 
+## Validation
+
+Validate all manifests in a directory:
+
+```bash
+# Validate all assets from project root
+ragleaklab assets validate --path .
+
+# Validate specific directory
+ragleaklab assets validate --path data/
+
+# Strict mode (treat warnings as errors)
+ragleaklab assets validate --path . --strict
+```
+
+This checks:
+- Schema validity against Pydantic models
+- Hash integrity (computed vs. stored)
+- Reference resolution in pack manifests
+- Report field validity
+
+
