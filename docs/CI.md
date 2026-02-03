@@ -4,6 +4,40 @@ This document describes how to integrate RAGLeakLab into CI pipelines.
 
 ## Pipeline Overview
 
+RAGLeakLab has two CI pipelines with different purposes:
+
+### PR/Push CI (`ci.yml`)
+Runs on every push and pull request. Fast feedback loop:
+- Lint + format check
+- Fast tests (`pytest -q` — excludes `@pytest.mark.slow`)
+- Security audit with baseline regression check
+- Semantic pack regression check
+
+### Nightly CI (`nightly.yml`)
+Runs daily at 02:00 UTC. Extended robustness testing:
+- All PR CI checks
+- **Slow tests**: Fuzz tests and property-based tests (`pytest -m slow`)
+- Artifact upload: Reports saved for 7 days
+
+```yaml
+# Example: Nightly schedule
+on:
+  schedule:
+    - cron: "0 2 * * *"
+  workflow_dispatch:  # Manual trigger
+```
+
+## Test Markers
+
+| Marker | Description | When Run |
+|--------|-------------|----------|
+| (none) | Standard unit/integration tests | PR CI + Nightly |
+| `slow` | Fuzz + property-based tests | Nightly only |
+
+Mark slow tests with `@pytest.mark.slow` or module-level `pytestmark = pytest.mark.slow`.
+
+## Recommended PR CI Workflow
+
 The recommended CI workflow:
 
 ```yaml
@@ -15,7 +49,7 @@ steps:
     run: uv run ruff check .
 
   - name: Test
-    run: uv run pytest -q
+    run: uv run pytest -q -m "not slow"
 
   - name: Security audit
     run: |

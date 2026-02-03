@@ -1,13 +1,13 @@
-name: CI
+name: Nightly
 
 on:
-  push:
-    branches: [main]
-  pull_request:
-    branches: [main]
+  schedule:
+    # Run daily at 02:00 UTC
+    - cron: "0 2 * * *"
+  workflow_dispatch: # Allow manual trigger
 
 jobs:
-  test:
+  robustness-suite:
     runs-on: ubuntu-latest
 
     steps:
@@ -30,13 +30,13 @@ jobs:
       - name: Format check
         run: uv run ruff format --check .
 
-      - name: Run tests
+      - name: Run fast tests (exclude slow)
         run: uv run pytest -q -m "not slow"
 
-      - name: Validate assets
-        run: uv run python -m ragleaklab assets validate --path .
+      - name: Run slow/robustness tests
+        run: uv run pytest -q -m "slow" --tb=short
 
-      - name: Run security audit
+      - name: Full security audit
         run: |
           uv run python -m ragleaklab run \
             --corpus data/corpus_private_canary \
@@ -48,6 +48,14 @@ jobs:
           uv run python -m ragleaklab diff \
             --baseline baselines/v1/report.json \
             --current out/report.json
+
+      - name: Save reports artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-reports
+          path: out/
+          retention-days: 7
 
   semantic-pack:
     runs-on: ubuntu-latest
@@ -78,3 +86,10 @@ jobs:
             --baseline baselines/semantic_v1/report.json \
             --current out/semantic/report.json
 
+      - name: Save semantic reports artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: nightly-semantic-reports
+          path: out/semantic/
+          retention-days: 7

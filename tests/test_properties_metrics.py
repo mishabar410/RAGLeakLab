@@ -4,15 +4,21 @@ Tests invariants:
 - verbatim_overlap score invariant to source permutation
 - claim matching invariant to case/punctuation for EMAIL/ACCOUNT_ID types
 - canary detection: no false positives on random strings without CANARY_ prefix
+
+These tests run in nightly CI (marked as slow).
 """
 
 import random
 
+import pytest
 from hypothesis import HealthCheck, assume, given, settings
 from hypothesis import strategies as st
 
 from ragleaklab.metrics import detect_canary, verbatim_overlap
 from ragleaklab.metrics.claim_match import match_claim
+
+# Mark entire module as slow (nightly CI)
+pytestmark = pytest.mark.slow
 
 # Fixed settings for fast, deterministic tests
 PROP_SETTINGS = settings(

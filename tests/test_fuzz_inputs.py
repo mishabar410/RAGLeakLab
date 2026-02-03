@@ -4,12 +4,15 @@ Tests that the system handles malformed/malicious inputs gracefully:
 - YAML/JSON manifests with random/unicode strings
 - Queries with edge cases (long, emoji, RTL, null bytes)
 - No panics, clean ValueError/ValidationError without stacktrace leaking
+
+These tests run in nightly CI (marked as slow).
 """
 
 import json
 import tempfile
 from pathlib import Path
 
+import pytest
 import yaml
 from hypothesis import HealthCheck, given, settings
 from hypothesis import strategies as st
@@ -23,6 +26,9 @@ from ragleaklab.core.errors import (
     ManifestValidationError,
     sanitize_message,
 )
+
+# Mark entire module as slow (nightly CI)
+pytestmark = pytest.mark.slow
 
 # Fixed settings for fast, deterministic tests
 FUZZ_SETTINGS = settings(
