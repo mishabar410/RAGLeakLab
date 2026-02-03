@@ -10,3 +10,9 @@ __all__ = [
     "Target",
     "TargetResponse",
 ]
+
+# Register built-in targets as plugins
+from ragleaklab.core.plugins import register as _register
+
+_register("targets", "http", HttpTarget)
+_register("targets", "inprocess", InProcessTarget)

@@ -20,3 +20,12 @@ __all__ = [
     "membership_consistency",
     "verbatim_overlap",
 ]
+
+# Register built-in metrics as plugins
+from ragleaklab.core.plugins import register as _register
+
+_register("metrics", "canary", detect_canary)
+_register("metrics", "verbatim", verbatim_overlap)
+_register("metrics", "membership", membership_confidence)
+_register("metrics", "consistency", membership_consistency)
+_register("metrics", "paraphrase", generate_paraphrases)

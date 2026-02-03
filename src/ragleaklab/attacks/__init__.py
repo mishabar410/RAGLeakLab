@@ -21,3 +21,10 @@ __all__ = [
     "run_case",
     "run_case_with_target",
 ]
+
+# Register built-in attack strategies as plugins
+from ragleaklab.attacks.catalog import STRATEGIES as _STRATEGIES
+from ragleaklab.core.plugins import register as _register
+
+for _name, _strategy in _STRATEGIES.items():
+    _register("attacks", _name, _strategy)
