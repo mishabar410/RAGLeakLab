@@ -344,6 +344,46 @@ def diff(
         raise typer.Exit(1)
 
 
+# Assets subcommand
+assets_app = typer.Typer(help="Asset generation utilities")
+app.add_typer(assets_app, name="assets")
+
+
+@assets_app.command("build")
+def assets_build(
+    out: Path = typer.Option(..., "--out", "-o", help="Output directory"),
+    seed: int = typer.Option(42, "--seed", "-s", help="Random seed for determinism"),
+    docs: int = typer.Option(10, "--docs", "-d", help="Number of documents"),
+    claims_per_doc: int = typer.Option(3, "--claims-per-doc", "-c", help="Claims per document"),
+    no_pii: bool = typer.Option(False, "--no-pii", help="Exclude PII-type claims"),
+) -> None:
+    """Generate synthetic corpus with claims for testing.
+
+    Creates deterministic test data with embedded sensitive claims.
+    Same seed always produces identical output.
+    """
+    from ragleaklab.corpus.generate import generate_synthetic_corpus
+
+    typer.echo("🔧 Generating synthetic corpus...")
+    typer.echo(f"   Output: {out}")
+    typer.echo(f"   Seed: {seed}")
+    typer.echo(f"   Documents: {docs}")
+    typer.echo(f"   Claims/doc: {claims_per_doc}")
+    typer.echo()
+
+    manifest = generate_synthetic_corpus(
+        out_dir=out,
+        seed=seed,
+        n_docs=docs,
+        claims_per_doc=claims_per_doc,
+        include_pii=not no_pii,
+    )
+
+    typer.echo(f"✅ Generated {manifest['total_claims']} claims across {docs} documents")
+    typer.echo(f"   Corpus hash: {manifest['corpus_hash']}")
+    typer.echo(f"   Manifest: {out / 'manifest.json'}")
+
+
 @app.command()
 def version() -> None:
     """Show version information."""
