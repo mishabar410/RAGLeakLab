@@ -63,3 +63,38 @@ When cache is enabled, `runs.jsonl` includes `cache_hit: true/false` in each cas
 - Enable `--cache` for CI regression runs with frozen corpora
 - Disable cache when actively developing attack queries
 - Clear cache after corpus updates to ensure fresh results
+
+## Parallel Execution
+
+Run attack cases in parallel with `--jobs N`:
+
+### Usage
+
+```bash
+ragleaklab run --corpus data/corpus --attacks data/attacks --out results --jobs 4
+```
+
+### Deterministic Ordering
+
+Results are always sorted by `test_id` regardless of parallel execution order,
+ensuring `report.json` and `runs.jsonl` are reproducible across runs.
+
+### Limitations
+
+- **Cache disabled**: When `jobs > 1`, disk cache is disabled (not process-safe)
+- **HTTP targets**: Use with caution for HTTP targets without rate limiting
+
+### MVP Notes
+
+For HTTP targets without rate limiting, consider using `--jobs 1` to avoid
+overwhelming the target service. Future versions may add configurable rate
+limiting for parallel HTTP requests.
+
+### Performance Expectations
+
+| Scenario | Speedup |
+|----------|---------|
+| CPU-bound cases, jobs=N | Up to Nx (limited by core count) |
+| I/O-bound HTTP targets | Significant (parallel requests) |
+| Single case | No speedup |
+

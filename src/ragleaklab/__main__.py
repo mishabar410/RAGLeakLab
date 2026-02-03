@@ -35,6 +35,7 @@ def run(
         False, "--minimize-on-fail", help="Minimize failing queries for stable regression"
     ),
     cache: bool = typer.Option(False, "--cache", help="Enable disk cache for deterministic runs"),
+    jobs: int = typer.Option(1, "--jobs", "-j", help="Parallel workers (default: 1)"),
 ) -> None:
     """Run attack test cases against a corpus and generate reports.
 
@@ -169,12 +170,14 @@ def run(
         from ragleaklab.targets import HttpTarget
 
         target = HttpTarget.from_config(cfg.target)  # type: ignore
-        artifacts = run_all_with_target(target, cases, hashes=run_hashes, cache=disk_cache)
+        artifacts = run_all_with_target(
+            target, cases, hashes=run_hashes, cache=disk_cache, jobs=jobs
+        )
     else:
         # Create in-process pipeline
         pipeline = RAGPipeline(top_k=3)
         pipeline.add_documents(rag_docs)
-        artifacts = run_all(pipeline, cases, hashes=run_hashes, cache=disk_cache)
+        artifacts = run_all(pipeline, cases, hashes=run_hashes, cache=disk_cache, jobs=jobs)
 
     # Calculate metrics per case
     case_results: list[CaseResult] = []

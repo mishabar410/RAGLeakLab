@@ -1,6 +1,7 @@
 """Attack test runner."""
 
 import time
+from concurrent.futures import ProcessPoolExecutor
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -196,6 +197,7 @@ def run_all(
     apply_strategy: bool = True,
     hashes: Hashes | None = None,
     cache: DiskCache | None = None,
+    jobs: int = 1,
 ) -> list[RunArtifact]:
     """Run all test cases through the pipeline.
 
@@ -205,11 +207,25 @@ def run_all(
         apply_strategy: Whether to apply strategy transformations.
         hashes: Optional provenance hashes.
         cache: Optional disk cache for result caching.
+        jobs: Number of parallel workers (default: 1).
 
     Returns:
-        List of RunArtifact with results.
+        List of RunArtifact with results, sorted by test_id for determinism.
     """
-    return [run_case(pipeline, case, apply_strategy, hashes, cache) for case in cases]
+    if jobs == 1:
+        # Sequential execution
+        results = [run_case(pipeline, case, apply_strategy, hashes, cache) for case in cases]
+    else:
+        # Parallel execution - cache disabled (not process-safe)
+        with ProcessPoolExecutor(max_workers=jobs) as executor:
+            futures = [
+                executor.submit(run_case, pipeline, case, apply_strategy, hashes, None)
+                for case in cases
+            ]
+            results = [f.result() for f in futures]
+
+    # Deterministic ordering by test_id
+    return sorted(results, key=lambda r: r.test_id)
 
 
 def run_case_with_target(
@@ -337,6 +353,7 @@ def run_all_with_target(
     apply_strategy: bool = True,
     hashes: Hashes | None = None,
     cache: DiskCache | None = None,
+    jobs: int = 1,
 ) -> list[RunArtifact]:
     """Run all test cases through a target adapter.
 
@@ -346,8 +363,24 @@ def run_all_with_target(
         apply_strategy: Whether to apply strategy transformations.
         hashes: Optional provenance hashes.
         cache: Optional disk cache for result caching.
+        jobs: Number of parallel workers (default: 1).
 
     Returns:
-        List of RunArtifact with results.
+        List of RunArtifact with results, sorted by test_id for determinism.
     """
-    return [run_case_with_target(target, case, apply_strategy, hashes, cache) for case in cases]
+    if jobs == 1:
+        # Sequential execution
+        results = [
+            run_case_with_target(target, case, apply_strategy, hashes, cache) for case in cases
+        ]
+    else:
+        # Parallel execution - cache disabled (not process-safe)
+        with ProcessPoolExecutor(max_workers=jobs) as executor:
+            futures = [
+                executor.submit(run_case_with_target, target, case, apply_strategy, hashes, None)
+                for case in cases
+            ]
+            results = [f.result() for f in futures]
+
+    # Deterministic ordering by test_id
+    return sorted(results, key=lambda r: r.test_id)
