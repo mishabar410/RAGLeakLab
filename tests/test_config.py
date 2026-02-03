@@ -25,6 +25,7 @@ def mock_dns_public():
     ):
         yield
 
+
 class TestConfigLoading:
     """Tests for config file loading."""
 

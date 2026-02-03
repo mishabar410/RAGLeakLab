@@ -1,0 +1,6 @@
+# Dependencies for FastAPI target example
+# Install with: pip install -r requirements.txt
+# Or with uv: uv pip install -r requirements.txt
+
+fastapi>=0.100.0
+uvicorn>=0.27.0

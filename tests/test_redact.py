@@ -104,7 +104,9 @@ class TestRedactDict:
 
     def test_redact_dict_authorization_header(self) -> None:
         """Test Authorization header is fully redacted."""
-        data = {"headers": {"Authorization": "Bearer secret123", "Content-Type": "application/json"}}
+        data = {
+            "headers": {"Authorization": "Bearer secret123", "Content-Type": "application/json"}
+        }
         result = redact_dict(data)
         assert result["headers"]["Authorization"] == REDACTED
         assert result["headers"]["Content-Type"] == "application/json"
