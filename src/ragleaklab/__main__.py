@@ -1,5 +1,6 @@
 """CLI entry point for ragleaklab."""
 
+from datetime import UTC
 from pathlib import Path
 from typing import Any
 
@@ -436,6 +437,131 @@ def diff(
         for reason in result.reasons:
             typer.echo(f"   - {reason}")
         raise typer.Exit(1)
+
+
+@app.command()
+def bench(
+    pack: str = typer.Option(..., "--pack", "-p", help="Attack pack to benchmark"),
+    runs: int = typer.Option(3, "--runs", "-r", help="Number of benchmark runs"),
+    out: Path = typer.Option(..., "--out", "-o", help="Output JSON file path"),
+    cache: bool = typer.Option(False, "--cache", help="Enable disk cache"),
+    jobs: int = typer.Option(1, "--jobs", "-j", help="Parallel workers"),
+) -> None:
+    """Benchmark attack pack execution time.
+
+    Measures total runtime, median per-case time, and cache hit rate.
+    """
+    import json
+    import statistics
+    import time
+    from datetime import datetime
+
+    from ragleaklab.attacks import load_cases, run_all
+    from ragleaklab.corpus import load_corpus
+    from ragleaklab.packs import get_pack_path
+    from ragleaklab.rag import Document, RAGPipeline
+
+    # Load pack
+    try:
+        pack_path = get_pack_path(pack)
+        corpus_path = pack_path.parent / "corpus"  # Packs include their corpus
+    except ValueError as e:
+        typer.echo(f"❌ {e}", err=True)
+        raise typer.Exit(1) from None
+
+    # Find corpus - packs may have different structures
+    if not corpus_path.exists():
+        # Try data directory
+        corpus_path = Path(__file__).parent.parent.parent / "data" / "corpus_private_canary"
+    if not corpus_path.exists():
+        typer.echo(f"❌ Corpus not found for pack: {pack}", err=True)
+        raise typer.Exit(1)
+
+    typer.echo(f"🔬 Benchmarking pack: {pack}")
+    typer.echo(f"   Runs: {runs}")
+    typer.echo(f"   Jobs: {jobs}")
+    typer.echo(f"   Cache: {'enabled' if cache else 'disabled'}")
+
+    # Load corpus and cases
+    cases = load_cases(pack_path)
+    corpus_docs = load_corpus(corpus_path)
+    rag_docs = [Document(doc_id=d.doc_id, text=d.text) for d in corpus_docs]
+
+    typer.echo(f"   Cases: {len(cases)}")
+    typer.echo(f"   Documents: {len(corpus_docs)}")
+
+    # Setup cache if enabled
+    disk_cache = None
+    if cache:
+        from ragleaklab.core.cache import DiskCache
+
+        cache_dir = (
+            out.parent / ".ragleaklab_bench_cache"
+            if out.parent.exists()
+            else Path(".ragleaklab_bench_cache")
+        )
+        cache_dir.mkdir(parents=True, exist_ok=True)
+        disk_cache = DiskCache(cache_dir)
+
+    # Create pipeline
+    pipeline = RAGPipeline(top_k=3)
+    pipeline.add_documents(rag_docs)
+
+    # Run benchmarks
+    run_times: list[float] = []
+    per_case_times: list[float] = []
+    total_cache_hits = 0
+    total_cases_run = 0
+
+    typer.echo("\n⏱️  Running benchmarks...")
+    for run_idx in range(runs):
+        start = time.perf_counter()
+        artifacts = run_all(pipeline, cases, cache=disk_cache, jobs=jobs)
+        elapsed = time.perf_counter() - start
+
+        run_times.append(elapsed)
+        per_case_times.append(elapsed / len(cases) if cases else 0)
+
+        # Count cache hits
+        for artifact in artifacts:
+            total_cases_run += 1
+            if artifact.meta.get("cache_hit", False):
+                total_cache_hits += 1
+
+        typer.echo(
+            f"   Run {run_idx + 1}/{runs}: {elapsed:.3f}s ({elapsed / len(cases) * 1000:.1f}ms/case)"
+        )
+
+    # Calculate stats
+    total_runtime = sum(run_times)
+    median_per_case = statistics.median(per_case_times) if per_case_times else 0
+    cache_hit_rate = total_cache_hits / total_cases_run if total_cases_run > 0 else 0
+
+    # Build result
+    result = {
+        "pack": pack,
+        "runs": runs,
+        "cases_per_run": len(cases),
+        "jobs": jobs,
+        "cache_enabled": cache,
+        "total_runtime_sec": round(total_runtime, 3),
+        "run_times_sec": [round(t, 3) for t in run_times],
+        "median_per_case_sec": round(median_per_case, 6),
+        "median_per_case_ms": round(median_per_case * 1000, 2),
+        "cache_hit_rate": round(cache_hit_rate, 4),
+        "generated_at": datetime.now(UTC).isoformat(),
+    }
+
+    # Write output
+    out.parent.mkdir(parents=True, exist_ok=True)
+    with open(out, "w") as f:
+        json.dump(result, f, indent=2)
+
+    typer.echo(f"\n📄 Wrote {out}")
+    typer.echo("\n📊 Summary:")
+    typer.echo(f"   Total runtime: {total_runtime:.3f}s")
+    typer.echo(f"   Median per-case: {median_per_case * 1000:.2f}ms")
+    typer.echo(f"   Cache hit rate: {cache_hit_rate:.1%}")
 
 
 # Attacks subcommand
