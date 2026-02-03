@@ -124,6 +124,8 @@ class TestCLIValidate:
 
     def test_cli_validate_help(self) -> None:
         """CLI validate command should show help."""
+        import re
+
         from typer.testing import CliRunner
 
         from ragleaklab.__main__ import app
@@ -131,10 +133,14 @@ class TestCLIValidate:
         runner = CliRunner()
         result = runner.invoke(app, ["assets", "validate", "--help"])
 
+        # Strip ANSI escape codes for CI compatibility
+        ansi_escape = re.compile(r"\x1b\[[0-9;]*m")
+        stdout_clean = ansi_escape.sub("", result.stdout)
+
         assert result.exit_code == 0
-        assert "Validate asset manifests" in result.stdout
-        assert "--path" in result.stdout
-        assert "--strict" in result.stdout
+        assert "Validate asset manifests" in stdout_clean
+        assert "--path" in stdout_clean
+        assert "--strict" in stdout_clean
 
     def test_cli_validate_project(self) -> None:
         """CLI validate should pass for project manifests."""
