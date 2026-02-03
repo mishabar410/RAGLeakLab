@@ -205,7 +205,18 @@ def run(
         for r in verdict.reasons
     ]
 
+    # Get version info
+    from ragleaklab.core.version import compute_config_hash, get_tool_version
+
+    tool_version = get_tool_version()
+    config_hash = compute_config_hash(
+        corpus_path=str(corpus_path.resolve()),
+        attacks_path=str(attacks_path.resolve()) if attacks_path else "packs",
+        packs=",".join(sorted(pack)) if pack else "",
+    )
+
     report = Report(
+        tool_version=tool_version,
         total_cases=len(cases),
         canary_extracted=canary_extracted,
         canary_count=total_canary_count,
@@ -215,6 +226,7 @@ def run(
         failures=failures,
         corpus_path=str(corpus_path.resolve()),
         attacks_path=str(attacks_path.resolve()) if attacks_path else "built-in packs",
+        config_hash=config_hash,
     )
 
     # Write report.json

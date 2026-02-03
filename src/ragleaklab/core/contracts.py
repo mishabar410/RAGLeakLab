@@ -103,6 +103,10 @@ class ReportSummary(BaseModel):
     """
 
     schema_version: str = Field(default="2.0.0", description="Report schema version")
+    tool_version: str = Field(
+        default="",
+        description="RAGLeakLab package version",
+    )
     generated_at: str = Field(
         default_factory=lambda: datetime.now().isoformat(),
         description="ISO timestamp of report generation",
@@ -117,5 +121,5 @@ class ReportSummary(BaseModel):
     )
     meta: dict[str, Any] = Field(
         default_factory=dict,
-        description="Additional metadata (corpus_path, attacks_path, etc.)",
+        description="Additional metadata (corpus_path, attacks_path, config_hash, etc.)",
     )

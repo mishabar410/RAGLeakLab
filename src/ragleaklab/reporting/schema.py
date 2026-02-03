@@ -60,6 +60,7 @@ class Report(BaseModel):
     """
 
     schema_version: str = Field(default=SCHEMA_VERSION)
+    tool_version: str = Field(default="")
     generated_at: str = Field(default_factory=lambda: datetime.now().isoformat())
 
     # Summary metrics
@@ -76,6 +77,7 @@ class Report(BaseModel):
     # Metadata
     corpus_path: str
     attacks_path: str
+    config_hash: str = Field(default="")
 
     def to_report_summary(self) -> ReportSummary:
         """Convert to unified ReportSummary."""

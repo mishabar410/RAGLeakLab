@@ -165,6 +165,8 @@ target:
 | [docs/threat_model.md](docs/threat_model.md) | Formal threat model |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Module structure and data flow |
 | [docs/REPORT_SCHEMA.md](docs/REPORT_SCHEMA.md) | Report field descriptions |
+| [docs/STABILITY.md](docs/STABILITY.md) | Stability policy and versioning |
+| [docs/EXTENDING.md](docs/EXTENDING.md) | Writing plugins |
 | [docs/CI.md](docs/CI.md) | CI integration guide |
 | [docs/threats/](docs/threats/) | Individual threat specifications |
 
