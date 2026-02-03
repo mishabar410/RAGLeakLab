@@ -58,6 +58,7 @@ This means:
 | Verbatim Extraction | [verbatim.md](threats/verbatim.md) | Longest common substring ratio | `verbatim_ratio`, `verbatim_matches` |
 | Canary Extraction | [canary.md](threats/canary.md) | Canary detection rate | `canary_detected`, `canary_count`, `canary_ids` |
 | Membership Inference | [membership.md](threats/membership.md) | AUC-ROC on member/non-member | `membership_auc`, `membership_threshold` |
+| Semantic Leakage | [semantic.md](threats/semantic.md) | Claim hit rate | `claim_hit_rate`, `claims_leaked` |
 
 ## Report Schema (report.json)
 

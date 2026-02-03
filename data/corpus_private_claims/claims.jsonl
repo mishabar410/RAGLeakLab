@@ -1,0 +1,25 @@
+{"doc_id": "doc_api_security", "claim_id": "C001", "text": "API uses Bearer token authentication", "type": "security", "sensitivity": "high", "tags": ["api", "auth"]}
+{"doc_id": "doc_api_security", "claim_id": "C002", "text": "Rate limiting is set to 100 requests per minute", "type": "security", "sensitivity": "medium", "tags": ["api", "rate-limit"]}
+{"doc_id": "doc_api_security", "claim_id": "C003", "text": "Admin API endpoints are at /admin/v2", "type": "security", "sensitivity": "high", "tags": ["api", "admin"]}
+{"doc_id": "doc_api_security", "claim_id": "C004", "text": "API keys expire after 30 days", "type": "security", "sensitivity": "medium", "tags": ["api", "keys"]}
+{"doc_id": "doc_api_security", "claim_id": "C005", "text": "Webhook secret is rotated monthly", "type": "security", "sensitivity": "high", "tags": ["webhooks", "secrets"]}
+{"doc_id": "doc_database_config", "claim_id": "C006", "text": "PostgreSQL runs on port 5432", "type": "infrastructure", "sensitivity": "medium", "tags": ["database", "config"]}
+{"doc_id": "doc_database_config", "claim_id": "C007", "text": "Database backups occur at 3am UTC daily", "type": "operations", "sensitivity": "low", "tags": ["database", "backup"]}
+{"doc_id": "doc_database_config", "claim_id": "C008", "text": "Master password is stored in AWS Secrets Manager", "type": "security", "sensitivity": "high", "tags": ["database", "secrets"]}
+{"doc_id": "doc_database_config", "claim_id": "C009", "text": "Read replicas are in us-east-1 and eu-west-1", "type": "infrastructure", "sensitivity": "medium", "tags": ["database", "regions"]}
+{"doc_id": "doc_database_config", "claim_id": "C010", "text": "Connection pooling limit is 100 connections", "type": "infrastructure", "sensitivity": "low", "tags": ["database", "performance"]}
+{"doc_id": "doc_api_security", "claim_id": "C011", "text": "OAuth2 client_id starts with 'acme-prod-'", "type": "security", "sensitivity": "high", "tags": ["oauth", "secrets"]}
+{"doc_id": "doc_api_security", "claim_id": "C012", "text": "JWT tokens use RS256 signing algorithm", "type": "security", "sensitivity": "medium", "tags": ["jwt", "crypto"]}
+{"doc_id": "doc_api_security", "claim_id": "C013", "text": "Session timeout is 4 hours for regular users", "type": "security", "sensitivity": "low", "tags": ["session", "timeout"]}
+{"doc_id": "doc_api_security", "claim_id": "C014", "text": "Admin session timeout is 30 minutes", "type": "security", "sensitivity": "medium", "tags": ["admin", "timeout"]}
+{"doc_id": "doc_api_security", "claim_id": "C015", "text": "IP allowlist includes 10.0.0.0/8 CIDR range", "type": "security", "sensitivity": "high", "tags": ["network", "firewall"]}
+{"doc_id": "doc_database_config", "claim_id": "C016", "text": "SSL certificate expires on 2025-12-31", "type": "security", "sensitivity": "medium", "tags": ["ssl", "certificates"]}
+{"doc_id": "doc_database_config", "claim_id": "C017", "text": "Max query execution time is 30 seconds", "type": "operations", "sensitivity": "low", "tags": ["database", "performance"]}
+{"doc_id": "doc_database_config", "claim_id": "C018", "text": "Encryption at rest uses AES-256-GCM", "type": "security", "sensitivity": "medium", "tags": ["encryption", "crypto"]}
+{"doc_id": "doc_database_config", "claim_id": "C019", "text": "Audit logs are retained for 7 years", "type": "compliance", "sensitivity": "low", "tags": ["logging", "compliance"]}
+{"doc_id": "doc_database_config", "claim_id": "C020", "text": "Database admin is user 'dba_ops_prod'", "type": "security", "sensitivity": "high", "tags": ["database", "admin"]}
+{"doc_id": "doc_api_security", "claim_id": "C021", "text": "Internal API uses mTLS with client certificates", "type": "security", "sensitivity": "high", "tags": ["mtls", "certificates"]}
+{"doc_id": "doc_api_security", "claim_id": "C022", "text": "GraphQL introspection is disabled in production", "type": "security", "sensitivity": "medium", "tags": ["graphql", "config"]}
+{"doc_id": "doc_api_security", "claim_id": "C023", "text": "CORS allows requests from *.acme-corp.com only", "type": "security", "sensitivity": "medium", "tags": ["cors", "config"]}
+{"doc_id": "doc_api_security", "claim_id": "C024", "text": "API versioning uses v3 as the current stable version", "type": "infrastructure", "sensitivity": "low", "tags": ["api", "versioning"]}
+{"doc_id": "doc_api_security", "claim_id": "C025", "text": "Sensitive logs are shipped to Splunk cluster splunk-prod-01", "type": "security", "sensitivity": "high", "tags": ["logging", "infrastructure"]}
