@@ -56,7 +56,7 @@ class TestAttacksManifest:
         assert manifest.name == "attacks_default"
         assert "canary" in manifest.threat_coverage
         assert "verbatim" in manifest.threat_coverage
-        assert manifest.case_count == 20
+        assert manifest.case_count == 30
 
     def test_attacks_hash_validates(self):
         """Hash in attacks manifest matches actual file tree."""

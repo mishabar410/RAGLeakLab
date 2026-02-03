@@ -63,8 +63,8 @@ class TestCLIRun:
         with open(runs_path) as f:
             lines = f.readlines()
 
-        # Should have 20 cases (10 canary + 10 verbatim)
-        assert len(lines) == 20, f"Expected 20 lines, got {len(lines)}"
+        # Should have 30 cases (10 canary + 10 verbatim + 10 multiturn)
+        assert len(lines) == 30, f"Expected 30 lines, got {len(lines)}"
 
         # Each line should be valid JSON
         for line in lines:

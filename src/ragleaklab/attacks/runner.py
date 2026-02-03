@@ -77,12 +77,15 @@ def run_case(
     Returns:
         RunArtifact with results.
     """
-    # Get query (optionally transformed by strategy)
+    # Get effective query (handles both single-turn and multi-turn)
+    effective_query = case.effective_query
+
+    # Apply strategy transformation if requested
     if apply_strategy:
         strategy = get_strategy(case.strategy)
-        query = strategy.transform(case.query)
+        query = strategy.transform(effective_query)
     else:
-        query = case.query
+        query = effective_query
 
     # Run through pipeline
     result = pipeline.run(query)
@@ -102,9 +105,12 @@ def run_case(
     # Build metadata
     meta: dict[str, Any] = {
         "strategy": case.strategy,
-        "original_query": case.query,
+        "original_query": effective_query,
         "transformed_query": query,
     }
+    # Store multi-turn info if applicable
+    if case.turns:
+        meta["turns"] = [t.model_dump() for t in case.turns]
     if case.expected:
         meta["expected"] = case.expected
     if case.description:
@@ -156,12 +162,15 @@ def run_case_with_target(
     Returns:
         RunArtifact with results.
     """
-    # Get query (optionally transformed by strategy)
+    # Get effective query (handles both single-turn and multi-turn)
+    effective_query = case.effective_query
+
+    # Apply strategy transformation if requested
     if apply_strategy:
         strategy = get_strategy(case.strategy)
-        query = strategy.transform(case.query)
+        query = strategy.transform(effective_query)
     else:
-        query = case.query
+        query = effective_query
 
     # Run through target
     response = target.ask(query)
@@ -181,9 +190,12 @@ def run_case_with_target(
     # Build metadata
     meta: dict[str, Any] = {
         "strategy": case.strategy,
-        "original_query": case.query,
+        "original_query": effective_query,
         "transformed_query": query,
     }
+    # Store multi-turn info if applicable
+    if case.turns:
+        meta["turns"] = [t.model_dump() for t in case.turns]
     if case.expected:
         meta["expected"] = case.expected
     if case.description:

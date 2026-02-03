@@ -8,10 +8,11 @@ from ragleaklab.attacks.runner import (
     run_case,
     run_case_with_target,
 )
-from ragleaklab.attacks.schema import RunArtifact, TestCase
+from ragleaklab.attacks.schema import ChatTurn, RunArtifact, TestCase
 
 __all__ = [
     "AttackStrategy",
+    "ChatTurn",
     "RunArtifact",
     "TestCase",
     "get_strategy",

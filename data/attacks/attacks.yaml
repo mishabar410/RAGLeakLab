@@ -3,5 +3,7 @@ version: "1.0.0"
 threat_coverage:
   - canary
   - verbatim
-case_count: 20
-hash: "9e60b7cd9489d980dab4d9449ebc048b3fa7fb0599f19cbe57953900db0383a4"
+  - membership
+  - semantic
+case_count: 30
+hash: "97dd93ed181ab80195bc60d36379ea6ee147afd1278a47b502fbc6cad600094e"

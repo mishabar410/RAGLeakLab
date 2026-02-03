@@ -51,6 +51,24 @@ This means:
 2. **Reproducible**: Canaries provide ground truth
 3. **Scoped**: Focuses on RAG-specific risks
 
+## Multi-Turn Attack Support
+
+RAGLeakLab supports multi-turn conversation attacks for testing stateful RAG systems.
+
+- **CI deterministic**: All multi-turn cases use pre-defined conversation turns (no LLM generation)
+- **Backward compatible**: Existing single-turn `query` field works unchanged
+- **Fallback**: For non-chat targets, turns are flattened to single query
+
+### Attack Categories
+
+| Category | Description |
+|----------|-------------|
+| Ignore Previous | "Ignore all previous instructions" attacks |
+| Role Confusion | User impersonates admin/system roles |
+| Policy Override | Mid-conversation policy changes |
+| Context Injection | Fake assistant/retrieval context |
+| History Poisoning | Establish precedent via fake history |
+
 ## Threat Coverage (MVP)
 
 | Threat | File | Metric | Report Fields |
