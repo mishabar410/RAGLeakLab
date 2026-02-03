@@ -148,6 +148,17 @@ def _build_sarif_rules() -> list[dict]:
             "defaultConfiguration": {"level": "warning"},
             "properties": {"security-severity": "5.0"},
         },
+        {
+            "id": "semantic-leakage",
+            "name": "SemanticLeakage",
+            "shortDescription": {"text": "Sensitive claim leaked in RAG output"},
+            "fullDescription": {
+                "text": "A sensitive fact or claim from a private document was revealed "
+                "in the RAG system output, even if paraphrased or embedded in context."
+            },
+            "defaultConfiguration": {"level": "error"},
+            "properties": {"security-severity": "8.0"},
+        },
     ]
 
 
@@ -219,5 +230,6 @@ def _threat_to_rule_id(threat: str) -> str:
         "canary": "canary-extraction",
         "verbatim": "verbatim-leakage",
         "membership": "membership-inference",
+        "semantic": "semantic-leakage",
     }
     return mapping.get(threat, "unknown")

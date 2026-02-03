@@ -1,6 +1,5 @@
 """Tests for claim matching engine."""
 
-
 from ragleaklab.metrics.claim_match import (
     ClaimMatchResult,
     match_claim,
