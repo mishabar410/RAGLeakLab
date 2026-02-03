@@ -77,6 +77,7 @@ jobs:
       - name: Run semantic pack
         run: |
           uv run python -m ragleaklab run \
+            --corpus data/corpus_private_canary \
             --pack semantic-basic \
             --out out/semantic/
 
