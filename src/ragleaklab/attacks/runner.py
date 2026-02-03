@@ -26,11 +26,15 @@ def load_cases(path: Path | str) -> list[TestCase]:
     path = Path(path)
     cases: list[TestCase] = []
 
+    # Manifest files to skip when loading from directory
+    manifest_files = {"attacks.yaml", "corpus.yaml", "pack.yaml"}
+
     if path.is_file():
         cases.extend(_load_yaml_file(path))
     elif path.is_dir():
         for yaml_file in sorted(path.glob("*.yaml")):
-            cases.extend(_load_yaml_file(yaml_file))
+            if yaml_file.name not in manifest_files:
+                cases.extend(_load_yaml_file(yaml_file))
         for yml_file in sorted(path.glob("*.yml")):
             cases.extend(_load_yaml_file(yml_file))
 
