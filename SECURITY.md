@@ -6,7 +6,7 @@
 
 If you discover a security vulnerability in RAGLeakLab, please report it responsibly:
 
-1. **Email**: Send details to **[security@example.com]**
+1. **Email**: Send details to **mb050574@gmail.com**
 2. **Include**:
    - Description of the vulnerability
    - Steps to reproduce
