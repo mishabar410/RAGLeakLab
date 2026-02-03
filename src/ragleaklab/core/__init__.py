@@ -22,6 +22,7 @@ from ragleaklab.core.plugins import (
     load_entry_points,
     register,
 )
+from ragleaklab.core.redact import redact, redact_dict
 
 __all__ = [
     "PLUGIN_KINDS",
@@ -41,5 +42,7 @@ __all__ = [
     "list_plugins",
     "load_all_entry_points",
     "load_entry_points",
+    "redact",
+    "redact_dict",
     "register",
 ]

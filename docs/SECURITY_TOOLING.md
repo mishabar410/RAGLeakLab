@@ -85,3 +85,57 @@ RAGLEAKLAB_DEBUG=1 ragleaklab run manifest.yaml
 ```
 
 Enables verbose output including stack traces for debugging.
+
+---
+
+## Redaction
+
+RAGLeakLab automatically redacts sensitive patterns from report outputs. This prevents accidental secret leakage in CI logs and shared reports.
+
+### Redacted Patterns
+
+| Pattern | Example | Replacement |
+|---------|---------|-------------|
+| Email addresses | `user@example.com` | `[REDACTED]` |
+| Phone numbers | `555-123-4567`, `+14155551234` | `[REDACTED]` |
+| Canary tokens | `CANARY_abc123def456` | `[REDACTED]` |
+| SECRET_ prefixed | `SECRET_API_KEY` | `[REDACTED]` |
+| Bearer tokens | `Bearer eyJhbGc...` | `Bearer [REDACTED]` |
+| Basic auth | `Basic dXNlcjpw...` | `Basic [REDACTED]` |
+| API keys | `sk_live_xxx`, `pk_test_xxx` | `[REDACTED]` |
+| AWS keys | `AKIAIOSFODNN7EXAMPLE` | `[REDACTED]` |
+
+### Header Redaction
+
+Sensitive headers are fully redacted in report metadata:
+- `Authorization`
+- `X-API-Key`, `X-Auth-Token`
+- `Cookie`, `Set-Cookie`
+- `X-CSRF-Token`
+
+### Disabling Redaction (Local Debug)
+
+For local debugging, use `--no-redact` to preserve raw values:
+
+```bash
+ragleaklab run --out ./reports --no-redact ...
+```
+
+> [!WARNING]
+> Never use `--no-redact` in CI or share unredacted reports.
+
+### API Usage
+
+```python
+from ragleaklab.core import redact, redact_dict
+
+# Redact text
+clean = redact("Contact: user@example.com")
+# -> "Contact: [REDACTED]"
+
+# Redact dicts (recursive)
+data = {"headers": {"Authorization": "Bearer xyz"}}
+clean_data = redact_dict(data)
+# -> {"headers": {"Authorization": "[REDACTED]"}}
+```
+

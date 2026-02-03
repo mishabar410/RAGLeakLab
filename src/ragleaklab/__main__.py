@@ -37,6 +37,9 @@ def run(
     ),
     cache: bool = typer.Option(False, "--cache", help="Enable disk cache for deterministic runs"),
     jobs: int = typer.Option(1, "--jobs", "-j", help="Parallel workers (default: 1)"),
+    no_redact: bool = typer.Option(
+        False, "--no-redact", help="Disable secret redaction (for local debug)"
+    ),
 ) -> None:
     """Run attack test cases against a corpus and generate reports.
 
@@ -315,9 +318,16 @@ def run(
     )
 
     # Write report.json
+    import json
+
+    from ragleaklab.core.redact import redact_dict
+
     report_path = out / "report.json"
+    report_data = report.model_dump()
+    if not no_redact:
+        report_data = redact_dict(report_data)
     with open(report_path, "w") as f:
-        f.write(report.model_dump_json(indent=2))
+        json.dump(report_data, f, indent=2)
     typer.echo(f"📄 Wrote {report_path}")
 
     # Write runs.jsonl with context truncation
@@ -332,8 +342,9 @@ def run(
                 data["context"] = context_field[:CONTEXT_LIMIT]
                 if "context_stats" in data:
                     data["context_stats"]["truncated"] = True
-            import json
-
+            # Apply redaction unless disabled
+            if not no_redact:
+                data = redact_dict(data)
             f.write(json.dumps(data) + "\n")
     typer.echo(f"📄 Wrote {runs_path}")
 
