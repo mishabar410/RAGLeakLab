@@ -8,6 +8,13 @@ import yaml
 
 from ragleaklab.attacks.catalog import get_strategy
 from ragleaklab.attacks.schema import RunArtifact, TestCase
+from ragleaklab.core.cache import (
+    CachedResult,
+    CacheKey,
+    DiskCache,
+    build_cache_key,
+    hits_to_cached_result,
+)
 from ragleaklab.core.contracts import Chunk, ContextStats, Hashes, RetrievalHit, Timings
 from ragleaklab.rag.pipeline import RAGPipeline
 
@@ -68,6 +75,7 @@ def run_case(
     case: TestCase,
     apply_strategy: bool = True,
     hashes: Hashes | None = None,
+    cache: DiskCache | None = None,
 ) -> RunArtifact:
     """Run a single test case through the pipeline.
 
@@ -76,6 +84,7 @@ def run_case(
         case: Test case to run.
         apply_strategy: Whether to apply strategy transformation.
         hashes: Optional provenance hashes.
+        cache: Optional disk cache for result caching.
 
     Returns:
         RunArtifact with results.
@@ -92,29 +101,60 @@ def run_case(
     else:
         query = effective_query
 
-    # Run through pipeline with timing
-    result = pipeline.run(query)
+    # Check cache first
+    cache_hit = False
+    cached_result: CachedResult | None = None
+    cache_key: CacheKey | None = None
+
+    if cache is not None:
+        cache_key = build_cache_key(
+            corpus_hash=hashes.corpus_hash if hashes else None,
+            target_hash=hashes.target_hash if hashes else None,
+            query=query,
+            top_k=pipeline.top_k,
+            strategy=case.strategy,
+        )
+        cached_result = cache.get(cache_key)
+        if cached_result is not None:
+            cache_hit = True
+
+    if cache_hit and cached_result is not None:
+        # Use cached result
+        retrieved = cached_result.retrieved
+        context = cached_result.context
+        answer = cached_result.answer
+    else:
+        # Run through pipeline with timing
+        result = pipeline.run(query)
+
+        # Build retrieved list from chunks and scores
+        retrieved = []
+        for chunk, score in zip(result.retrieved_chunks, result.scores, strict=False):
+            # Convert rag.types.Chunk to core.contracts.Chunk
+            core_chunk = Chunk(
+                doc_id=chunk.doc_id,
+                chunk_id=chunk.chunk_id,
+                text=chunk.text,
+                metadata=chunk.metadata,
+            )
+            retrieved.append(RetrievalHit(chunk=core_chunk, score=score))
+
+        context = result.context
+        answer = result.answer
+
+        # Store in cache if enabled
+        if cache is not None and cache_key is not None:
+            cache.put(cache_key, hits_to_cached_result(retrieved, context, answer))
+
     end_total = time.perf_counter()
 
     # Compute timings (pipeline.run handles both retrieval and generation)
     total_ms = (end_total - start_total) * 1000
     timings = Timings(total_ms=total_ms)
 
-    # Build retrieved list from chunks and scores
-    retrieved: list[RetrievalHit] = []
-    for chunk, score in zip(result.retrieved_chunks, result.scores, strict=False):
-        # Convert rag.types.Chunk to core.contracts.Chunk
-        core_chunk = Chunk(
-            doc_id=chunk.doc_id,
-            chunk_id=chunk.chunk_id,
-            text=chunk.text,
-            metadata=chunk.metadata,
-        )
-        retrieved.append(RetrievalHit(chunk=core_chunk, score=score))
-
     # Compute context stats
     context_stats = ContextStats(
-        context_chars=len(result.context),
+        context_chars=len(context),
         n_chunks=len(retrieved),
         truncated=False,
     )
@@ -124,6 +164,7 @@ def run_case(
         "strategy": case.strategy,
         "original_query": effective_query,
         "transformed_query": query,
+        "cache_hit": cache_hit,
     }
     # Store multi-turn info if applicable
     if case.turns:
@@ -139,8 +180,8 @@ def run_case(
         test_id=case.test_id,
         threat=case.threat,
         query=query,
-        answer=result.answer,
-        context=result.context,
+        answer=answer,
+        context=context,
         retrieved=retrieved,
         timings=timings,
         context_stats=context_stats,
@@ -154,6 +195,7 @@ def run_all(
     cases: list[TestCase],
     apply_strategy: bool = True,
     hashes: Hashes | None = None,
+    cache: DiskCache | None = None,
 ) -> list[RunArtifact]:
     """Run all test cases through the pipeline.
 
@@ -162,11 +204,12 @@ def run_all(
         cases: List of test cases.
         apply_strategy: Whether to apply strategy transformations.
         hashes: Optional provenance hashes.
+        cache: Optional disk cache for result caching.
 
     Returns:
         List of RunArtifact with results.
     """
-    return [run_case(pipeline, case, apply_strategy, hashes) for case in cases]
+    return [run_case(pipeline, case, apply_strategy, hashes, cache) for case in cases]
 
 
 def run_case_with_target(
@@ -174,6 +217,7 @@ def run_case_with_target(
     case: TestCase,
     apply_strategy: bool = True,
     hashes: Hashes | None = None,
+    cache: DiskCache | None = None,
 ) -> RunArtifact:
     """Run a single test case through a target adapter.
 
@@ -182,6 +226,7 @@ def run_case_with_target(
         case: Test case to run.
         apply_strategy: Whether to apply strategy transformation.
         hashes: Optional provenance hashes.
+        cache: Optional disk cache for result caching.
 
     Returns:
         RunArtifact with results.
@@ -198,28 +243,59 @@ def run_case_with_target(
     else:
         query = effective_query
 
-    # Run through target with timing
-    response = target.ask(query)
+    # Check cache first
+    cache_hit = False
+    cached_result: CachedResult | None = None
+    cache_key: CacheKey | None = None
+
+    if cache is not None:
+        cache_key = build_cache_key(
+            corpus_hash=hashes.corpus_hash if hashes else None,
+            target_hash=hashes.target_hash if hashes else None,
+            query=query,
+            top_k=3,  # Default for targets
+            strategy=case.strategy,
+        )
+        cached_result = cache.get(cache_key)
+        if cached_result is not None:
+            cache_hit = True
+
+    if cache_hit and cached_result is not None:
+        # Use cached result
+        retrieved = cached_result.retrieved
+        context = cached_result.context
+        answer = cached_result.answer
+    else:
+        # Run through target with timing
+        response = target.ask(query)
+
+        # Build retrieved list from target response
+        retrieved = []
+        for i, chunk_id in enumerate(response.retrieved_ids):
+            # Parse chunk_id format: doc_id:chunk_id
+            parts = chunk_id.split(":", 1)
+            doc_id = parts[0]
+            c_id = parts[1] if len(parts) > 1 else "0"
+            score = response.scores[i] if i < len(response.scores) else None
+
+            chunk = Chunk(doc_id=doc_id, chunk_id=c_id, text="")  # Text not available from target
+            retrieved.append(RetrievalHit(chunk=chunk, score=score))
+
+        context = response.context
+        answer = response.answer
+
+        # Store in cache if enabled
+        if cache is not None and cache_key is not None:
+            cache.put(cache_key, hits_to_cached_result(retrieved, context, answer))
+
     end_total = time.perf_counter()
 
     total_ms = (end_total - start_total) * 1000
     timings = Timings(total_ms=total_ms)
 
-    # Build retrieved list from target response
-    retrieved: list[RetrievalHit] = []
-    for i, chunk_id in enumerate(response.retrieved_ids):
-        # Parse chunk_id format: doc_id:chunk_id
-        parts = chunk_id.split(":", 1)
-        doc_id = parts[0]
-        c_id = parts[1] if len(parts) > 1 else "0"
-        score = response.scores[i] if i < len(response.scores) else None
-
-        chunk = Chunk(doc_id=doc_id, chunk_id=c_id, text="")  # Text not available from target
-        retrieved.append(RetrievalHit(chunk=chunk, score=score))
-
     # Compute context stats
     context_stats = ContextStats(
-        context_chars=len(response.context),
+        context_chars=len(context),
         n_chunks=len(retrieved),
         truncated=False,
     )
@@ -229,6 +305,7 @@ def run_case_with_target(
         "strategy": case.strategy,
         "original_query": effective_query,
         "transformed_query": query,
+        "cache_hit": cache_hit,
     }
     # Store multi-turn info if applicable
     if case.turns:
@@ -244,8 +321,8 @@ def run_case_with_target(
         test_id=case.test_id,
         threat=case.threat,
         query=query,
-        answer=response.answer,
-        context=response.context,
+        answer=answer,
+        context=context,
         retrieved=retrieved,
         timings=timings,
         context_stats=context_stats,
@@ -259,6 +336,7 @@ def run_all_with_target(
     cases: list[TestCase],
     apply_strategy: bool = True,
     hashes: Hashes | None = None,
+    cache: DiskCache | None = None,
 ) -> list[RunArtifact]:
     """Run all test cases through a target adapter.
 
@@ -267,8 +345,9 @@ def run_all_with_target(
         cases: List of test cases.
         apply_strategy: Whether to apply strategy transformations.
         hashes: Optional provenance hashes.
+        cache: Optional disk cache for result caching.
 
     Returns:
         List of RunArtifact with results.
     """
-    return [run_case_with_target(target, case, apply_strategy, hashes) for case in cases]
+    return [run_case_with_target(target, case, apply_strategy, hashes, cache) for case in cases]

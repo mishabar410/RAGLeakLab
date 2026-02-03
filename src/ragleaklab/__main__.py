@@ -34,6 +34,9 @@ def run(
     minimize_on_fail: bool = typer.Option(
         False, "--minimize-on-fail", help="Minimize failing queries for stable regression"
     ),
+    cache: bool = typer.Option(
+        False, "--cache", help="Enable disk cache for deterministic runs"
+    ),
 ) -> None:
     """Run attack test cases against a corpus and generate reports.
 
@@ -155,16 +158,25 @@ def run(
         target_hash="http" if use_http_target else "in-process",
     )
 
+    # Setup cache if enabled
+    disk_cache = None
+    if cache:
+        from ragleaklab.core.cache import DiskCache
+
+        cache_dir = out / ".ragleaklab_cache"
+        disk_cache = DiskCache(cache_dir)
+        typer.echo(f"💾 Cache enabled: {cache_dir}")
+
     if use_http_target and cfg is not None:
         from ragleaklab.targets import HttpTarget
 
         target = HttpTarget.from_config(cfg.target)  # type: ignore
-        artifacts = run_all_with_target(target, cases, hashes=run_hashes)
+        artifacts = run_all_with_target(target, cases, hashes=run_hashes, cache=disk_cache)
     else:
         # Create in-process pipeline
         pipeline = RAGPipeline(top_k=3)
         pipeline.add_documents(rag_docs)
-        artifacts = run_all(pipeline, cases, hashes=run_hashes)
+        artifacts = run_all(pipeline, cases, hashes=run_hashes, cache=disk_cache)
 
     # Calculate metrics per case
     case_results: list[CaseResult] = []
