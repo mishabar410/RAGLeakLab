@@ -8,6 +8,9 @@ from typing import TYPE_CHECKING
 import requests
 
 from ragleaklab.targets.base import TargetResponse
+from ragleaklab.targets.ssrf import SSRFValidationError, validate_url
+
+__all__ = ["HttpTarget", "SSRFValidationError"]
 
 if TYPE_CHECKING:
     from ragleaklab.config import HttpTargetConfig
@@ -32,6 +35,7 @@ class HttpTarget:
         headers: dict | None = None,
         timeout: float = 30.0,
         request_json: dict[str, str] | None = None,
+        allowed_domains: list[str] | None = None,
     ) -> None:
         """Initialize HTTP target.
 
@@ -44,9 +48,18 @@ class HttpTarget:
             retrieved_ids_field: Optional field for retrieved IDs.
             scores_field: Optional field for scores.
             headers: Optional HTTP headers.
-            timeout: Request timeout in seconds.
+            timeout: Request timeout in seconds (default 30s).
             request_json: Optional template dict with {{query}} placeholders.
+            allowed_domains: Optional list of allowed domains for SSRF protection.
+
+        Raises:
+            SSRFValidationError: If URL fails SSRF validation.
         """
+        self.allowed_domains = allowed_domains
+
+        # Validate URL for SSRF before storing
+        validate_url(url, allowed_domains)
+
         self.url = url
         self.method = method.upper()
         self.query_field = query_field
@@ -78,6 +91,7 @@ class HttpTarget:
             headers=config.headers if config.headers else None,
             timeout=config.timeout_sec,
             request_json=config.request_json,
+            allowed_domains=config.allowed_domains if config.allowed_domains else None,
         )
 
     def _build_payload(self, query: str) -> dict:

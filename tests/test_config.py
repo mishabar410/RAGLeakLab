@@ -1,8 +1,11 @@
 """Tests for configuration loading and HTTP target with config."""
 
+import socket
 from pathlib import Path
 from textwrap import dedent
+from unittest.mock import patch
 
+import pytest
 import responses
 
 from ragleaklab.attacks import TestCase, run_all_with_target
@@ -13,6 +16,14 @@ from ragleaklab.config import (
 )
 from ragleaklab.targets import HttpTarget
 
+
+@pytest.fixture
+def mock_dns_public():
+    """Mock DNS resolution to return public IP for SSRF validation bypass."""
+    with patch.object(
+        socket, "gethostbyname_ex", return_value=("localhost", [], ["93.184.216.34"])
+    ):
+        yield
 
 class TestConfigLoading:
     """Tests for config file loading."""
@@ -112,7 +123,7 @@ class TestHttpTargetFromConfig:
     """Tests for HttpTarget.from_config."""
 
     @responses.activate
-    def test_from_config_with_template(self, tmp_path: Path):
+    def test_from_config_with_template(self, tmp_path: Path, mock_dns_public):
         """HttpTarget.from_config uses request_json template."""
         responses.add(
             responses.POST,
@@ -140,7 +151,7 @@ class TestHttpTargetFromConfig:
         assert body == {"question": "What is the meaning of life?"}
 
     @responses.activate
-    def test_runner_with_http_config(self, tmp_path: Path):
+    def test_runner_with_http_config(self, tmp_path: Path, mock_dns_public):
         """run_all_with_target works with HttpTarget from config."""
         responses.add(
             responses.POST,

@@ -1,10 +1,27 @@
 """Tests for HTTP target adapter."""
 
+import socket
+from unittest.mock import patch
+
+import pytest
 import responses
 
 from ragleaklab.attacks import TestCase, run_all_with_target, run_case_with_target
 from ragleaklab.metrics import detect_canary
 from ragleaklab.targets import HttpTarget
+
+
+@pytest.fixture(autouse=True)
+def mock_dns_for_localhost():
+    """Mock DNS resolution to bypass SSRF validation for localhost test URLs.
+
+    These tests use localhost URLs for mocked HTTP responses, which are now
+    blocked by SSRF protection. Mock DNS to return a public IP.
+    """
+    with patch.object(
+        socket, "gethostbyname_ex", return_value=("localhost", [], ["93.184.216.34"])
+    ):
+        yield
 
 
 class TestHttpTarget:

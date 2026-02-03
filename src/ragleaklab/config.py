@@ -47,6 +47,7 @@ class HttpTargetConfig(BaseModel):
     response: dict[str, str] = Field(default_factory=lambda: {"answer_field": "answer"})
     headers: dict[str, str] = Field(default_factory=dict)
     timeout_sec: float = Field(default=30.0)
+    allowed_domains: list[str] = Field(default_factory=list)
 
 
 class Config(BaseModel):
