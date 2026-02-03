@@ -378,8 +378,8 @@ def diff(
     """Compare current report against baseline for regressions."""
     import json
 
+    from ragleaklab.core.contracts import ReportSummary
     from ragleaklab.regression.diff import compare_reports
-    from ragleaklab.reporting.schema import Report
 
     # Validate inputs
     if not baseline.exists():
@@ -396,8 +396,8 @@ def diff(
     with open(current) as f:
         current_data = json.load(f)
 
-    baseline_report = Report(**baseline_data)
-    current_report = Report(**current_data)
+    baseline_report = ReportSummary(**baseline_data)
+    current_report = ReportSummary(**current_data)
 
     # Compare
     result = compare_reports(
