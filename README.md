@@ -168,7 +168,11 @@ target:
 | [docs/STABILITY.md](docs/STABILITY.md) | Stability policy and versioning |
 | [docs/EXTENDING.md](docs/EXTENDING.md) | Writing plugins |
 | [docs/CI.md](docs/CI.md) | CI integration guide |
+| [docs/ACTION.md](docs/ACTION.md) | GitHub Action usage |
+| [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md) | HTTP target examples |
 | [docs/threats/](docs/threats/) | Individual threat specifications |
+| [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute |
+| [SECURITY.md](SECURITY.md) | Security policy |
 
 ## Development
 
