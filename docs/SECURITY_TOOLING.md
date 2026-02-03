@@ -88,6 +88,55 @@ Enables verbose output including stack traces for debugging.
 
 ---
 
+## Path Safety
+
+RAGLeakLab uses safe filesystem operations to prevent path traversal attacks and ensure data integrity.
+
+### Path Traversal Protection
+
+The `safe_join()` function prevents directory escape attacks:
+
+```python
+from ragleaklab.core import safe_join, PathTraversalError
+
+# Safe: stays within base
+path = safe_join("/app/data", "reports/run1.json")
+# -> /app/data/reports/run1.json
+
+# Blocked: escapes base
+try:
+    path = safe_join("/app/data", "../etc/passwd")
+except PathTraversalError:
+    pass  # Raises: "Path escapes base directory"
+
+# Blocked: absolute paths
+try:
+    path = safe_join("/app/data", "/etc/passwd")
+except PathTraversalError:
+    pass  # Raises: "Absolute paths not allowed"
+```
+
+### Atomic File Writes
+
+Report files use atomic writes (temp + rename) to prevent partial writes:
+
+```python
+from ragleaklab.core import atomic_write, atomic_write_json
+
+# Text content
+atomic_write("report.txt", "content")
+
+# JSON content
+atomic_write_json("data.json", {"key": "value"})
+```
+
+Benefits:
+- **No partial files**: Write fully completes or not at all
+- **Crash safety**: Interrupted writes don't corrupt existing files
+- **Concurrent safety**: Other readers see either old or new file, never partial
+
+---
+
 ## Redaction
 
 RAGLeakLab automatically redacts sensitive patterns from report outputs. This prevents accidental secret leakage in CI logs and shared reports.

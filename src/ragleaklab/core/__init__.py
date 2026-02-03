@@ -12,6 +12,12 @@ from ragleaklab.core.contracts import (
     RunArtifact,
     Timings,
 )
+from ragleaklab.core.fs import (
+    PathTraversalError,
+    atomic_write,
+    atomic_write_json,
+    safe_join,
+)
 from ragleaklab.core.plugins import (
     PLUGIN_KINDS,
     PluginError,
@@ -32,11 +38,14 @@ __all__ = [
     "Document",
     "Hashes",
     "MetricScore",
+    "PathTraversalError",
     "PluginError",
     "ReportSummary",
     "RetrievalHit",
     "RunArtifact",
     "Timings",
+    "atomic_write",
+    "atomic_write_json",
     "clear",
     "get",
     "list_plugins",
@@ -45,4 +54,5 @@ __all__ = [
     "redact",
     "redact_dict",
     "register",
+    "safe_join",
 ]

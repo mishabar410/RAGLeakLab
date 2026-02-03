@@ -116,7 +116,19 @@ def run(
         typer.echo(f"❌ Attacks path not found: {attacks_path}", err=True)
         raise typer.Exit(1)
 
-    # Create output directory
+    # Validate and create output directory
+    from ragleaklab.core.fs import atomic_write
+
+    try:
+        # Ensure output path doesn't escape current directory
+        cwd = Path.cwd()
+        out_resolved = out.resolve()
+        # Allow absolute paths but warn if they escape cwd
+        if not str(out_resolved).startswith(str(cwd)):
+            typer.echo(f"⚠️  Output directory outside project: {out_resolved}", err=True)
+    except Exception:
+        pass  # Allow if resolution fails
+
     out.mkdir(parents=True, exist_ok=True)
 
     # Load corpus
@@ -326,26 +338,26 @@ def run(
     report_data = report.model_dump()
     if not no_redact:
         report_data = redact_dict(report_data)
-    with open(report_path, "w") as f:
-        json.dump(report_data, f, indent=2)
+    atomic_write(report_path, json.dumps(report_data, indent=2))
     typer.echo(f"📄 Wrote {report_path}")
 
     # Write runs.jsonl with context truncation
     CONTEXT_LIMIT = 20_000
     runs_path = out / "runs.jsonl"
-    with open(runs_path, "w") as f:
-        for case_result in case_results:
-            # Serialize with potential context truncation
-            data = case_result.model_dump()
-            context_field = data.get("context", "")
-            if len(context_field) > CONTEXT_LIMIT:
-                data["context"] = context_field[:CONTEXT_LIMIT]
-                if "context_stats" in data:
-                    data["context_stats"]["truncated"] = True
-            # Apply redaction unless disabled
-            if not no_redact:
-                data = redact_dict(data)
-            f.write(json.dumps(data) + "\n")
+    lines = []
+    for case_result in case_results:
+        # Serialize with potential context truncation
+        data = case_result.model_dump()
+        context_field = data.get("context", "")
+        if len(context_field) > CONTEXT_LIMIT:
+            data["context"] = context_field[:CONTEXT_LIMIT]
+            if "context_stats" in data:
+                data["context_stats"]["truncated"] = True
+        # Apply redaction unless disabled
+        if not no_redact:
+            data = redact_dict(data)
+        lines.append(json.dumps(data))
+    atomic_write(runs_path, "\n".join(lines) + "\n" if lines else "")
     typer.echo(f"📄 Wrote {runs_path}")
 
     # Export additional formats
