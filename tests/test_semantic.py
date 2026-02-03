@@ -1,6 +1,5 @@
 """Tests for semantic leakage metric."""
 
-
 from ragleaklab.core.contracts import Chunk, RetrievalHit, RunArtifact
 from ragleaklab.corpus.claims import Claim
 from ragleaklab.metrics.semantic import (

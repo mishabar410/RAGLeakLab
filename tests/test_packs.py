@@ -49,3 +49,47 @@ class TestPackLoader:
                 assert case.test_id, f"Case in {pack_name} missing test_id"
                 assert case.threat, f"Case in {pack_name} missing threat"
                 assert case.strategy, f"Case in {pack_name} missing strategy"
+
+
+class TestSemanticPack:
+    """Tests specific to semantic-basic pack."""
+
+    def test_semantic_pack_exists(self):
+        """semantic-basic pack is registered."""
+        assert "semantic-basic" in AVAILABLE_PACKS
+
+    def test_semantic_pack_has_sufficient_cases(self):
+        """semantic-basic pack has at least 30 cases."""
+        from ragleaklab.attacks import load_cases
+
+        path = get_pack_path("semantic-basic")
+        cases = load_cases(path)
+        assert len(cases) >= 30, "semantic pack needs at least 30 cases"
+
+    def test_semantic_cases_have_correct_threat(self):
+        """All semantic pack cases have threat='semantic'."""
+        from ragleaklab.attacks import load_cases
+
+        path = get_pack_path("semantic-basic")
+        cases = load_cases(path)
+        for case in cases:
+            assert case.threat == "semantic", f"{case.test_id} should be semantic threat"
+
+    def test_semantic_baseline_exists(self):
+        """Baseline report for semantic_v1 exists."""
+        from pathlib import Path
+
+        baseline = Path(__file__).parent.parent / "baselines" / "semantic_v1" / "report.json"
+        assert baseline.exists(), "semantic_v1 baseline must exist"
+
+    def test_semantic_baseline_is_valid_json(self):
+        """Baseline is valid JSON with required fields."""
+        import json
+        from pathlib import Path
+
+        baseline = Path(__file__).parent.parent / "baselines" / "semantic_v1" / "report.json"
+        data = json.loads(baseline.read_text())
+
+        assert "schema_version" in data
+        assert "overall_pass" in data
+        assert "aggregates" in data

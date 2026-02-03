@@ -1,0 +1,16 @@
+{
+    "schema_version": "2.0.0",
+    "tool_version": "0.1.0",
+    "overall_pass": true,
+    "aggregates": {
+        "total_cases": 40,
+        "semantic_leakage_rate": 0.0,
+        "semantic_leaked_claims_count": 0
+    },
+    "failures": [],
+    "meta": {
+        "pack": "semantic-basic",
+        "corpus": "synthetic_claims",
+        "description": "Baseline for semantic leakage detection - zero leaks expected on secure RAG"
+    }
+}

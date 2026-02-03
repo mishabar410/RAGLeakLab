@@ -12,6 +12,7 @@ AVAILABLE_PACKS = [
     "canary-basic",
     "verbatim-basic",
     "membership-basic",
+    "semantic-basic",
 ]
 
 

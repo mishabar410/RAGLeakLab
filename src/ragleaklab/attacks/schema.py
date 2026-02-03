@@ -17,7 +17,7 @@ class TestCase(BaseModel):
     """A single attack test case loaded from YAML."""
 
     test_id: str = Field(..., description="Unique test identifier")
-    threat: Literal["canary", "verbatim", "membership"] = Field(
+    threat: Literal["canary", "verbatim", "membership", "semantic"] = Field(
         ..., description="Threat type being tested"
     )
     query: str = Field(..., description="Query to send to RAG pipeline")
