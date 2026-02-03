@@ -1,0 +1,6 @@
+name: semantic-basic
+version: "1.0.0"
+corpus_ref: "corpus_private_claims@1.0.0"
+attacks_ref: "semantic-basic@1.0.0"
+expected_report_fields:
+  - aggregates.semantic

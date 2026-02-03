@@ -1,0 +1,5 @@
+name: canary-basic
+version: "1.0.0"
+attacks_ref: "canary-basic@1.0.0"
+expected_report_fields:
+  - aggregates.canary

@@ -1,0 +1,10 @@
+name: corpus_private_claims
+version: "1.0.0"
+doc_count: 2
+claims_supported:
+  - EMAIL
+  - PHONE
+  - ACCOUNT_ID
+  - SECRET_CODEWORD
+  - INTERNAL_PROJECT
+hash: "66df4905c7f669c024088f56774a3c939619b001274d9f774bbb1dda795156e3"
