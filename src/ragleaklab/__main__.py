@@ -34,9 +34,7 @@ def run(
     minimize_on_fail: bool = typer.Option(
         False, "--minimize-on-fail", help="Minimize failing queries for stable regression"
     ),
-    cache: bool = typer.Option(
-        False, "--cache", help="Enable disk cache for deterministic runs"
-    ),
+    cache: bool = typer.Option(False, "--cache", help="Enable disk cache for deterministic runs"),
 ) -> None:
     """Run attack test cases against a corpus and generate reports.
 

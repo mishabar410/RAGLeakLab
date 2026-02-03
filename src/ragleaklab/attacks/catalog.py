@@ -155,6 +155,21 @@ STRATEGIES: dict[str, AttackStrategy] = {
         description="Indirect extraction through related context",
         transform=_indirect_extract,
     ),
+    "summarization": AttackStrategy(
+        name="summarization",
+        description="Request summary to extract information",
+        transform=_summarization_pressure,
+    ),
+    "context_extraction": AttackStrategy(
+        name="context_extraction",
+        description="Extract information through context queries",
+        transform=_context_expansion,
+    ),
+    "combined_extract": AttackStrategy(
+        name="combined_extract",
+        description="Combined direct and indirect extraction",
+        transform=_identity,
+    ),
 }
 
 
