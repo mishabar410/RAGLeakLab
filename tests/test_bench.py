@@ -15,11 +15,16 @@ class TestBenchCommand:
             [sys.executable, "-m", "ragleaklab", "bench", "--help"],
             capture_output=True,
             text=True,
+            env={**dict(__import__("os").environ), "NO_COLOR": "1"},
         )
         assert result.returncode == 0
-        assert "--pack" in result.stdout
-        assert "--runs" in result.stdout
-        assert "--out" in result.stdout
+        # Strip ANSI codes for CI compatibility
+        import re
+
+        clean_output = re.sub(r"\x1b\[[0-9;]*m", "", result.stdout)
+        assert "--pack" in clean_output
+        assert "--runs" in clean_output
+        assert "--out" in clean_output
 
     def test_bench_produces_valid_json(self, tmp_path: Path) -> None:
         """Test bench command produces valid JSON output."""
