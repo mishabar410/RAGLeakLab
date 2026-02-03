@@ -169,6 +169,14 @@ def _build_sarif_results(report: Report, case_results: list[CaseResult]) -> list
     # Add per-case findings
     for case in case_results:
         if case.canary_detected:
+            # Extract top attribution if available
+            attr_category = None
+            remediation_hint = None
+            if case.attribution:
+                top_attr = case.attribution[0]
+                attr_category = top_attr.get("category")
+                remediation_hint = top_attr.get("hint")
+
             results.append(
                 {
                     "ruleId": "canary-extraction",
@@ -191,6 +199,8 @@ def _build_sarif_results(report: Report, case_results: list[CaseResult]) -> list
                     "properties": {
                         "test_id": case.test_id,
                         "query": case.query,
+                        "attribution_category": attr_category,
+                        "remediation_hint": remediation_hint,
                     },
                 }
             )

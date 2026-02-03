@@ -1,5 +1,6 @@
 """Attack test runner."""
 
+import time
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -7,7 +8,7 @@ import yaml
 
 from ragleaklab.attacks.catalog import get_strategy
 from ragleaklab.attacks.schema import RunArtifact, TestCase
-from ragleaklab.core.contracts import Chunk, RetrievalHit
+from ragleaklab.core.contracts import Chunk, ContextStats, Hashes, RetrievalHit, Timings
 from ragleaklab.rag.pipeline import RAGPipeline
 
 if TYPE_CHECKING:
@@ -66,6 +67,7 @@ def run_case(
     pipeline: RAGPipeline,
     case: TestCase,
     apply_strategy: bool = True,
+    hashes: Hashes | None = None,
 ) -> RunArtifact:
     """Run a single test case through the pipeline.
 
@@ -73,10 +75,13 @@ def run_case(
         pipeline: RAG pipeline to test.
         case: Test case to run.
         apply_strategy: Whether to apply strategy transformation.
+        hashes: Optional provenance hashes.
 
     Returns:
         RunArtifact with results.
     """
+    start_total = time.perf_counter()
+
     # Get effective query (handles both single-turn and multi-turn)
     effective_query = case.effective_query
 
@@ -87,8 +92,13 @@ def run_case(
     else:
         query = effective_query
 
-    # Run through pipeline
+    # Run through pipeline with timing
     result = pipeline.run(query)
+    end_total = time.perf_counter()
+
+    # Compute timings (pipeline.run handles both retrieval and generation)
+    total_ms = (end_total - start_total) * 1000
+    timings = Timings(total_ms=total_ms)
 
     # Build retrieved list from chunks and scores
     retrieved: list[RetrievalHit] = []
@@ -101,6 +111,13 @@ def run_case(
             metadata=chunk.metadata,
         )
         retrieved.append(RetrievalHit(chunk=core_chunk, score=score))
+
+    # Compute context stats
+    context_stats = ContextStats(
+        context_chars=len(result.context),
+        n_chunks=len(retrieved),
+        truncated=False,
+    )
 
     # Build metadata
     meta: dict[str, Any] = {
@@ -125,6 +142,9 @@ def run_case(
         answer=result.answer,
         context=result.context,
         retrieved=retrieved,
+        timings=timings,
+        context_stats=context_stats,
+        hashes=hashes or Hashes(),
         meta=meta,
     )
 
@@ -133,6 +153,7 @@ def run_all(
     pipeline: RAGPipeline,
     cases: list[TestCase],
     apply_strategy: bool = True,
+    hashes: Hashes | None = None,
 ) -> list[RunArtifact]:
     """Run all test cases through the pipeline.
 
@@ -140,17 +161,19 @@ def run_all(
         pipeline: RAG pipeline to test.
         cases: List of test cases.
         apply_strategy: Whether to apply strategy transformations.
+        hashes: Optional provenance hashes.
 
     Returns:
         List of RunArtifact with results.
     """
-    return [run_case(pipeline, case, apply_strategy) for case in cases]
+    return [run_case(pipeline, case, apply_strategy, hashes) for case in cases]
 
 
 def run_case_with_target(
     target: "Target",
     case: TestCase,
     apply_strategy: bool = True,
+    hashes: Hashes | None = None,
 ) -> RunArtifact:
     """Run a single test case through a target adapter.
 
@@ -158,10 +181,13 @@ def run_case_with_target(
         target: Target adapter (implements ask() method).
         case: Test case to run.
         apply_strategy: Whether to apply strategy transformation.
+        hashes: Optional provenance hashes.
 
     Returns:
         RunArtifact with results.
     """
+    start_total = time.perf_counter()
+
     # Get effective query (handles both single-turn and multi-turn)
     effective_query = case.effective_query
 
@@ -172,8 +198,12 @@ def run_case_with_target(
     else:
         query = effective_query
 
-    # Run through target
+    # Run through target with timing
     response = target.ask(query)
+    end_total = time.perf_counter()
+
+    total_ms = (end_total - start_total) * 1000
+    timings = Timings(total_ms=total_ms)
 
     # Build retrieved list from target response
     retrieved: list[RetrievalHit] = []
@@ -186,6 +216,13 @@ def run_case_with_target(
 
         chunk = Chunk(doc_id=doc_id, chunk_id=c_id, text="")  # Text not available from target
         retrieved.append(RetrievalHit(chunk=chunk, score=score))
+
+    # Compute context stats
+    context_stats = ContextStats(
+        context_chars=len(response.context),
+        n_chunks=len(retrieved),
+        truncated=False,
+    )
 
     # Build metadata
     meta: dict[str, Any] = {
@@ -210,6 +247,9 @@ def run_case_with_target(
         answer=response.answer,
         context=response.context,
         retrieved=retrieved,
+        timings=timings,
+        context_stats=context_stats,
+        hashes=hashes or Hashes(),
         meta=meta,
     )
 
@@ -218,6 +258,7 @@ def run_all_with_target(
     target: "Target",
     cases: list[TestCase],
     apply_strategy: bool = True,
+    hashes: Hashes | None = None,
 ) -> list[RunArtifact]:
     """Run all test cases through a target adapter.
 
@@ -225,8 +266,9 @@ def run_all_with_target(
         target: Target adapter to test.
         cases: List of test cases.
         apply_strategy: Whether to apply strategy transformations.
+        hashes: Optional provenance hashes.
 
     Returns:
         List of RunArtifact with results.
     """
-    return [run_case_with_target(target, case, apply_strategy) for case in cases]
+    return [run_case_with_target(target, case, apply_strategy, hashes) for case in cases]

@@ -28,12 +28,14 @@ SCHEMA_VERSION = "2.0.0"
 
 
 class FailureReason(BaseModel):
-    """A single failure reason."""
+    """A single failure reason with optional attribution."""
 
     threat: str
     reason: str
     value: float | int | bool
     threshold: float | int | bool
+    category: str | None = None
+    remediation_hint: str | None = None
 
 
 class CaseResult(BaseModel):
@@ -49,6 +51,11 @@ class CaseResult(BaseModel):
     transformed_query: str
     retrieved_ids: list[str]
     answer: str
+    context: str = ""
+    timings: dict[str, Any] = Field(default_factory=dict)
+    context_stats: dict[str, Any] = Field(default_factory=dict)
+    hashes: dict[str, Any] = Field(default_factory=dict)
+    attribution: list[dict[str, Any]] = Field(default_factory=list)
     canary_detected: bool = False
     canary_count: int = 0
     verbatim_score: float = 0.0

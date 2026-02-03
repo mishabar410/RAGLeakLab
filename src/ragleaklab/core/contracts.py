@@ -41,6 +41,31 @@ class RetrievalHit(BaseModel):
     score: float | None = Field(default=None, description="Retrieval score (higher is better)")
 
 
+class Timings(BaseModel):
+    """Timing breakdown for a single run."""
+
+    retrieval_ms: float | None = Field(default=None, description="Retrieval time in milliseconds")
+    generation_ms: float | None = Field(default=None, description="Generation time in milliseconds")
+    total_ms: float | None = Field(default=None, description="Total execution time in milliseconds")
+
+
+class ContextStats(BaseModel):
+    """Context statistics for a single run."""
+
+    context_chars: int = Field(default=0, description="Character count of context")
+    n_chunks: int = Field(default=0, description="Number of retrieved chunks")
+    truncated: bool = Field(default=False, description="Whether context was truncated for output")
+
+
+class Hashes(BaseModel):
+    """Provenance hashes for reproducibility."""
+
+    corpus_hash: str | None = Field(default=None, description="SHA-256 hash of corpus directory")
+    attacks_hash: str | None = Field(default=None, description="SHA-256 hash of attacks directory")
+    config_hash: str | None = Field(default=None, description="Hash of runtime configuration")
+    target_hash: str | None = Field(default=None, description="Identifier for target system")
+
+
 class RunArtifact(BaseModel):
     """Result artifact from running a test case through RAG pipeline.
 
@@ -55,9 +80,11 @@ class RunArtifact(BaseModel):
         default_factory=list, description="Retrieved chunks with scores"
     )
     context: str = Field(..., description="Context passed to generator")
-    timings: dict[str, Any] = Field(
-        default_factory=dict, description="Timing information (retrieval_ms, generation_ms, etc.)"
+    timings: Timings = Field(default_factory=Timings, description="Timing breakdown")
+    context_stats: ContextStats = Field(
+        default_factory=ContextStats, description="Context statistics"
     )
+    hashes: Hashes = Field(default_factory=Hashes, description="Provenance hashes")
     meta: dict[str, Any] = Field(
         default_factory=dict, description="Additional metadata (strategy, original_query, etc.)"
     )

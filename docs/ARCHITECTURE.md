@@ -224,3 +224,61 @@ Minimized queries are stored in `runs.jsonl` under the `details` field:
   }
 }
 ```
+
+## Attribution Flow
+
+When a leak is detected, the attribution system diagnoses *why* it occurred and provides remediation hints.
+
+```
+Detected Leak (canary/verbatim)
+       │
+       ▼
+┌──────────────┐
+│  Analyze     │──→ Check retrieved_ids, context_stats
+│  Evidence    │
+└──────────────┘
+       │
+       ▼
+┌──────────────┐
+│  Categorize  │──→ AttributionCategory enum
+│  Root Cause  │
+└──────────────┘
+       │
+       ▼
+┌──────────────┐
+│  Generate    │──→ Remediation hints
+│  Hints       │
+└──────────────┘
+       │
+       ▼
+┌──────────────┐
+│  Output      │──→ report.json, runs.jsonl, SARIF
+└──────────────┘
+```
+
+### Attribution Categories
+
+| Category | Condition | Hint |
+|----------|-----------|------|
+| `retrieval_included_secret` | Canary in retrieved chunks | Review retriever filtering |
+| `context_too_long` | Context > 10k chars | Reduce context window |
+| `top_k_too_high` | > 5 chunks retrieved | Lower top_k value |
+| `target_overexposed_endpoint` | HTTP target + leak | Audit HTTP responses |
+
+### Output Format
+
+Attribution appears in `runs.jsonl` and SARIF:
+
+```json
+{
+  "test_id": "c1",
+  "attribution": [
+    {
+      "category": "retrieval_included_secret",
+      "description": "Sensitive token was present in retrieved chunks",
+      "hint": "Review retriever filtering..."
+    }
+  ]
+}
+```
+

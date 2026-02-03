@@ -66,14 +66,26 @@ class TestCLIRun:
         # Should have 30 cases (10 canary + 10 verbatim + 10 multiturn)
         assert len(lines) == 30, f"Expected 30 lines, got {len(lines)}"
 
-        # Each line should be valid JSON
+        # Each line should be valid JSON with required fields
         for line in lines:
             case = json.loads(line)
+            # Core fields
             assert "test_id" in case
             assert "threat" in case
             assert "query" in case
             assert "answer" in case
             assert "retrieved_ids" in case
+            # Trace fields (new)
+            assert "timings" in case, "Missing timings trace field"
+            assert "context_stats" in case, "Missing context_stats trace field"
+            assert "hashes" in case, "Missing hashes trace field"
+            # Validate timings has expected structure
+            assert isinstance(case["timings"], dict)
+            # Validate context_stats has expected keys
+            assert "n_chunks" in case["context_stats"]
+            assert isinstance(case["context_stats"]["n_chunks"], int)
+            # Validate hashes has expected keys
+            assert "corpus_hash" in case["hashes"]
 
     def test_cli_run_detects_canaries(self, tmp_path: Path):
         """CLI run correctly detects canary leaks."""

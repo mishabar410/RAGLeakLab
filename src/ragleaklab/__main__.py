@@ -134,16 +134,37 @@ def run(
     # Run attacks
     typer.echo("⚡ Running attacks...")
 
+    # Compute provenance hashes
+    from ragleaklab.assets.hash import compute_tree_hash
+    from ragleaklab.core.contracts import Hashes
+    from ragleaklab.core.version import compute_config_hash, get_tool_version
+
+    tool_version = get_tool_version()
+    corpus_hash = compute_tree_hash(corpus_path)
+    attacks_hash_val = compute_tree_hash(attacks_path) if attacks_path else None
+    config_hash = compute_config_hash(
+        corpus_path=str(corpus_path.resolve()),
+        attacks_path=str(attacks_path.resolve()) if attacks_path else "packs",
+        packs=",".join(sorted(pack)) if pack else "",
+    )
+
+    run_hashes = Hashes(
+        corpus_hash=corpus_hash,
+        attacks_hash=attacks_hash_val,
+        config_hash=config_hash,
+        target_hash="http" if use_http_target else "in-process",
+    )
+
     if use_http_target and cfg is not None:
         from ragleaklab.targets import HttpTarget
 
         target = HttpTarget.from_config(cfg.target)  # type: ignore
-        artifacts = run_all_with_target(target, cases)
+        artifacts = run_all_with_target(target, cases, hashes=run_hashes)
     else:
         # Create in-process pipeline
         pipeline = RAGPipeline(top_k=3)
         pipeline.add_documents(rag_docs)
-        artifacts = run_all(pipeline, cases)
+        artifacts = run_all(pipeline, cases, hashes=run_hashes)
 
     # Calculate metrics per case
     case_results: list[CaseResult] = []
@@ -194,6 +215,21 @@ def run(
                 "reduced": min_result.reduced,
             }
 
+        # Compute attribution for leaks
+        attribution_list: list[dict[str, Any]] = []
+        if canary_result.present or verbatim_result.score > 0.1:
+            from ragleaklab.analysis.attribution import attribute_leak
+
+            attrs = attribute_leak(
+                canary_detected=canary_result.present,
+                retrieved_ids=artifact.retrieved_ids,
+                context_chars=artifact.context_stats.context_chars,
+                n_chunks=artifact.context_stats.n_chunks,
+                verbatim_score=verbatim_result.score,
+                is_http_target=use_http_target,
+            )
+            attribution_list = [a.model_dump() for a in attrs]
+
         case_results.append(
             CaseResult(
                 test_id=artifact.test_id,
@@ -202,6 +238,11 @@ def run(
                 transformed_query=artifact.query,
                 retrieved_ids=artifact.retrieved_ids,
                 answer=artifact.answer,
+                context=artifact.context,
+                timings=artifact.timings.model_dump(),
+                context_stats=artifact.context_stats.model_dump(),
+                hashes=artifact.hashes.model_dump(),
+                attribution=attribution_list,
                 canary_detected=canary_result.present,
                 canary_count=canary_result.count,
                 verbatim_score=verbatim_result.score,
@@ -245,16 +286,6 @@ def run(
         for r in verdict.reasons
     ]
 
-    # Get version info
-    from ragleaklab.core.version import compute_config_hash, get_tool_version
-
-    tool_version = get_tool_version()
-    config_hash = compute_config_hash(
-        corpus_path=str(corpus_path.resolve()),
-        attacks_path=str(attacks_path.resolve()) if attacks_path else "packs",
-        packs=",".join(sorted(pack)) if pack else "",
-    )
-
     report = Report(
         tool_version=tool_version,
         total_cases=len(cases),
@@ -275,11 +306,21 @@ def run(
         f.write(report.model_dump_json(indent=2))
     typer.echo(f"📄 Wrote {report_path}")
 
-    # Write runs.jsonl
+    # Write runs.jsonl with context truncation
+    CONTEXT_LIMIT = 20_000
     runs_path = out / "runs.jsonl"
     with open(runs_path, "w") as f:
         for case_result in case_results:
-            f.write(case_result.model_dump_json() + "\n")
+            # Serialize with potential context truncation
+            data = case_result.model_dump()
+            context_field = data.get("context", "")
+            if len(context_field) > CONTEXT_LIMIT:
+                data["context"] = context_field[:CONTEXT_LIMIT]
+                if "context_stats" in data:
+                    data["context_stats"]["truncated"] = True
+            import json
+
+            f.write(json.dumps(data) + "\n")
     typer.echo(f"📄 Wrote {runs_path}")
 
     # Export additional formats
