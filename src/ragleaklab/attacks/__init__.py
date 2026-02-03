@@ -1,6 +1,7 @@
 """Attack module for security testing harness."""
 
 from ragleaklab.attacks.catalog import AttackStrategy, get_strategy
+from ragleaklab.attacks.minimize import MinimizationResult, minimize_query
 from ragleaklab.attacks.runner import (
     load_cases,
     run_all,
@@ -13,10 +14,12 @@ from ragleaklab.attacks.schema import ChatTurn, RunArtifact, TestCase
 __all__ = [
     "AttackStrategy",
     "ChatTurn",
+    "MinimizationResult",
     "RunArtifact",
     "TestCase",
     "get_strategy",
     "load_cases",
+    "minimize_query",
     "run_all",
     "run_all_with_target",
     "run_case",

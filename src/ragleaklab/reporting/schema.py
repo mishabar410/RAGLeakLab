@@ -5,6 +5,7 @@ and re-exports unified contracts from ragleaklab.core.contracts.
 """
 
 from datetime import datetime
+from typing import Any
 
 from pydantic import BaseModel, Field
 
@@ -51,6 +52,7 @@ class CaseResult(BaseModel):
     canary_detected: bool = False
     canary_count: int = 0
     verbatim_score: float = 0.0
+    details: dict[str, Any] = Field(default_factory=dict)
 
 
 class Report(BaseModel):

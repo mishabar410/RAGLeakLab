@@ -1,6 +1,7 @@
 """CLI entry point for ragleaklab."""
 
 from pathlib import Path
+from typing import Any
 
 import typer
 
@@ -29,6 +30,9 @@ def run(
     ),
     format: list[str] = typer.Option(
         [], "--format", "-f", help="Additional output formats: junit, sarif"
+    ),
+    minimize_on_fail: bool = typer.Option(
+        False, "--minimize-on-fail", help="Minimize failing queries for stable regression"
     ),
 ) -> None:
     """Run attack test cases against a corpus and generate reports.
@@ -155,6 +159,41 @@ def run(
         verbatim_result = verbatim_overlap(artifact.answer, sources)
         total_verbatim_score += verbatim_result.score
 
+        # Build case details
+        case_details: dict[str, Any] = {}
+
+        # Minimize failing queries if requested
+        if minimize_on_fail and canary_result.present:
+            from ragleaklab.attacks import minimize_query
+
+            original_query = artifact.meta.get("original_query", artifact.query)
+
+            # Create oracle that checks if leak persists
+            def make_oracle(pipe: RAGPipeline | None, tgt: Any) -> Any:
+                def oracle(q: str) -> bool:
+                    if pipe is not None:
+                        result = pipe.query(q)
+                        return detect_canary(result.answer).present
+                    else:
+                        resp = tgt.ask(q)
+                        return detect_canary(resp.answer).present
+
+                return oracle
+
+            if use_http_target and cfg is not None:
+                oracle_fn = make_oracle(None, target)
+            else:
+                oracle_fn = make_oracle(pipeline, None)
+
+            min_result = minimize_query(original_query, oracle_fn)
+            case_details["minimized_query"] = min_result.minimized_query
+            case_details["minimization"] = {
+                "original_chunks": min_result.original_chunks,
+                "minimized_chunks": min_result.minimized_chunks,
+                "iterations": min_result.iterations,
+                "reduced": min_result.reduced,
+            }
+
         case_results.append(
             CaseResult(
                 test_id=artifact.test_id,
@@ -166,6 +205,7 @@ def run(
                 canary_detected=canary_result.present,
                 canary_count=canary_result.count,
                 verbatim_score=verbatim_result.score,
+                details=case_details,
             )
         )
 

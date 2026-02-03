@@ -7,13 +7,16 @@ import pytest
 from ragleaklab.attacks import (
     AttackStrategy,
     ChatTurn,
+    MinimizationResult,
     RunArtifact,
     TestCase,
     get_strategy,
     load_cases,
+    minimize_query,
     run_all,
     run_case,
 )
+from ragleaklab.attacks.minimize import ddmin
 from ragleaklab.rag import Document, RAGPipeline
 
 
@@ -300,3 +303,86 @@ class TestMultiTurn:
         assert len(artifact.meta["turns"]) == 2
         assert artifact.meta["turns"][0]["role"] == "system"
         assert artifact.meta["turns"][1]["role"] == "user"
+
+
+class TestMinimization:
+    """Tests for attack query minimization."""
+
+    def test_ddmin_reduces_query(self):
+        """ddmin finds minimal failing subset."""
+        # Chunks: leak is in chunk[2] only
+        chunks = ["Hello.", "How are you?", "SECRET_CANARY_TOKEN", "Goodbye.", "See you."]
+
+        # Oracle: fail if SECRET_CANARY_TOKEN is present
+        def oracle(chunk_list: list[str]) -> bool:
+            return "SECRET_CANARY_TOKEN" in chunk_list
+
+        result, iterations = ddmin(chunks, oracle)
+
+        assert result == ["SECRET_CANARY_TOKEN"]
+        assert len(result) < len(chunks)
+        assert iterations > 0
+
+    def test_ddmin_returns_original_if_no_reduction(self):
+        """ddmin returns original if can't reduce."""
+        # Single chunk
+        chunks = ["SECRET_CANARY_TOKEN"]
+
+        def oracle(chunk_list: list[str]) -> bool:
+            return "SECRET_CANARY_TOKEN" in chunk_list
+
+        result, iterations = ddmin(chunks, oracle)
+
+        assert result == chunks
+        assert iterations == 0
+
+    def test_minimize_query_sentence_mode(self):
+        """minimize_query reduces multi-sentence query."""
+        query = "Hello world. SECRET_CANARY_TOKEN here. Goodbye friend."
+
+        def oracle(q: str) -> bool:
+            return "SECRET_CANARY_TOKEN" in q
+
+        result = minimize_query(query, oracle, chunk_mode="sentence")
+
+        assert result.reduced
+        assert "SECRET_CANARY_TOKEN" in result.minimized_query
+        assert len(result.minimized_query) < len(result.original_query)
+        assert result.minimized_chunks < result.original_chunks
+        assert isinstance(result, MinimizationResult)
+
+    def test_minimize_query_preserves_failure(self):
+        """Minimized query still causes the leak."""
+        query = "Part one. Part two. The SECRET_CANARY_TOKEN is here. Part four."
+
+        def oracle(q: str) -> bool:
+            return "SECRET_CANARY_TOKEN" in q
+
+        result = minimize_query(query, oracle)
+
+        # Verify failure still persists
+        assert oracle(result.minimized_query)
+
+    def test_minimize_query_line_mode(self):
+        """minimize_query works with line splitting."""
+        query = "Line one\nLine two\nSECRET_CANARY_TOKEN\nLine four"
+
+        def oracle(q: str) -> bool:
+            return "SECRET_CANARY_TOKEN" in q
+
+        result = minimize_query(query, oracle, chunk_mode="line")
+
+        assert result.reduced
+        assert result.minimized_query.strip() == "SECRET_CANARY_TOKEN"
+
+    def test_ddmin_deterministic(self):
+        """ddmin produces same result on repeated calls."""
+        chunks = ["A.", "B.", "SECRET_CANARY_TOKEN", "D.", "E."]
+
+        def oracle(chunk_list: list[str]) -> bool:
+            return "SECRET_CANARY_TOKEN" in chunk_list
+
+        result1, _ = ddmin(chunks, oracle)
+        result2, _ = ddmin(chunks, oracle)
+
+        assert result1 == result2

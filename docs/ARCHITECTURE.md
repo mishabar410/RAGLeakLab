@@ -169,3 +169,58 @@ TestCase (YAML input)
 4. **CI-friendly** — Exit codes reflect pass/fail, regression comparison built-in
 5. **Unified contracts** — All modules use pydantic models from `core/contracts.py`
 
+## Minimization Pipeline
+
+When a leak is detected, the minimization pipeline reduces the failing query to its minimal form for stable regression tests.
+
+```
+Failing Query (leak detected)
+       │
+       ▼
+┌──────────────┐
+│ Split chunks │──→ Sentences or Lines
+└──────────────┘
+       │
+       ▼
+┌──────────────┐
+│    ddmin     │──→ Binary search reduction
+│  algorithm   │
+└──────────────┘
+       │
+       ▼
+┌──────────────┐
+│   Oracle     │──→ Test if leak persists
+│  (canary)    │
+└──────────────┘
+       │
+       ▼
+┌──────────────┐
+│ Minimal      │──→ Stored in runs.jsonl details
+│  Query       │
+└──────────────┘
+```
+
+### Usage
+
+```bash
+ragleaklab run --corpus data/ --attacks attacks/ --out out/ --minimize-on-fail
+```
+
+### Output
+
+Minimized queries are stored in `runs.jsonl` under the `details` field:
+
+```json
+{
+  "test_id": "canary_01",
+  "details": {
+    "minimized_query": "What is SECRET_CANARY_TOKEN?",
+    "minimization": {
+      "original_chunks": 5,
+      "minimized_chunks": 1,
+      "iterations": 7,
+      "reduced": true
+    }
+  }
+}
+```
