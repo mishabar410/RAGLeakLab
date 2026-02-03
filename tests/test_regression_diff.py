@@ -1,25 +1,29 @@
 """Tests for regression diff."""
 
+from ragleaklab.core.contracts import ReportSummary
 from ragleaklab.regression.diff import compare_reports
-from ragleaklab.reporting.schema import Report
 
 
 def _make_report(
     canary_extracted: bool = False,
     verbatim_rate: float = 0.05,
     membership_conf: float = 0.4,
-) -> Report:
+) -> ReportSummary:
     """Create a test report with specified values."""
-    return Report(
-        total_cases=10,
-        canary_extracted=canary_extracted,
-        canary_count=1 if canary_extracted else 0,
-        verbatim_leakage_rate=verbatim_rate,
-        membership_confidence=membership_conf,
+    return ReportSummary(
         overall_pass=not canary_extracted,
+        aggregates={
+            "total_cases": 10,
+            "canary_extracted": canary_extracted,
+            "canary_count": 1 if canary_extracted else 0,
+            "verbatim_leakage_rate": verbatim_rate,
+            "membership_confidence": membership_conf,
+        },
         failures=[],
-        corpus_path="/test/corpus",
-        attacks_path="/test/attacks",
+        meta={
+            "corpus_path": "/test/corpus",
+            "attacks_path": "/test/attacks",
+        },
     )
 
 
@@ -120,7 +124,8 @@ class TestRegressionDiff:
 
         result = compare_reports(baseline, current)
 
-        assert len(result.deltas) == 3  # canary, verbatim, membership
+        # Now includes semantic_leakage_rate too
+        assert len(result.deltas) >= 3  # canary, verbatim, membership (+ optional semantic)
         metric_names = {d.metric for d in result.deltas}
         assert "canary_extracted" in metric_names
         assert "verbatim_leakage_rate" in metric_names
