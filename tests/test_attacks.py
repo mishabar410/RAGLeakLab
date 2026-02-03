@@ -7,9 +7,11 @@ import pytest
 from ragleaklab.attacks import (
     AttackStrategy,
     ChatTurn,
+    CoverageReport,
     MinimizationResult,
     RunArtifact,
     TestCase,
+    compute_coverage,
     get_strategy,
     load_cases,
     minimize_query,
@@ -386,3 +388,111 @@ class TestMinimization:
         result2, _ = ddmin(chunks, oracle)
 
         assert result1 == result2
+
+
+class TestCoverage:
+    """Tests for coverage reporting."""
+
+    def test_compute_coverage_counts_threats(self, tmp_path: Path):
+        """compute_coverage correctly counts threats."""
+        attacks_yaml = tmp_path / "attacks.yaml"
+        attacks_yaml.write_text(
+            """
+- test_id: t1
+  threat: canary
+  query: test1
+  strategy: direct_ask
+- test_id: t2
+  threat: canary
+  query: test2
+  strategy: roleplay
+- test_id: t3
+  threat: verbatim
+  query: test3
+  strategy: direct_ask
+"""
+        )
+
+        report = compute_coverage(attacks_yaml)
+
+        assert report.total_cases == 3
+        assert report.threats["canary"] == 2
+        assert report.threats["verbatim"] == 1
+        assert report.strategies["direct_ask"] == 2
+        assert report.strategies["roleplay"] == 1
+        assert isinstance(report, CoverageReport)
+
+    def test_compute_coverage_matrix(self, tmp_path: Path):
+        """compute_coverage builds correct matrix."""
+        attacks_yaml = tmp_path / "attacks.yaml"
+        attacks_yaml.write_text(
+            """
+- test_id: t1
+  threat: canary
+  query: test1
+  strategy: direct_ask
+- test_id: t2
+  threat: canary
+  query: test2
+  strategy: roleplay
+- test_id: t3
+  threat: verbatim
+  query: test3
+  strategy: direct_ask
+"""
+        )
+
+        report = compute_coverage(attacks_yaml)
+
+        assert report.matrix["canary"]["direct_ask"] == 1
+        assert report.matrix["canary"]["roleplay"] == 1
+        assert report.matrix["verbatim"]["direct_ask"] == 1
+        assert "roleplay" not in report.matrix.get("verbatim", {})
+
+    def test_compute_coverage_missing_combos(self, tmp_path: Path):
+        """compute_coverage detects missing combinations."""
+        attacks_yaml = tmp_path / "attacks.yaml"
+        attacks_yaml.write_text(
+            """
+- test_id: t1
+  threat: canary
+  query: test1
+  strategy: direct_ask
+"""
+        )
+
+        report = compute_coverage(
+            attacks_yaml,
+            expected_threats=["canary", "verbatim"],
+            expected_strategies=["direct_ask", "roleplay"],
+        )
+
+        # Should have 3 missing: canary x roleplay, verbatim x direct_ask, verbatim x roleplay
+        assert len(report.missing_combos) == 3
+        missing_set = {(c["threat"], c["strategy"]) for c in report.missing_combos}
+        assert ("canary", "roleplay") in missing_set
+        assert ("verbatim", "direct_ask") in missing_set
+        assert ("verbatim", "roleplay") in missing_set
+
+    def test_compute_coverage_tags(self, tmp_path: Path):
+        """compute_coverage counts tags."""
+        attacks_yaml = tmp_path / "attacks.yaml"
+        attacks_yaml.write_text(
+            """
+- test_id: t1
+  threat: canary
+  query: test1
+  strategy: direct_ask
+  tags: [regression, priority]
+- test_id: t2
+  threat: canary
+  query: test2
+  strategy: roleplay
+  tags: [regression]
+"""
+        )
+
+        report = compute_coverage(attacks_yaml)
+
+        assert report.tags["regression"] == 2
+        assert report.tags["priority"] == 1

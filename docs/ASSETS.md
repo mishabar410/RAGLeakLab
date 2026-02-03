@@ -191,4 +191,55 @@ This checks:
 - Reference resolution in pack manifests
 - Report field validity
 
+## Coverage
 
+Analyze attack coverage to find gaps in test suite:
+
+```bash
+ragleaklab attacks coverage --attacks data/attacks/ --out coverage.json
+```
+
+### Output
+
+Console output shows:
+- Case counts per threat type
+- Case counts per strategy
+- Matrix of threat × strategy combinations
+- Missing expected combinations (if manifest defines expectations)
+
+### JSON Output
+
+```json
+{
+  "total_cases": 30,
+  "threats": {"canary": 15, "verbatim": 10, "membership": 5},
+  "strategies": {"direct_ask": 12, "roleplay": 8, "indirect_ask": 10},
+  "matrix": {
+    "canary": {"direct_ask": 5, "roleplay": 5, "indirect_ask": 5},
+    "verbatim": {"direct_ask": 4, "roleplay": 3, "indirect_ask": 3},
+    "membership": {"direct_ask": 3, "indirect_ask": 2}
+  },
+  "tags": {"regression": 10, "priority": 5},
+  "missing_combos": [
+    {"threat": "membership", "strategy": "roleplay"}
+  ]
+}
+```
+
+### Expectations
+
+Add `strategy_coverage` to `attacks.yaml` manifest:
+
+```yaml
+name: attacks_default
+version: "1.0.0"
+threat_coverage:
+  - canary
+  - verbatim
+strategy_coverage:
+  - direct_ask
+  - roleplay
+  - indirect_ask
+```
+
+Missing combos are detected when both expectations are defined.
