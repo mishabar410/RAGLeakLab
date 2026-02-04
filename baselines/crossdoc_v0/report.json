@@ -1,0 +1,16 @@
+{
+    "schema_version": "2.0.0",
+    "tool_version": "0.1.0",
+    "overall_pass": true,
+    "aggregates": {
+        "total_cases": 40,
+        "crossdoc_leakage_rate": 0.0,
+        "crossdoc_leaked_claims_count": 0
+    },
+    "failures": [],
+    "meta": {
+        "pack": "crossdoc-basic",
+        "corpus": "corpus_crossdoc_v0",
+        "description": "Baseline for cross-document leakage - zero leaks expected on secure RAG"
+    }
+}

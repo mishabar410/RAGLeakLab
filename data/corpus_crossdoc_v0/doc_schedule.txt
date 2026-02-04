@@ -1,0 +1,14 @@
+ACCESS SCHEDULE - CONFIDENTIAL
+==============================
+After Hours Access Permissions
+
+Employee ID | Service ID | Access Window      | Justification
+------------|------------|--------------------|--------------
+EMP-001     | SVC-001    | 24/7               | On-call
+EMP-003     | SVC-001    | 24/7               | On-call
+EMP-003     | SVC-004    | Weekdays 6am-10pm  | Deployments
+EMP-004     | SVC-003    | 24/7               | Security
+EMP-007     | SVC-002    | Weekdays 8am-8pm   | DB Admin
+EMP-010     | SVC-001    | 24/7               | Infrastructure
+
+For employee names, see HR Directory.

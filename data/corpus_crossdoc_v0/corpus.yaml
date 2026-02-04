@@ -1,0 +1,10 @@
+name: corpus_crossdoc_v0
+version: "1.0.0"
+description: "Cross-document leakage test corpus with fragmented facts"
+doc_count: 20
+claims_supported:
+  - COMPOSED
+threats:
+  - crossdoc
+  - semantic
+hash: "10c412884edb8514d84e4fa20256d2ab180158a46cc606216993ade8d8d1465f"

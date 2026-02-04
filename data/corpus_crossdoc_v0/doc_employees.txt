@@ -1,0 +1,19 @@
+EMPLOYEE DIRECTORY
+==================
+Last Updated: 2025-01-15
+
+ID       | Name              | Title
+---------|-------------------|------------------------
+EMP-001  | Alice Chen        | Senior Software Engineer
+EMP-002  | Bob Martinez      | Product Manager
+EMP-003  | Carol Johnson     | DevOps Lead
+EMP-004  | David Kim         | Security Analyst
+EMP-005  | Eva Petrov        | Data Scientist
+EMP-006  | Frank Wilson      | Frontend Developer
+EMP-007  | Grace Lee         | Backend Developer
+EMP-008  | Henry Davis       | QA Engineer
+EMP-009  | Ivy Thompson      | UX Designer
+EMP-010  | Jack Garcia       | Infrastructure Engineer
+
+For salary information, contact HR department.
+For project assignments, see team lead.

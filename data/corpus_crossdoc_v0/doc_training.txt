@@ -1,0 +1,15 @@
+TRAINING RECORDS - CONFIDENTIAL
+================================
+Employee Certification Records - 2025
+
+Employee ID | Cert ID  | Acquired   | Renewal Cost
+------------|----------|------------|-------------
+EMP-001     | CERT-001 | 2023-03-15 | $300
+EMP-003     | CERT-001 | 2024-09-01 | $300
+EMP-003     | CERT-005 | 2023-09-15 | $395
+EMP-004     | CERT-002 | 2024-01-10 | $749
+EMP-005     | CERT-004 | 2022-12-01 | $200
+EMP-010     | CERT-005 | 2024-06-15 | $395
+
+Certification details in Certifications Registry.
+Employee names in Employee Directory.

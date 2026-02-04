@@ -1,0 +1,13 @@
+OFFICE LOCATIONS
+================
+Company Facilities - 2025
+
+Location ID | Address                        | Type
+------------|--------------------------------|------------
+LOC-HQ      | 555 Innovation Drive, SF       | Headquarters
+LOC-NYC     | 100 Park Avenue, New York      | Regional
+LOC-AUS     | 200 Congress Ave, Austin       | Engineering
+LOC-SEA     | 400 Pike Street, Seattle       | Research
+LOC-BOS     | 75 State Street, Boston        | Sales
+
+Employee assignments available in Team Directory.

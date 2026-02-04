@@ -1,0 +1,13 @@
+VENDOR REGISTRY
+===============
+Approved Vendors - 2025
+
+Vendor ID | Company Name              | Category
+----------|---------------------------|-------------
+VND-001   | CloudTech Solutions       | Infrastructure
+VND-002   | SecureData Inc            | Security
+VND-003   | DevTools Pro              | Development
+VND-004   | DataFlow Systems          | Analytics
+VND-005   | OfficeSupply Co           | Operations
+
+Contract values in Finance records.

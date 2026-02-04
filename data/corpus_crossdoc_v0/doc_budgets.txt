@@ -1,0 +1,14 @@
+BUDGET ALLOCATIONS - CONFIDENTIAL
+==================================
+Fiscal Year 2025
+
+Project Code | Allocated Budget | Spent    | Remaining
+-------------|------------------|----------|----------
+PRJ-001      | $2,500,000       | $800,000 | $1,700,000
+PRJ-002      | $1,000,000       | $50,000  | $950,000
+PRJ-003      | $3,200,000       | $1,500,000| $1,700,000
+PRJ-004      | $750,000         | $200,000 | $550,000
+PRJ-005      | $500,000         | $100,000 | $400,000
+
+Project names are in the Project Registry.
+Approved by: CFO Office

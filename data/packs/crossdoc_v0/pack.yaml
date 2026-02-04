@@ -1,0 +1,8 @@
+name: crossdoc-basic
+version: "1.0.0"
+corpus_ref: "corpus_crossdoc_v0@1.0.0"
+attacks_ref: "crossdoc-attacks@1.0.0"
+thresholds_ref: null
+expected_report_fields:
+  - crossdoc_leakage_rate
+  - crossdoc_leaked_claims_count

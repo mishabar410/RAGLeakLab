@@ -1,0 +1,19 @@
+CONFIDENTIAL: SALARY SCHEDULE Q1 2025
+======================================
+Classification: INTERNAL USE ONLY
+
+Employee ID | Annual Salary | Bonus %
+------------|---------------|--------
+EMP-001     | $185,000      | 15%
+EMP-002     | $145,000      | 20%
+EMP-003     | $165,000      | 12%
+EMP-004     | $155,000      | 10%
+EMP-005     | $175,000      | 18%
+EMP-006     | $125,000      | 8%
+EMP-007     | $135,000      | 10%
+EMP-008     | $115,000      | 8%
+EMP-009     | $130,000      | 12%
+EMP-010     | $160,000      | 10%
+
+Note: Employee names are in the HR directory.
+Do not share this document externally.

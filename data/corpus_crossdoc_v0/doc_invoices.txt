@@ -1,0 +1,13 @@
+INVOICE SUMMARY - CONFIDENTIAL
+==============================
+Q4 2024 Revenue by Client
+
+Client ID | Q4 Revenue   | Outstanding | Status
+----------|--------------|-------------|--------
+CLT-001   | $525,000     | $75,000     | Active
+CLT-002   | $1,250,000   | $0          | Paid
+CLT-003   | $180,000     | $45,000     | Overdue
+CLT-004   | $420,000     | $120,000    | Active
+CLT-005   | $95,000      | $25,000     | Active
+
+Client names in Client Directory.

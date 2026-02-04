@@ -1,0 +1,13 @@
+INCIDENT RESOLUTIONS - CONFIDENTIAL
+====================================
+Resolution Reports - 2024
+
+Incident ID | Root Cause                          | Remediation                | Cost
+------------|-------------------------------------|----------------------------|--------
+INC-001     | Phishing attack on EMP-002          | Security training, MFA     | $15,000
+INC-002     | Misconfigured firewall rules        | Rule audit, automation     | $5,000
+INC-003     | Expired SSL certificate             | Certificate automation     | $2,000
+INC-004     | Credential stuffing attempt         | Rate limiting, CAPTCHA     | $25,000
+INC-005     | Zero-day vulnerability (CVE-2024-X) | Emergency patching         | $75,000
+
+Employee IDs reference HR Directory.

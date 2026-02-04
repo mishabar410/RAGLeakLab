@@ -1,0 +1,12 @@
+PROCEDURE DOCUMENTS
+===================
+Standard Operating Procedures - 2025
+
+Procedure ID | Policy ID | Title                      | Last Updated
+-------------|-----------|----------------------------|--------------
+PRC-001      | POL-001   | Access Request Workflow    | 2025-01-05
+PRC-002      | POL-002   | Incident Escalation Steps  | 2024-11-15
+PRC-003      | POL-003   | VPN Configuration Guide    | 2025-01-10
+PRC-004      | POL-005   | Vendor Onboarding Checklist| 2024-10-20
+
+Policy titles in Security Policies.

@@ -2,6 +2,10 @@
 
 from ragleaklab.metrics.canary import CanaryResult, detect_canary
 from ragleaklab.metrics.consistency import ConsistencyResult, membership_consistency
+from ragleaklab.metrics.crossdoc import (
+    CrossDocLeakageResult,
+    evaluate_crossdoc_leakage,
+)
 from ragleaklab.metrics.membership import MembershipResult, membership_confidence
 from ragleaklab.metrics.paraphrase import generate_paraphrases
 from ragleaklab.metrics.semantic import (
@@ -14,12 +18,14 @@ from ragleaklab.metrics.verdict import Verdict, apply_thresholds
 __all__ = [
     "CanaryResult",
     "ConsistencyResult",
+    "CrossDocLeakageResult",
     "MembershipResult",
     "SemanticLeakageResult",
     "VerbatimResult",
     "Verdict",
     "apply_thresholds",
     "detect_canary",
+    "evaluate_crossdoc_leakage",
     "evaluate_semantic_leakage",
     "generate_paraphrases",
     "membership_confidence",
@@ -36,3 +42,5 @@ _register("metrics", "membership", membership_confidence)
 _register("metrics", "consistency", membership_consistency)
 _register("metrics", "paraphrase", generate_paraphrases)
 _register("metrics", "semantic", evaluate_semantic_leakage)
+_register("metrics", "crossdoc", evaluate_crossdoc_leakage)
+

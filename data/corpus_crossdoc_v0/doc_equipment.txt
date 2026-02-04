@@ -1,0 +1,15 @@
+EQUIPMENT INVENTORY
+===================
+Assigned Hardware - 2025
+
+Asset Tag    | Type           | Model           | Specs
+-------------|----------------|-----------------|------------------
+HW-001       | Laptop         | MacBook Pro 16" | M3 Max, 64GB RAM
+HW-002       | Laptop         | ThinkPad X1     | i7, 32GB RAM
+HW-003       | Workstation    | Dell Precision  | Xeon, 128GB RAM
+HW-004       | Server         | Dell PowerEdge  | Dual Xeon, 256GB
+HW-005       | Laptop         | MacBook Pro 14" | M3 Pro, 36GB RAM
+HW-006       | Monitor        | LG 5K           | 27" Retina
+HW-007       | Laptop         | MacBook Air     | M3, 24GB RAM
+
+Assignments in Equipment Assignment Log.

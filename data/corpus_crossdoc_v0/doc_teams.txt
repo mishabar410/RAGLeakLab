@@ -1,0 +1,18 @@
+TEAM ASSIGNMENTS
+================
+Q1 2025
+
+Employee ID | Project Code | Location ID | Role
+------------|-------------|-------------|------------------
+EMP-001     | PRJ-001      | LOC-HQ      | Tech Lead
+EMP-002     | PRJ-001      | LOC-HQ      | Product Owner
+EMP-003     | PRJ-003      | LOC-AUS     | DevOps Lead
+EMP-004     | PRJ-004      | LOC-SEA     | Security Lead
+EMP-005     | PRJ-003      | LOC-HQ      | Data Lead
+EMP-006     | PRJ-001      | LOC-NYC     | Frontend Lead
+EMP-007     | PRJ-003      | LOC-AUS     | Backend Lead
+EMP-008     | PRJ-001      | LOC-HQ      | QA Lead
+EMP-009     | PRJ-002      | LOC-BOS     | Design Lead
+EMP-010     | PRJ-004      | LOC-SEA     | Infra Lead
+
+Cross-reference with Employee Directory and Project Registry.

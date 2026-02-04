@@ -1,0 +1,13 @@
+INCIDENT LOG - RESTRICTED
+=========================
+Security Incidents - 2024
+
+Incident ID | Date       | Severity | Status
+------------|------------|----------|--------
+INC-001     | 2024-03-15 | High     | Resolved
+INC-002     | 2024-06-22 | Medium   | Resolved
+INC-003     | 2024-09-10 | Low      | Resolved
+INC-004     | 2024-11-05 | High     | Resolved
+INC-005     | 2024-12-20 | Critical | Resolved
+
+See Resolution Reports for remediation details.

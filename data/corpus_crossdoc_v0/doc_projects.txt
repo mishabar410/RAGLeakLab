@@ -1,0 +1,14 @@
+PROJECT REGISTRY
+================
+Active Projects - 2025
+
+Code     | Project Name            | Status
+---------|-------------------------|--------
+PRJ-001  | Project Phoenix         | Active
+PRJ-002  | Project Titan           | Planning
+PRJ-003  | Project Aurora          | Active
+PRJ-004  | Project Nexus           | Active
+PRJ-005  | Project Horizon         | On Hold
+
+For budget details, see Finance department.
+For team assignments, see Project Management.

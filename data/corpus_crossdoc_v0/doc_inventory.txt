@@ -1,0 +1,15 @@
+EQUIPMENT ASSIGNMENT LOG
+========================
+Current Assignments
+
+Employee ID | Asset Tag | Assigned Date | Location ID
+------------|-----------|---------------|------------
+EMP-001     | HW-001    | 2024-03-15    | LOC-HQ
+EMP-001     | HW-006    | 2024-03-15    | LOC-HQ
+EMP-002     | HW-005    | 2024-06-01    | LOC-HQ
+EMP-003     | HW-003    | 2024-01-10    | LOC-AUS
+EMP-004     | HW-002    | 2024-04-20    | LOC-SEA
+EMP-005     | HW-007    | 2024-09-01    | LOC-HQ
+
+Equipment details in Equipment Inventory.
+Employee names in Employee Directory.

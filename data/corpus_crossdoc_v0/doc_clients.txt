@@ -1,0 +1,13 @@
+CLIENT DIRECTORY
+================
+Active Clients - 2025
+
+Client ID | Company Name           | Industry      | Tier
+----------|------------------------|---------------|------
+CLT-001   | Acme Corporation       | Manufacturing | Gold
+CLT-002   | Global Finance Ltd     | Banking       | Platinum
+CLT-003   | TechStart Inc          | Technology    | Silver
+CLT-004   | HealthCare Plus        | Healthcare    | Gold
+CLT-005   | EduLearn Systems       | Education     | Silver
+
+Revenue details in Financial reports.

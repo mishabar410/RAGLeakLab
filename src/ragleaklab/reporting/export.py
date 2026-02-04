@@ -159,6 +159,17 @@ def _build_sarif_rules() -> list[dict]:
             "defaultConfiguration": {"level": "error"},
             "properties": {"security-severity": "8.0"},
         },
+        {
+            "id": "crossdoc-leakage",
+            "name": "CrossDocLeakage",
+            "shortDescription": {"text": "Cross-document composed claim leaked"},
+            "fullDescription": {
+                "text": "A composed fact requiring multiple documents was revealed, "
+                "indicating the RAG system combined private information from distinct sources."
+            },
+            "defaultConfiguration": {"level": "error"},
+            "properties": {"security-severity": "8.5"},
+        },
     ]
 
 
@@ -241,5 +252,7 @@ def _threat_to_rule_id(threat: str) -> str:
         "verbatim": "verbatim-leakage",
         "membership": "membership-inference",
         "semantic": "semantic-leakage",
+        "crossdoc": "crossdoc-leakage",
     }
     return mapping.get(threat, "unknown")
+
