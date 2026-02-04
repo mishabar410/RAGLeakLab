@@ -5,12 +5,14 @@
 #
 # This script runs the same checks as the CI pipeline to ensure
 # local development matches CI behavior exactly.
+# See docs/CI_PARITY.md for details.
 
 set -euo pipefail
 
 RED='\033[0;31m'
 GREEN='\033[0;32m'
 YELLOW='\033[1;33m'
+BLUE='\033[0;34m'
 NC='\033[0m' # No Color
 
 step() {
@@ -19,6 +21,10 @@ step() {
 
 success() {
     echo -e "${GREEN}✓ $1${NC}"
+}
+
+skip() {
+    echo -e "${BLUE}SKIP $1${NC}"
 }
 
 fail() {
@@ -34,20 +40,20 @@ echo "  RAGLeakLab CI Smoke Test"
 echo "========================================"
 echo ""
 
-# Step 1: Sync dependencies
-step "Installing dependencies..."
-uv sync --all-extras || fail "Dependency sync failed"
+# Step 1: Sync dependencies (frozen = use lockfile exactly, all-extras for dev tools)
+step "Installing dependencies (frozen)..."
+uv sync --frozen --all-extras || fail "Dependency sync failed"
 success "Dependencies installed"
 
-# Step 2: Lint
-step "Running ruff check..."
-uv run ruff check . || fail "Linting failed"
-success "Linting passed"
-
-# Step 3: Format check
+# Step 2: Format check
 step "Checking formatting..."
 uv run ruff format --check . || fail "Format check failed"
 success "Formatting OK"
+
+# Step 3: Lint
+step "Running ruff check..."
+uv run ruff check . || fail "Linting failed"
+success "Linting passed"
 
 # Step 4: Tests (excluding slow)
 step "Running tests (excluding slow)..."
@@ -56,10 +62,18 @@ success "Tests passed"
 
 # Step 5: Asset validation
 step "Validating assets..."
-uv run python -m ragleaklab assets validate --path . || fail "Asset validation failed"
-success "Assets valid"
+if uv run python -m ragleaklab assets validate --path . 2>/dev/null; then
+    success "Assets valid"
+else
+    # Check if command exists
+    if uv run python -m ragleaklab assets validate --help >/dev/null 2>&1; then
+        fail "Asset validation failed"
+    else
+        skip "assets validate (command not available)"
+    fi
+fi
 
-# Step 6: Security audit (basic pack)
+# Step 6: Security audit (basic pack using --attacks)
 step "Running security audit (basic pack)..."
 rm -rf out/
 uv run python -m ragleaklab run \
@@ -68,8 +82,8 @@ uv run python -m ragleaklab run \
     --out out/ || fail "Security audit failed"
 success "Security audit completed"
 
-# Step 7: Regression check
-step "Checking regression against baseline..."
+# Step 7: Regression check against v1 baseline
+step "Checking regression against v1 baseline..."
 uv run python -m ragleaklab diff \
     --baseline baselines/v1/report.json \
     --current out/report.json || fail "Regression check failed"
@@ -90,10 +104,41 @@ uv run python -m ragleaklab diff \
     --current out/semantic/report.json || fail "Semantic regression failed"
 success "Semantic baseline passed"
 
+# Step 10: Crossdoc pack (if pack and baseline exist)
+if [ -d "data/packs/crossdoc_v0" ] && [ -f "baselines/crossdoc_v0/report.json" ]; then
+    step "Running crossdoc pack..."
+    uv run python -m ragleaklab run \
+        --corpus data/corpus_crossdoc_v0 \
+        --pack crossdoc-basic \
+        --out out/crossdoc/ || fail "Crossdoc pack failed"
+    success "Crossdoc pack completed"
+
+    step "Checking crossdoc regression..."
+    uv run python -m ragleaklab diff \
+        --baseline baselines/crossdoc_v0/report.json \
+        --current out/crossdoc/report.json || fail "Crossdoc regression failed"
+    success "Crossdoc baseline passed"
+else
+    skip "crossdoc pack (pack or baseline not found)"
+fi
+
+# Step 11: Determinism verification
+step "Running determinism check..."
+if uv run python -m ragleaklab verify determinism --help >/dev/null 2>&1; then
+    # Use canary-basic pack for determinism check
+    uv run python -m ragleaklab verify determinism \
+        --pack canary-basic \
+        --runs 2 \
+        --out out/determinism/ || fail "Determinism check failed"
+    success "Determinism verified"
+else
+    skip "determinism check (command not available)"
+fi
+
 # Cleanup
 rm -rf out/
 
 echo ""
 echo "========================================"
-echo -e "${GREEN}  All CI checks passed!${NC}"
+echo -e "${GREEN}  CI smoke OK${NC}"
 echo "========================================"

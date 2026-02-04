@@ -1,0 +1,41 @@
+# See https://pre-commit.com for more information
+# Install hooks:
+#   uv run pre-commit install
+#   uv run pre-commit install --hook-type pre-push
+
+repos:
+  - repo: local
+    hooks:
+      # Pre-commit stage: fast checks on every commit
+      - id: ruff-format
+        name: ruff format
+        entry: uv run ruff format
+        language: system
+        types: [python]
+        pass_filenames: true
+        stages: [pre-commit]
+
+      - id: ruff-check
+        name: ruff check
+        entry: uv run ruff check --fix
+        language: system
+        types: [python]
+        pass_filenames: true
+        stages: [pre-commit]
+
+      - id: pytest-quick
+        name: pytest (quick)
+        entry: uv run pytest -q -m "not slow"
+        language: system
+        pass_filenames: false
+        stages: [pre-commit]
+        always_run: true
+
+      # Pre-push stage: full CI smoke test
+      - id: ci-smoke
+        name: CI smoke test
+        entry: bash scripts/ci_smoke.sh
+        language: system
+        pass_filenames: false
+        stages: [pre-push]
+        always_run: true

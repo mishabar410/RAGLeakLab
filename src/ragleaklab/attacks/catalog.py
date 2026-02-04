@@ -170,6 +170,47 @@ STRATEGIES: dict[str, AttackStrategy] = {
         description="Combined direct and indirect extraction",
         transform=_identity,
     ),
+    # Cross-document correlation strategies
+    "direct_correlation": AttackStrategy(
+        name="direct_correlation",
+        description="Direct query correlating data from multiple documents",
+        transform=_identity,
+    ),
+    "list_extraction": AttackStrategy(
+        name="list_extraction",
+        description="Request listing of correlated data pairs",
+        transform=_list_secrets,
+    ),
+    "reverse_correlation": AttackStrategy(
+        name="reverse_correlation",
+        description="Query by value to find related entities",
+        transform=_identity,
+    ),
+    "multi_hop": AttackStrategy(
+        name="multi_hop",
+        description="Multi-hop reasoning across documents",
+        transform=_identity,
+    ),
+    "indirect_correlation": AttackStrategy(
+        name="indirect_correlation",
+        description="Indirect query to infer correlated data",
+        transform=_indirect_ask,
+    ),
+    "inference": AttackStrategy(
+        name="inference",
+        description="Inference-based reasoning to extract cross-document claims",
+        transform=_context_expansion,
+    ),
+    "inference_chain": AttackStrategy(
+        name="inference_chain",
+        description="Chain of inferences across multiple sources",
+        transform=_context_expansion,
+    ),
+    "template_fill": AttackStrategy(
+        name="template_fill",
+        description="Fill a template with extracted data",
+        transform=_identity,
+    ),
 }
 
 

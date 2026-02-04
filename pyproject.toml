@@ -23,6 +23,7 @@ dev = [
     "responses>=0.25.0",
     "hypothesis>=6.100.0",
     "cyclonedx-bom>=4.0.0",
+    "pre-commit>=4.0.0",
 ]
 
 [build-system]

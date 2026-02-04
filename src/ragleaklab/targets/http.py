@@ -89,8 +89,12 @@ class HttpTarget:
                 f"Localhost URLs blocked by default. Set allow_localhost=True to enable: {url}"
             )
 
-        # Check allowlist requirement
-        if require_allowlist and not self.allowed_domains:
+        # Check allowlist requirement (skip for allowed localhost)
+        if (
+            require_allowlist
+            and not self.allowed_domains
+            and not (is_localhost and allow_localhost)
+        ):
             raise AllowlistRequiredError(
                 "HTTP target requires explicit allowed_domains list. "
                 "Set require_allowlist=False to disable (not recommended) or "

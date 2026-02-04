@@ -21,44 +21,16 @@ jobs:
       - name: Set up Python
         run: uv python install 3.12
 
-      - name: Install dependencies
-        run: uv sync --all-extras
+      - name: Run CI smoke test
+        run: bash scripts/ci_smoke.sh
 
-      - name: Lint
-        run: uv run ruff check .
-
-      - name: Format check
-        run: uv run ruff format --check .
-
-      - name: Run tests
-        run: uv run pytest -q -m "not slow"
-
-      - name: Validate assets
-        run: uv run python -m ragleaklab assets validate --path .
-
-      - name: Run security audit
+      - name: Export SARIF
+        if: always()
         run: |
           uv run python -m ragleaklab run \
             --corpus data/corpus_private_canary \
             --attacks data/attacks \
             --out out/
-
-      - name: Regression check
-        run: |
-          uv run python -m ragleaklab diff \
-            --baseline baselines/v1/report.json \
-            --current out/report.json
-
-      - name: Determinism check
-        run: |
-          uv run python -m ragleaklab verify determinism \
-            --pack canary-basic \
-            --runs 2 \
-            --out out/determinism/
-
-      - name: Export SARIF
-        if: always()
-        run: |
           uv run python -m ragleaklab export \
             --format sarif \
             --input out/report.json \
@@ -70,96 +42,4 @@ jobs:
         with:
           name: ci-reports
           path: out/
-          retention-days: 7
-
-  semantic-pack:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-        with:
-          version: "latest"
-
-      - name: Set up Python
-        run: uv python install 3.12
-
-      - name: Install dependencies
-        run: uv sync --all-extras
-
-      - name: Run semantic pack
-        run: |
-          uv run python -m ragleaklab run \
-            --corpus data/corpus_private_canary \
-            --pack semantic-basic \
-            --out out/semantic/
-
-      - name: Semantic regression check
-        run: |
-          uv run python -m ragleaklab diff \
-            --baseline baselines/semantic_v1/report.json \
-            --current out/semantic/report.json
-
-      - name: Export semantic SARIF
-        if: always()
-        run: |
-          uv run python -m ragleaklab export \
-            --format sarif \
-            --input out/semantic/report.json \
-            --output out/semantic/report.sarif || true
-
-      - name: Upload semantic reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ci-semantic-reports
-          path: out/semantic/
-          retention-days: 7
-
-  crossdoc-pack:
-    runs-on: ubuntu-latest
-
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install uv
-        uses: astral-sh/setup-uv@v4
-        with:
-          version: "latest"
-
-      - name: Set up Python
-        run: uv python install 3.12
-
-      - name: Install dependencies
-        run: uv sync --all-extras
-
-      - name: Run crossdoc pack
-        run: |
-          uv run python -m ragleaklab run \
-            --corpus data/corpus_crossdoc_v0 \
-            --pack crossdoc-basic \
-            --out out/crossdoc/
-
-      - name: Crossdoc regression check
-        run: |
-          uv run python -m ragleaklab diff \
-            --baseline baselines/crossdoc_v0/report.json \
-            --current out/crossdoc/report.json
-
-      - name: Export crossdoc SARIF
-        if: always()
-        run: |
-          uv run python -m ragleaklab export \
-            --format sarif \
-            --input out/crossdoc/report.json \
-            --output out/crossdoc/report.sarif || true
-
-      - name: Upload crossdoc reports
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: ci-crossdoc-reports
-          path: out/crossdoc/
           retention-days: 7

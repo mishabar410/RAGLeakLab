@@ -138,6 +138,7 @@ class TestHttpTargetFromConfig:
             url="http://localhost:8000/ask",
             request_json={"question": "{{query}}"},
             response={"answer_field": "response"},
+            allow_localhost=True,
         )
 
         target = HttpTarget.from_config(cfg)
@@ -166,6 +167,7 @@ class TestHttpTargetFromConfig:
             url="http://localhost:8000/ask",
             request_json={"q": "{{query}}"},
             response={"answer_field": "answer"},
+            allow_localhost=True,
         )
 
         target = HttpTarget.from_config(cfg)

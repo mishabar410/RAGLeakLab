@@ -18,26 +18,23 @@ class TestSSRFPrivateIPBlocking:
     """Tests for blocking private/internal IP ranges."""
 
     def test_blocks_localhost_127(self):
-        """127.0.0.1 (loopback) should be blocked."""
-        with patch.object(
-            socket, "gethostbyname_ex", return_value=("localhost", [], ["127.0.0.1"])
-        ):
-            with pytest.raises(SSRFValidationError, match="private/internal IP"):
-                HttpTarget(url="http://localhost:8000/api")
+        """127.0.0.1 (loopback) should be blocked by default."""
+        with pytest.raises(SSRFValidationError, match="Localhost URLs blocked"):
+            HttpTarget(url="http://localhost:8000/api")
 
     def test_blocks_localhost_ip_direct(self):
-        """Direct 127.x.x.x IPs should be blocked."""
-        with patch.object(
-            socket, "gethostbyname_ex", return_value=("127.0.0.1", [], ["127.0.0.1"])
-        ):
-            with pytest.raises(SSRFValidationError, match="private/internal IP"):
-                HttpTarget(url="http://127.0.0.1:8000/api")
+        """Direct 127.x.x.x IPs should be blocked by default."""
+        with pytest.raises(SSRFValidationError, match="Localhost URLs blocked"):
+            HttpTarget(url="http://127.0.0.1:8000/api")
 
     def test_blocks_private_10_range(self):
         """10.0.0.0/8 private range should be blocked."""
         with patch.object(socket, "gethostbyname_ex", return_value=("internal", [], ["10.0.0.1"])):
             with pytest.raises(SSRFValidationError, match="private/internal IP"):
-                HttpTarget(url="http://internal.corp:8000/api")
+                HttpTarget(
+                    url="http://internal.corp:8000/api",
+                    require_allowlist=False,
+                )
 
     def test_blocks_private_172_range(self):
         """172.16.0.0/12 private range should be blocked."""
@@ -45,7 +42,10 @@ class TestSSRFPrivateIPBlocking:
             socket, "gethostbyname_ex", return_value=("internal", [], ["172.16.0.1"])
         ):
             with pytest.raises(SSRFValidationError, match="private/internal IP"):
-                HttpTarget(url="http://internal.corp:8000/api")
+                HttpTarget(
+                    url="http://internal.corp:8000/api",
+                    require_allowlist=False,
+                )
 
     def test_blocks_private_192_range(self):
         """192.168.0.0/16 private range should be blocked."""
@@ -53,13 +53,19 @@ class TestSSRFPrivateIPBlocking:
             socket, "gethostbyname_ex", return_value=("internal", [], ["192.168.1.1"])
         ):
             with pytest.raises(SSRFValidationError, match="private/internal IP"):
-                HttpTarget(url="http://internal.corp:8000/api")
+                HttpTarget(
+                    url="http://internal.corp:8000/api",
+                    require_allowlist=False,
+                )
 
     def test_blocks_link_local(self):
         """169.254.0.0/16 link-local range should be blocked."""
         with patch.object(socket, "gethostbyname_ex", return_value=("local", [], ["169.254.1.1"])):
             with pytest.raises(SSRFValidationError, match="private/internal IP"):
-                HttpTarget(url="http://local.machine:8000/api")
+                HttpTarget(
+                    url="http://local.machine:8000/api",
+                    require_allowlist=False,
+                )
 
 
 class TestSSRFSchemeValidation:
@@ -68,41 +74,47 @@ class TestSSRFSchemeValidation:
     def test_blocks_file_scheme(self):
         """file:// scheme should be blocked."""
         with pytest.raises(SSRFValidationError, match="Only http/https allowed"):
-            HttpTarget(url="file:///etc/passwd")
+            HttpTarget(url="file:///etc/passwd", require_allowlist=False)
 
     def test_blocks_gopher_scheme(self):
         """gopher:// scheme should be blocked."""
         with pytest.raises(SSRFValidationError, match="Only http/https allowed"):
-            HttpTarget(url="gopher://evil.server:70/")
+            HttpTarget(url="gopher://evil.server:70/", require_allowlist=False)
 
     def test_blocks_ftp_scheme(self):
         """ftp:// scheme should be blocked."""
         with pytest.raises(SSRFValidationError, match="Only http/https allowed"):
-            HttpTarget(url="ftp://evil.server/file")
+            HttpTarget(url="ftp://evil.server/file", require_allowlist=False)
 
     def test_blocks_data_scheme(self):
         """data: scheme should be blocked."""
         with pytest.raises(SSRFValidationError, match="Only http/https allowed"):
-            HttpTarget(url="data:text/html,<script>evil</script>")
+            HttpTarget(url="data:text/html,<script>evil</script>", require_allowlist=False)
 
     @responses.activate
     def test_allows_http_scheme(self):
-        """http:// scheme should be allowed."""
+        """http:// scheme should be allowed with allowlist."""
         responses.add(responses.POST, "http://example.com/api", json={"answer": "ok"})
         with patch.object(
             socket, "gethostbyname_ex", return_value=("example.com", [], ["93.184.216.34"])
         ):
-            target = HttpTarget(url="http://example.com/api")
+            target = HttpTarget(
+                url="http://example.com/api",
+                allowed_domains=["example.com"],
+            )
             assert target.url == "http://example.com/api"
 
     @responses.activate
     def test_allows_https_scheme(self):
-        """https:// scheme should be allowed."""
+        """https:// scheme should be allowed with allowlist."""
         responses.add(responses.POST, "https://example.com/api", json={"answer": "ok"})
         with patch.object(
             socket, "gethostbyname_ex", return_value=("example.com", [], ["93.184.216.34"])
         ):
-            target = HttpTarget(url="https://example.com/api")
+            target = HttpTarget(
+                url="https://example.com/api",
+                allowed_domains=["example.com"],
+            )
             assert target.url == "https://example.com/api"
 
 
@@ -143,14 +155,24 @@ class TestSSRFDomainAllowlist:
             )
             assert target.url == "https://API.EXAMPLE.COM/rag"
 
-    def test_no_allowlist_allows_any_public_domain(self):
-        """Without allowlist, any public domain should be allowed."""
+    def test_no_allowlist_requires_explicit_setting(self):
+        """Without allowlist, require_allowlist=False must be set."""
         with patch.object(
             socket,
             "gethostbyname_ex",
             return_value=("any-public-server.com", [], ["203.0.113.42"]),
         ):
-            target = HttpTarget(url="https://any-public-server.com/api")
+            # By default require_allowlist=True
+            from ragleaklab.targets.http import AllowlistRequiredError
+
+            with pytest.raises(AllowlistRequiredError):
+                HttpTarget(url="https://any-public-server.com/api")
+
+            # With require_allowlist=False it works
+            target = HttpTarget(
+                url="https://any-public-server.com/api",
+                require_allowlist=False,
+            )
             assert target.url == "https://any-public-server.com/api"
 
 
@@ -162,7 +184,10 @@ class TestSSRFTimeoutPropagation:
         with patch.object(
             socket, "gethostbyname_ex", return_value=("example.com", [], ["93.184.216.34"])
         ):
-            target = HttpTarget(url="http://example.com/api")
+            target = HttpTarget(
+                url="http://example.com/api",
+                allowed_domains=["example.com"],
+            )
             assert target.timeout == 30.0
 
     def test_custom_timeout_propagated(self):
@@ -170,7 +195,11 @@ class TestSSRFTimeoutPropagation:
         with patch.object(
             socket, "gethostbyname_ex", return_value=("example.com", [], ["93.184.216.34"])
         ):
-            target = HttpTarget(url="http://example.com/api", timeout=5.0)
+            target = HttpTarget(
+                url="http://example.com/api",
+                timeout=5.0,
+                allowed_domains=["example.com"],
+            )
             assert target.timeout == 5.0
 
     @responses.activate
@@ -180,7 +209,11 @@ class TestSSRFTimeoutPropagation:
         with patch.object(
             socket, "gethostbyname_ex", return_value=("example.com", [], ["93.184.216.34"])
         ):
-            target = HttpTarget(url="http://example.com/api", timeout=15.0)
+            target = HttpTarget(
+                url="http://example.com/api",
+                timeout=15.0,
+                allowed_domains=["example.com"],
+            )
             target.ask("test query")
 
         # Verify timeout was passed to requests
@@ -193,13 +226,16 @@ class TestSSRFEdgeCases:
     def test_empty_hostname_rejected(self):
         """URL without hostname should be rejected."""
         with pytest.raises(SSRFValidationError, match="must have a hostname"):
-            HttpTarget(url="http:///path/only")
+            HttpTarget(url="http:///path/only", require_allowlist=False)
 
     def test_dns_failure_allowed(self):
         """DNS resolution failure should not block (will fail at request time)."""
         with patch.object(socket, "gethostbyname_ex", side_effect=socket.gaierror("DNS failed")):
             # Should not raise - let requests handle the failure
-            target = HttpTarget(url="http://nonexistent.invalid/api")
+            target = HttpTarget(
+                url="http://nonexistent.invalid/api",
+                require_allowlist=False,
+            )
             assert target.url == "http://nonexistent.invalid/api"
 
     def test_multiple_ips_all_checked(self):
@@ -210,4 +246,7 @@ class TestSSRFEdgeCases:
             return_value=("multi.ip", [], ["8.8.8.8", "10.0.0.1"]),
         ):
             with pytest.raises(SSRFValidationError, match="private/internal IP"):
-                HttpTarget(url="http://multi.ip/api")
+                HttpTarget(
+                    url="http://multi.ip/api",
+                    require_allowlist=False,
+                )

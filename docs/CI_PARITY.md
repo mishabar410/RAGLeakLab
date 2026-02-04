@@ -1,59 +1,74 @@
 # CI Parity
 
-This document maps GitHub Actions CI to local development commands for exact reproducibility.
+Local and GitHub Actions CI use **a single script** (`scripts/ci_smoke.sh`) to ensure 1:1 parity.
 
-## CI Pipeline Steps
+## What Gets Checked
 
-### Main CI Job (`test`)
+| Check | Description |
+|-------|-------------|
+| Format | `ruff format --check .` |
+| Lint | `ruff check .` |
+| Tests | `pytest -q -m "not slow"` |
+| Assets | `ragleaklab assets validate` |
+| Basic pack | Run + diff against `baselines/v1/` |
+| Semantic pack | Run + diff against `baselines/semantic_v1/` |
+| Crossdoc pack | Run + diff against `baselines/crossdoc_v0/` |
+| Determinism | `ragleaklab verify determinism` (2 runs) |
 
-| Step | CI Command | Local Equivalent |
-|------|------------|------------------|
-| Install deps | `uv sync --all-extras` | `uv sync --all-extras` |
-| Lint | `uv run ruff check .` | `uv run ruff check .` |
-| Format check | `uv run ruff format --check .` | `uv run ruff format --check .` |
-| Tests | `uv run pytest -q -m "not slow"` | `uv run pytest -q -m "not slow"` |
-| Validate assets | `uv run python -m ragleaklab assets validate --path .` | `uv run python -m ragleaklab assets validate --path .` |
-| Security audit | `uv run python -m ragleaklab run --corpus data/corpus_private_canary --attacks data/attacks --out out/` | Same |
-| Regression check | `uv run python -m ragleaklab diff --baseline baselines/v1/report.json --current out/report.json` | Same |
-| Export SARIF | `uv run python -m ragleaklab export --format sarif --input out/report.json --output out/report.sarif` | Same |
-
-### Semantic Pack Job
-
-| Step | Command |
-|------|---------|
-| Run pack | `uv run python -m ragleaklab run --corpus data/corpus_private_canary --pack semantic-basic --out out/semantic/` |
-| Regression | `uv run python -m ragleaklab diff --baseline baselines/semantic_v1/report.json --current out/semantic/report.json` |
-
-## Reproduce CI Locally
-
-Run the smoke script to execute all CI steps locally:
+## Running Locally
 
 ```bash
+# One-liner: run full CI check
 ./scripts/ci_smoke.sh
 ```
 
-Or run individual steps:
+The script uses `uv sync --frozen` to ensure exact lockfile dependencies.
+
+## Pre-commit Hooks
+
+Install hooks once per clone:
 
 ```bash
-# Quick check (most common)
-make ci
-
-# Full CI reproduction
-uv sync --all-extras
-uv run ruff check .
-uv run ruff format --check .
-uv run pytest -q -m "not slow"
-uv run python -m ragleaklab assets validate --path .
-uv run python -m ragleaklab run --corpus data/corpus_private_canary --attacks data/attacks --out out/
-uv run python -m ragleaklab diff --baseline baselines/v1/report.json --current out/report.json
+uv run pre-commit install
+uv run pre-commit install --hook-type pre-push
 ```
+
+This sets up:
+- **Pre-commit**: ruff format, ruff check, pytest (fast feedback)
+- **Pre-push**: full CI smoke test (prevents broken pushes)
 
 ## Network Isolation
 
-All tests run with network disabled via `pytest-socket`. CI uses only local fixtures in `data/`.
+All tests run with `pytest-socket` blocking network access. CI uses only local fixtures in `data/`.
 
-## Requirements
+## Troubleshooting
 
-- Python 3.12
-- uv package manager
-- All commands must pass before merge
+### Common Divergence Causes
+
+| Issue | Solution |
+|-------|----------|
+| Python version mismatch | Ensure Python 3.12 locally: `python --version` |
+| Stale lockfile | Run `uv sync --frozen` (should match CI) |
+| Flaky tests | Check for time-dependent or ordering issues |
+| Missing baselines | Baselines must exist in `baselines/` for diff to work |
+
+### Lockfile Drift
+
+If `uv sync --frozen` fails, the lockfile may be out of sync:
+
+```bash
+# Update lockfile (intentional change only)
+uv lock
+uv sync --frozen
+```
+
+> ⚠️ Only update the lockfile when intentionally changing dependencies.
+
+### Skipped Checks
+
+The script skips checks gracefully when components are missing:
+- `SKIP assets validate (command not available)` — CLI command not present
+- `SKIP crossdoc pack (pack or baseline not found)` — Missing pack/baseline
+- `SKIP determinism check (command not available)` — Verify command missing
+
+Skips are informational; mandatory checks will fail explicitly.

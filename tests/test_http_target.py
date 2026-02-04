@@ -1,27 +1,10 @@
 """Tests for HTTP target adapter."""
 
-import socket
-from unittest.mock import patch
-
-import pytest
 import responses
 
 from ragleaklab.attacks import TestCase, run_all_with_target, run_case_with_target
 from ragleaklab.metrics import detect_canary
 from ragleaklab.targets import HttpTarget
-
-
-@pytest.fixture(autouse=True)
-def mock_dns_for_localhost():
-    """Mock DNS resolution to bypass SSRF validation for localhost test URLs.
-
-    These tests use localhost URLs for mocked HTTP responses, which are now
-    blocked by SSRF protection. Mock DNS to return a public IP.
-    """
-    with patch.object(
-        socket, "gethostbyname_ex", return_value=("localhost", [], ["93.184.216.34"])
-    ):
-        yield
 
 
 class TestHttpTarget:
@@ -42,7 +25,7 @@ class TestHttpTarget:
             status=200,
         )
 
-        target = HttpTarget(url="http://localhost:8000/ask")
+        target = HttpTarget(url="http://localhost:8000/ask", allow_localhost=True)
         response = target.ask("What is the answer?")
 
         assert response.answer == "This is the answer."
@@ -70,6 +53,7 @@ class TestHttpTarget:
             context_field="documents",
             retrieved_ids_field=None,
             scores_field=None,
+            allow_localhost=True,
         )
         response = target.ask("test query")
 
@@ -86,7 +70,7 @@ class TestHttpTarget:
             status=200,
         )
 
-        target = HttpTarget(url="http://localhost:8000/ask")
+        target = HttpTarget(url="http://localhost:8000/ask", allow_localhost=True)
         case = TestCase(
             test_id="http_test_01",
             threat="canary",
@@ -111,7 +95,7 @@ class TestHttpTarget:
                 status=200,
             )
 
-        target = HttpTarget(url="http://localhost:8000/ask")
+        target = HttpTarget(url="http://localhost:8000/ask", allow_localhost=True)
         cases = [
             TestCase(test_id=f"test_{i}", threat="canary", query="q", strategy="direct_ask")
             for i in range(3)
@@ -135,7 +119,7 @@ class TestHttpTarget:
             status=200,
         )
 
-        target = HttpTarget(url="http://localhost:8000/ask")
+        target = HttpTarget(url="http://localhost:8000/ask", allow_localhost=True)
         case = TestCase(
             test_id="metric_test",
             threat="canary",
@@ -162,6 +146,7 @@ class TestHttpTarget:
         target = HttpTarget(
             url="http://localhost:8000/search",
             method="GET",
+            allow_localhost=True,
         )
         response = target.ask("search query")
 

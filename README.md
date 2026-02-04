@@ -203,6 +203,24 @@ uv run ruff check .    # Lint
 uv run pytest -q       # Test
 ```
 
+## Local Gates
+
+Local CI gates ensure you don't push broken code. Setup once per clone:
+
+```bash
+# Install pre-commit and pre-push hooks
+uv run pre-commit install
+uv run pre-commit install --hook-type pre-push
+```
+
+Run the full CI check manually:
+
+```bash
+./scripts/ci_smoke.sh
+```
+
+> ⚠️ **Anti-pattern**: `git push --no-verify` bypasses the pre-push hook. Use only in emergencies.
+
 ## Validated Commands
 
 The following commands are tested and work as documented:

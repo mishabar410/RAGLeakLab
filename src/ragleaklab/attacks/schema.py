@@ -28,7 +28,7 @@ class TestCase(BaseModel):
     """
 
     test_id: str = Field(..., description="Unique test identifier")
-    threat: Literal["canary", "verbatim", "membership", "semantic"] = Field(
+    threat: Literal["canary", "verbatim", "membership", "semantic", "crossdoc"] = Field(
         ..., description="Threat type being tested"
     )
     query: str | None = Field(None, description="Query for single-turn attacks")

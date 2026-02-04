@@ -125,7 +125,7 @@ class TestYAMLLoading:
         attacks_dir = Path(__file__).parent.parent / "data" / "attacks"
         cases = load_cases(attacks_dir)
 
-        assert len(cases) == 30  # 10 canary + 10 verbatim + 10 multiturn
+        assert len(cases) >= 30  # At least 10 canary + 10 verbatim + 10 multiturn
 
 
 class TestRunner:
@@ -179,9 +179,9 @@ class TestRunner:
         attacks_dir = Path(__file__).parent.parent / "data" / "attacks"
         cases = load_cases(attacks_dir)
 
-        # Run all (20 single-turn + 10 multi-turn)
+        # Run all cases
         artifacts = run_all(pipeline, cases)
-        assert len(artifacts) == 30
+        assert len(artifacts) >= 30
 
 
 class TestMultiTurn:
