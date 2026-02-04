@@ -103,7 +103,17 @@ ls dist/
 # ragleaklab-X.Y.Z-py3-none-any.whl
 ```
 
-### 8. Publish (Optional)
+### 8. Generate SBOM
+
+Generate a CycloneDX Software Bill of Materials:
+
+```bash
+uv run python scripts/generate_sbom.py --out dist/sbom.json
+```
+
+The SBOM includes all runtime and dev dependencies from the environment.
+
+### 9. Publish (Optional)
 
 ```bash
 # Test PyPI
@@ -113,13 +123,62 @@ uv publish --repository testpypi
 uv publish
 ```
 
-### 9. Create GitHub Release
+### 10. Create GitHub Release
+
+**Option A: Manual release**
 
 1. Go to Releases → Draft new release
 2. Choose tag `vX.Y.Z`
 3. Copy CHANGELOG entry as description
-4. Attach wheel/sdist from `dist/`
+4. Attach wheel/sdist/sbom from `dist/`
 5. Publish
+
+**Option B: Use release workflow**
+
+1. Go to Actions → Release → Run workflow
+2. Enter version (e.g., `0.2.0`)
+3. Workflow validates, builds, generates SBOM, and creates draft release
+4. Review and publish the draft release
+
+## SBOM (Software Bill of Materials)
+
+After building, the SBOM is located at `dist/sbom.json`. It contains:
+- All runtime dependencies
+- All dev dependencies  
+- Package URLs (purls) for vulnerability scanning
+- CycloneDX 1.4 format compatible with most security tools
+
+To regenerate SBOM manually:
+
+```bash
+uv run python scripts/generate_sbom.py --out dist/sbom.json
+```
+
+## Local Build Reproduction
+
+To reproduce a release build locally:
+
+```bash
+# 1. Clone at specific tag
+git clone --depth 1 --branch vX.Y.Z https://github.com/mishabar410/RAGLeakLab.git
+cd RAGLeakLab
+
+# 2. Install dependencies (exact versions from uv.lock)
+uv sync --all-extras
+
+# 3. Run validation
+uv run pytest -q
+uv run python -m ragleaklab assets validate --path .
+
+# 4. Build
+uv build
+
+# 5. Generate SBOM
+uv run python scripts/generate_sbom.py --out dist/sbom.json
+
+# 6. Verify
+ls -la dist/
+```
 
 ## Version Numbering
 
