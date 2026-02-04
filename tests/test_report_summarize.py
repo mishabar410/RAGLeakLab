@@ -244,7 +244,7 @@ class TestReportSummarize:
 
     def test_cli_help(self):
         """Test that report summarize --help works."""
-        result = runner.invoke(app, ["report", "summarize", "--help"])
+        result = runner.invoke(app, ["report", "summarize", "--help"], color=False)
 
         assert result.exit_code == 0
         assert "Summarize findings" in result.stdout
