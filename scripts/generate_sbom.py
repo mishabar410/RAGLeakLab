@@ -52,9 +52,7 @@ def generate_sbom(output_path: Path | None = None) -> dict:
     sbom["metadata"]["timestamp"] = datetime.now(UTC).isoformat()
     sbom["metadata"]["tools"] = sbom["metadata"].get("tools", [])
     if not any(t.get("name") == "ragleaklab-sbom" for t in sbom["metadata"]["tools"]):
-        sbom["metadata"]["tools"].append(
-            {"name": "ragleaklab-sbom", "version": "1.0.0"}
-        )
+        sbom["metadata"]["tools"].append({"name": "ragleaklab-sbom", "version": "1.0.0"})
 
     if output_path:
         output_path.parent.mkdir(parents=True, exist_ok=True)

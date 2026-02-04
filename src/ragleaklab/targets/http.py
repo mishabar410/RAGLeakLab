@@ -3,17 +3,25 @@
 from __future__ import annotations
 
 import re
+import time
 from typing import TYPE_CHECKING
+from urllib.parse import urlparse
 
 import requests
 
 from ragleaklab.targets.base import TargetResponse
 from ragleaklab.targets.ssrf import SSRFValidationError, validate_url
 
-__all__ = ["HttpTarget", "SSRFValidationError"]
+__all__ = ["AllowlistRequiredError", "HttpTarget", "SSRFValidationError"]
 
 if TYPE_CHECKING:
     from ragleaklab.config import HttpTargetConfig
+
+
+class AllowlistRequiredError(ValueError):
+    """Raised when HTTP target requires explicit allowlist but none provided."""
+
+    pass
 
 
 class HttpTarget:
@@ -21,6 +29,11 @@ class HttpTarget:
 
     Sends queries to an external RAG service via HTTP POST
     and parses the response according to configurable field mappings.
+
+    Security features:
+    - Allowlist enforcement (require_allowlist=True by default)
+    - Localhost blocking (allow_localhost=False by default)
+    - Rate limiting (max_rps controls requests per second)
     """
 
     def __init__(
@@ -36,6 +49,9 @@ class HttpTarget:
         timeout: float = 30.0,
         request_json: dict[str, str] | None = None,
         allowed_domains: list[str] | None = None,
+        require_allowlist: bool = True,
+        allow_localhost: bool = False,
+        max_rps: float = 1.0,
     ) -> None:
         """Initialize HTTP target.
 
@@ -51,14 +67,39 @@ class HttpTarget:
             timeout: Request timeout in seconds (default 30s).
             request_json: Optional template dict with {{query}} placeholders.
             allowed_domains: Optional list of allowed domains for SSRF protection.
+            require_allowlist: If True, raise error when allowed_domains is empty.
+            allow_localhost: If True, allow localhost/127.0.0.1 targets.
+            max_rps: Maximum requests per second (rate limiting).
 
         Raises:
+            AllowlistRequiredError: If require_allowlist=True and no allowed_domains.
             SSRFValidationError: If URL fails SSRF validation.
         """
-        self.allowed_domains = allowed_domains
+        self.allowed_domains = allowed_domains or []
+        self.require_allowlist = require_allowlist
+        self.allow_localhost = allow_localhost
+        self.max_rps = max_rps
+        self._last_request_time: float = 0.0
 
-        # Validate URL for SSRF before storing
-        validate_url(url, allowed_domains)
+        # Check localhost
+        parsed = urlparse(url)
+        is_localhost = parsed.hostname in ("localhost", "127.0.0.1", "::1", "0.0.0.0")
+        if is_localhost and not allow_localhost:
+            raise SSRFValidationError(
+                f"Localhost URLs blocked by default. Set allow_localhost=True to enable: {url}"
+            )
+
+        # Check allowlist requirement
+        if require_allowlist and not self.allowed_domains:
+            raise AllowlistRequiredError(
+                "HTTP target requires explicit allowed_domains list. "
+                "Set require_allowlist=False to disable (not recommended) or "
+                "add allowed_domains=['example.com'] to your config."
+            )
+
+        # Validate URL for SSRF before storing (skip for localhost when allowed)
+        if not (is_localhost and allow_localhost):
+            validate_url(url, self.allowed_domains if self.allowed_domains else None)
 
         self.url = url
         self.method = method.upper()
@@ -70,6 +111,19 @@ class HttpTarget:
         self.headers = headers or {"Content-Type": "application/json"}
         self.timeout = timeout
         self.request_json = request_json
+
+    def _rate_limit(self) -> None:
+        """Apply rate limiting between requests."""
+        if self.max_rps <= 0:
+            return
+
+        min_interval = 1.0 / self.max_rps
+        elapsed = time.monotonic() - self._last_request_time
+        if elapsed < min_interval:
+            sleep_time = min_interval - elapsed
+            time.sleep(sleep_time)
+
+        self._last_request_time = time.monotonic()
 
     @classmethod
     def from_config(cls, config: HttpTargetConfig) -> HttpTarget:
@@ -92,6 +146,9 @@ class HttpTarget:
             timeout=config.timeout_sec,
             request_json=config.request_json,
             allowed_domains=config.allowed_domains if config.allowed_domains else None,
+            require_allowlist=config.require_allowlist,
+            allow_localhost=config.allow_localhost,
+            max_rps=config.max_rps,
         )
 
     def _build_payload(self, query: str) -> dict:
@@ -128,6 +185,9 @@ class HttpTarget:
         Raises:
             requests.RequestException: On HTTP errors.
         """
+        # Apply rate limiting
+        self._rate_limit()
+
         payload = self._build_payload(query)
 
         if self.method == "POST":

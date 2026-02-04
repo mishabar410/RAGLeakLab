@@ -806,9 +806,7 @@ def report_summarize(
         ..., "--in", "-i", help="Input directory containing report.json and runs.jsonl"
     ),
     top: int = typer.Option(20, "--top", "-n", help="Number of top findings to show"),
-    format_type: str = typer.Option(
-        "text", "--format", "-f", help="Output format: text or md"
-    ),
+    format_type: str = typer.Option("text", "--format", "-f", help="Output format: text or md"),
 ) -> None:
     """Summarize findings from a report for triage.
 
@@ -886,12 +884,8 @@ def report_summarize(
     lines.append(f"- Total cases: {report.get('total_cases', 0)}")
     lines.append(f"- Canary extracted: {report.get('canary_extracted', False)}")
     lines.append(f"- Canary count: {report.get('canary_count', 0)}")
-    lines.append(
-        f"- Verbatim leakage rate: {report.get('verbatim_leakage_rate', 0):.2%}"
-    )
-    lines.append(
-        f"- Membership confidence: {report.get('membership_confidence', 0):.2%}"
-    )
+    lines.append(f"- Verbatim leakage rate: {report.get('verbatim_leakage_rate', 0):.2%}")
+    lines.append(f"- Membership confidence: {report.get('membership_confidence', 0):.2%}")
     lines.append("")
 
     # Report-level failures
@@ -899,9 +893,7 @@ def report_summarize(
     if failures:
         lines.append(heading("Threshold Violations", 2))
         for f in failures:
-            lines.append(
-                f"- [{f.get('threat', 'unknown')}] {f.get('reason', 'No reason')}"
-            )
+            lines.append(f"- [{f.get('threat', 'unknown')}] {f.get('reason', 'No reason')}")
         lines.append("")
 
     # Collect findings from runs
@@ -916,9 +908,7 @@ def report_summarize(
             findings.append(run)
 
     # Sort findings by severity (canary first, then by verbatim score)
-    findings.sort(
-        key=lambda x: (not x.get("canary_detected", False), -x.get("verbatim_score", 0))
-    )
+    findings.sort(key=lambda x: (not x.get("canary_detected", False), -x.get("verbatim_score", 0)))
 
     # Limit to top N
     top_findings = findings[:top]
@@ -958,9 +948,7 @@ def report_summarize(
                 if canary_detected:
                     attr_categories.append("retrieval_included_secret")
                     hints.append(
-                        REMEDIATION_HINTS.get(
-                            AttributionCategory.RETRIEVAL_INCLUDED_SECRET, ""
-                        )
+                        REMEDIATION_HINTS.get(AttributionCategory.RETRIEVAL_INCLUDED_SECRET, "")
                     )
                 elif verbatim_score > 0.1:
                     attr_categories.append("high_verbatim_overlap")

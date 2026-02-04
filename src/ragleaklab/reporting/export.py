@@ -255,4 +255,3 @@ def _threat_to_rule_id(threat: str) -> str:
         "crossdoc": "crossdoc-leakage",
     }
     return mapping.get(threat, "unknown")
-

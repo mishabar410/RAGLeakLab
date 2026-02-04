@@ -38,6 +38,67 @@ SSRF violations raise `SSRFValidationError` with safe, non-leaking messages.
 
 ---
 
+## Safe Defaults (HTTP Targets)
+
+RAGLeakLab enforces secure defaults when testing against HTTP targets:
+
+| Setting | Default | Purpose |
+|---------|---------|---------|
+| `require_allowlist` | `true` | Must explicitly list allowed domains |
+| `allow_localhost` | `false` | Block localhost/127.0.0.1 targets |
+| `max_rps` | `1.0` | Rate limit to 1 request per second |
+| `redact_output` | `true` | Mask secrets in outputs |
+| `timeout_sec` | `30` | Request timeout |
+
+### Recommended Configuration
+
+```yaml
+target:
+  type: http
+  url: https://api.example.com/ask
+  allowed_domains:
+    - api.example.com
+  # Safe defaults apply automatically
+```
+
+### Allowing Localhost
+
+> [!CAUTION]
+> Enabling localhost targets can expose internal services to SSRF attacks.
+
+```yaml
+target:
+  type: http
+  url: http://localhost:8000/ask
+  allowed_domains:
+    - localhost
+  allow_localhost: true
+  require_allowlist: false
+```
+
+Only enable localhost when:
+- Running in an isolated container/VM
+- Testing your own local RAG implementation
+
+### Disabling Allowlist
+
+```yaml
+target:
+  type: http
+  url: https://any-service.com/ask
+  require_allowlist: false  # Not recommended
+```
+
+### Error: AllowlistRequiredError
+
+```
+HTTP target requires explicit allowed_domains list.
+```
+
+Fix: Add `allowed_domains: [api.example.com]` to config.
+
+---
+
 ## Secrets Handling
 
 ### Environment Variable Substitution

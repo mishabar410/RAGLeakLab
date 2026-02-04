@@ -38,7 +38,14 @@ class InProcessTargetConfig(BaseModel):
 
 
 class HttpTargetConfig(BaseModel):
-    """HTTP target configuration."""
+    """HTTP target configuration.
+
+    Security defaults:
+    - require_allowlist: True (must explicitly set allowed_domains)
+    - allow_localhost: False (localhost blocked unless explicitly allowed)
+    - max_rps: 1.0 (rate limiting to prevent abuse)
+    - redact_output: True (redact secrets in outputs)
+    """
 
     type: str = "http"
     url: str
@@ -48,6 +55,23 @@ class HttpTargetConfig(BaseModel):
     headers: dict[str, str] = Field(default_factory=dict)
     timeout_sec: float = Field(default=30.0)
     allowed_domains: list[str] = Field(default_factory=list)
+    # Safe defaults
+    require_allowlist: bool = Field(
+        default=True,
+        description="Require explicit allowed_domains. Set to False to allow any domain.",
+    )
+    allow_localhost: bool = Field(
+        default=False,
+        description="Allow localhost/127.0.0.1 targets. Dangerous: enables SSRF to internal services.",
+    )
+    max_rps: float = Field(
+        default=1.0,
+        description="Maximum requests per second. Deterministic sleep between requests.",
+    )
+    redact_output: bool = Field(
+        default=True,
+        description="Redact secrets in outputs (emails, API keys, canary tokens).",
+    )
 
 
 class Config(BaseModel):

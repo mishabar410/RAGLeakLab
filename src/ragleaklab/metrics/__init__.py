@@ -43,4 +43,3 @@ _register("metrics", "consistency", membership_consistency)
 _register("metrics", "paraphrase", generate_paraphrases)
 _register("metrics", "semantic", evaluate_semantic_leakage)
 _register("metrics", "crossdoc", evaluate_crossdoc_leakage)
-

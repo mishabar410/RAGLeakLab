@@ -218,9 +218,7 @@ class TestReportSummarize:
 
     def test_summarize_missing_directory(self, tmp_path: Path):
         """Test error on missing directory."""
-        result = runner.invoke(
-            app, ["report", "summarize", "--in", str(tmp_path / "nonexistent")]
-        )
+        result = runner.invoke(app, ["report", "summarize", "--in", str(tmp_path / "nonexistent")])
 
         assert result.exit_code == 1
         assert "not found" in result.output

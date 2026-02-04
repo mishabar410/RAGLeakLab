@@ -26,9 +26,7 @@ class ClaimComponent(BaseModel):
     """A component of a composed claim from a single document."""
 
     doc_id: str = Field(..., description="ID of the source document")
-    claim_id: str | None = Field(
-        default=None, description="Optional reference to atomic claim"
-    )
+    claim_id: str | None = Field(default=None, description="Optional reference to atomic claim")
     fragment: str = Field(..., description="The piece of information from this doc")
 
 
@@ -59,9 +57,7 @@ class ComposedClaim(BaseModel):
             raise ValueError("Composed claims must have at least 2 components")
         doc_ids = {c.doc_id for c in v}
         if len(doc_ids) < 2:
-            raise ValueError(
-                "Composed claims must span at least 2 distinct documents"
-            )
+            raise ValueError("Composed claims must span at least 2 distinct documents")
         return v
 
     def get_required_doc_ids(self) -> list[str]:

@@ -10,9 +10,10 @@ PACK_VERSION = "v1"
 # Available packs
 AVAILABLE_PACKS = [
     "canary-basic",
-    "verbatim-basic",
+    "crossdoc-basic",
     "membership-basic",
     "semantic-basic",
+    "verbatim-basic",
 ]
 
 

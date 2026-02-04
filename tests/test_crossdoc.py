@@ -43,8 +43,7 @@ def _make_composed_claim(
         type="composed",
         sensitivity=sensitivity,
         components=[
-            ClaimComponent(doc_id=doc_id, fragment=fragment)
-            for doc_id, fragment in components
+            ClaimComponent(doc_id=doc_id, fragment=fragment) for doc_id, fragment in components
         ],
     )
 
