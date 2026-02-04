@@ -49,6 +49,13 @@ jobs:
             --baseline baselines/v1/report.json \
             --current out/report.json
 
+      - name: Determinism check
+        run: |
+          uv run python -m ragleaklab verify determinism \
+            --pack canary-basic \
+            --runs 2 \
+            --out out/determinism/
+
       - name: Export SARIF
         if: always()
         run: |

@@ -57,3 +57,32 @@ Every `report.json` includes:
 - Private functions (prefixed with `_`)
 - Debug/experimental CLI flags
 - Intermediate file formats
+
+## Determinism Guarantee
+
+RAGLeakLab is **deterministic by design**. Same inputs produce identical outputs.
+
+### What This Means
+
+- `report.json` and `runs.jsonl` are byte-identical across runs (after normalizing `generated_at` timestamps)
+- `runs.jsonl` entries are always sorted by `test_id`
+- Test execution order is stable
+- No randomness in attack transformations or metrics
+
+### Verification
+
+Use the built-in determinism verifier:
+
+```bash
+ragleaklab verify determinism \
+  --pack canary-basic \
+  --runs 2 \
+  --out out/determinism/
+```
+
+This runs the pack N times and compares outputs. CI enforces this for every commit.
+
+### Excluded from Comparison
+
+- `generated_at` timestamp (changes per run)
+- `timings` fields (depend on system load)
