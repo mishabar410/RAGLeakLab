@@ -86,3 +86,29 @@ This runs the pack N times and compares outputs. CI enforces this for every comm
 
 - `generated_at` timestamp (changes per run)
 - `timings` fields (depend on system load)
+
+## Contract Testing Policy
+
+Public artifacts have **contract tests** that validate their structure. These tests use golden samples in `tests/contracts/golden/`.
+
+### Covered Artifacts
+
+| Artifact | Golden Sample | Contract Test |
+|----------|--------------|---------------|
+| `report.json` | `golden/report.json` | `test_contract_report_schema.py` |
+| `runs.jsonl` | `golden/runs.jsonl` | `test_contract_runs_schema.py` |
+| SARIF export | `golden/sample.sarif` | `test_contract_sarif.py` |
+| JUnit export | `golden/sample.junit.xml` | `test_contract_junit.py` |
+| Pack manifests | `golden/sample.pack.yaml` | `test_contract_manifests.py` |
+
+### Changing Contracts
+
+When modifying public artifact structure:
+
+1. **Update golden samples** in `tests/contracts/golden/`
+2. **Update contract tests** to reflect new requirements
+3. **Bump `schema_version`** if breaking (see Schema Versioning)
+4. **Document the change** in CHANGELOG.md
+
+> [!CAUTION]
+> Breaking changes to public artifacts require a major schema version bump and must be documented as breaking changes.

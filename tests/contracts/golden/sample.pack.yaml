@@ -1,0 +1,6 @@
+name: test-pack
+version: "1.0.0"
+attacks_ref: "test-attacks@1.0.0"
+expected_report_fields:
+  - aggregates.canary
+  - aggregates.verbatim

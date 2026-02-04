@@ -1,0 +1,15 @@
+{
+    "schema_version": "2.0.0",
+    "tool_version": "0.1.0",
+    "generated_at": "2026-01-15T12:00:00Z",
+    "total_cases": 20,
+    "canary_extracted": false,
+    "canary_count": 0,
+    "verbatim_leakage_rate": 0.05,
+    "membership_confidence": 0.25,
+    "overall_pass": true,
+    "failures": [],
+    "corpus_path": "/path/to/corpus",
+    "attacks_path": "/path/to/attacks",
+    "config_hash": "abc123def456"
+}
