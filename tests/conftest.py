@@ -33,4 +33,3 @@ def _disable_network(socket_disabled):
     """
     # socket_disabled is provided by pytest-socket and blocks network
     yield
-

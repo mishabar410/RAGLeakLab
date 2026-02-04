@@ -49,6 +49,22 @@ jobs:
             --baseline baselines/v1/report.json \
             --current out/report.json
 
+      - name: Export SARIF
+        if: always()
+        run: |
+          uv run python -m ragleaklab export \
+            --format sarif \
+            --input out/report.json \
+            --output out/report.sarif || true
+
+      - name: Upload reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-reports
+          path: out/
+          retention-days: 7
+
   semantic-pack:
     runs-on: ubuntu-latest
 
@@ -78,4 +94,20 @@ jobs:
           uv run python -m ragleaklab diff \
             --baseline baselines/semantic_v1/report.json \
             --current out/semantic/report.json
+
+      - name: Export semantic SARIF
+        if: always()
+        run: |
+          uv run python -m ragleaklab export \
+            --format sarif \
+            --input out/semantic/report.json \
+            --output out/semantic/report.sarif || true
+
+      - name: Upload semantic reports
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-semantic-reports
+          path: out/semantic/
+          retention-days: 7
 

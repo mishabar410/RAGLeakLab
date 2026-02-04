@@ -1,4 +1,4 @@
-.PHONY: fmt lint test check all sync e2e assets-validate ci
+.PHONY: fmt lint test check all sync e2e assets-validate ci ci-smoke
 
 # Format code with ruff
 fmt:
@@ -36,3 +36,7 @@ sync:
 
 # Full setup: sync + check
 all: sync fmt lint test
+
+# Full CI smoke test (reproduces GitHub Actions exactly)
+ci-smoke:
+	./scripts/ci_smoke.sh
