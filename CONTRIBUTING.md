@@ -91,6 +91,43 @@ test: add fuzz tests for YAML parsing
 - Performance improvements
 - CI/tooling enhancements
 
+## Definition of Done
+
+Before a PR can be merged, **all of the following must pass**:
+
+| Check | Command |
+|-------|---------|
+| ✅ Formatting | `uv run ruff format --check .` |
+| ✅ Linting | `uv run ruff check .` |
+| ✅ Unit tests | `uv run pytest -q` |
+| ✅ Asset validation | `uv run python -m ragleaklab assets validate --path .` |
+| ✅ E2E tests | `uv run pytest tests/test_cli_e2e.py` |
+
+You can run all CI checks locally with: `make ci`
+
+## Determinism Rules
+
+To ensure reproducible builds and tests:
+
+### 1. Seeded Randomness Only
+- All random operations must use explicit seeds
+- Pass `seed=` parameter or use `random.seed()` explicitly
+- Never rely on system entropy for test data
+
+### 2. No Network in Tests
+- All tests run with network disabled (via `pytest-socket`)
+- Use `responses` library to mock HTTP calls
+- If a test needs network, mark with `@pytest.mark.enable_socket`
+
+### 3. Stable Ordering
+- Always sort collections before comparison
+- Use `sorted()` or explicit ordering for dictionaries
+- Results must be identical across runs
+
+### 4. Schema Version Bumping
+- Changes to report schema require bumping `SCHEMA_VERSION` in `src/ragleaklab/reporting/schema.py`
+- Document schema changes in the PR description
+
 ## Questions?
 
 Open a [discussion](https://github.com/mishabar410/RAGLeakLab/discussions) or check existing issues.
