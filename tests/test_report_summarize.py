@@ -244,7 +244,13 @@ class TestReportSummarize:
 
     def test_cli_help(self):
         """Test that report summarize --help works."""
-        result = runner.invoke(app, ["report", "summarize", "--help"], color=False)
+        # Use NO_COLOR and TERM=dumb to disable Rich formatting on CI
+        result = runner.invoke(
+            app,
+            ["report", "summarize", "--help"],
+            color=False,
+            env={"NO_COLOR": "1", "TERM": "dumb"},
+        )
 
         assert result.exit_code == 0
         assert "Summarize findings" in result.stdout
