@@ -1,0 +1,22 @@
+# RAGLeakLab Configuration for Case Study 2: Black-box HTTP
+#
+# Tests the mock leaky server for semantic leakage detection
+#
+# Usage:
+#   1. Start server: python examples/mock_leaky_server.py
+#   2. Run: ragleaklab run --config case_studies/case2_blackbox_http/config.yaml \
+#           --pack semantic_v1 --out out/ --format sarif
+
+target:
+  type: http
+  url: http://127.0.0.1:8001/ask
+  method: POST
+  request_json:
+    question: "{{query}}"
+  response:
+    answer_field: "answer"
+  timeout_sec: 30
+
+thresholds:
+  verbatim_delta: 0.01
+  membership_delta: 0.05
