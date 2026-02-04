@@ -100,6 +100,27 @@ RAGLeakLab is designed for CI pipelines. The `diff` command exits with code 1 on
 
 See [docs/CI.md](docs/CI.md) for anti-patterns and best practices.
 
+### If CI Fails
+
+When the security audit fails, use the summarizer to understand what leaked:
+
+```bash
+# Summarize findings from the output directory
+uv run python -m ragleaklab report summarize --in out/ --top 20
+
+# For markdown output (good for PR comments)
+uv run python -m ragleaklab report summarize --in out/ --format md
+```
+
+This shows:
+- Overall pass/fail status
+- Top findings with test_id, threat, and evidence
+- Attribution explaining why each leak happened
+- Remediation hints for fixes
+
+See [docs/TRIAGE.md](docs/TRIAGE.md) for the complete triage guide.
+
+
 ## Updating Baseline
 
 Baselines are updated manually to ensure human review:

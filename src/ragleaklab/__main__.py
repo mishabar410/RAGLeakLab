@@ -795,6 +795,226 @@ def verify_determinism_cmd(
         raise typer.Exit(1)
 
 
+# Report subcommand
+report_app = typer.Typer(help="Report analysis utilities")
+app.add_typer(report_app, name="report")
+
+
+@report_app.command("summarize")
+def report_summarize(
+    input_dir: Path = typer.Option(
+        ..., "--in", "-i", help="Input directory containing report.json and runs.jsonl"
+    ),
+    top: int = typer.Option(20, "--top", "-n", help="Number of top findings to show"),
+    format_type: str = typer.Option(
+        "text", "--format", "-f", help="Output format: text or md"
+    ),
+) -> None:
+    """Summarize findings from a report for triage.
+
+    Reads report.json and runs.jsonl to produce a findings-first summary
+    showing what leaked, why, and how to fix it.
+    """
+    import json
+
+    from ragleaklab.analysis.attribution import REMEDIATION_HINTS, AttributionCategory
+
+    # Validate input directory
+    if not input_dir.exists():
+        typer.echo(f"❌ Input directory not found: {input_dir}", err=True)
+        raise typer.Exit(1)
+
+    report_path = input_dir / "report.json"
+    runs_path = input_dir / "runs.jsonl"
+
+    if not report_path.exists():
+        typer.echo(f"❌ report.json not found in: {input_dir}", err=True)
+        raise typer.Exit(1)
+
+    # Load report
+    with open(report_path) as f:
+        report = json.load(f)
+
+    # Load runs if available
+    runs: list[dict] = []
+    if runs_path.exists():
+        with open(runs_path) as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    runs.append(json.loads(line))
+
+    # Determine output format
+    is_markdown = format_type.lower() == "md"
+
+    # Helper for formatting
+    def heading(text: str, level: int = 1) -> str:
+        if is_markdown:
+            return "#" * level + " " + text
+        return text
+
+    def bold(text: str) -> str:
+        if is_markdown:
+            return f"**{text}**"
+        return text
+
+    def code(text: str) -> str:
+        if is_markdown:
+            return f"`{text}`"
+        return text
+
+    def truncate(text: str, max_len: int = 80) -> str:
+        if len(text) <= max_len:
+            return text
+        return text[: max_len - 3] + "..."
+
+    # Build output
+    lines: list[str] = []
+
+    # Overall status
+    overall_pass = report.get("overall_pass", True)
+    status_icon = "✅" if overall_pass else "❌"
+    status_text = "PASS" if overall_pass else "FAIL"
+
+    lines.append(heading("RAGLeakLab Findings Summary"))
+    lines.append("")
+    lines.append(f"{status_icon} {bold('Overall Status:')} {status_text}")
+    lines.append("")
+
+    # Key metrics
+    lines.append(heading("Metrics", 2))
+    lines.append(f"- Total cases: {report.get('total_cases', 0)}")
+    lines.append(f"- Canary extracted: {report.get('canary_extracted', False)}")
+    lines.append(f"- Canary count: {report.get('canary_count', 0)}")
+    lines.append(
+        f"- Verbatim leakage rate: {report.get('verbatim_leakage_rate', 0):.2%}"
+    )
+    lines.append(
+        f"- Membership confidence: {report.get('membership_confidence', 0):.2%}"
+    )
+    lines.append("")
+
+    # Report-level failures
+    failures = report.get("failures", [])
+    if failures:
+        lines.append(heading("Threshold Violations", 2))
+        for f in failures:
+            lines.append(
+                f"- [{f.get('threat', 'unknown')}] {f.get('reason', 'No reason')}"
+            )
+        lines.append("")
+
+    # Collect findings from runs
+    findings: list[dict] = []
+    for run in runs:
+        # Check if this run has a leak
+        canary_detected = run.get("canary_detected", False)
+        verbatim_score = run.get("verbatim_score", 0.0)
+        has_leak = canary_detected or verbatim_score > 0.1
+
+        if has_leak:
+            findings.append(run)
+
+    # Sort findings by severity (canary first, then by verbatim score)
+    findings.sort(
+        key=lambda x: (not x.get("canary_detected", False), -x.get("verbatim_score", 0))
+    )
+
+    # Limit to top N
+    top_findings = findings[:top]
+
+    if top_findings:
+        lines.append(heading(f"Top {len(top_findings)} Findings", 2))
+        lines.append("")
+
+        for idx, finding in enumerate(top_findings, 1):
+            test_id = finding.get("test_id", "unknown")
+            threat = finding.get("threat", "unknown")
+            canary_detected = finding.get("canary_detected", False)
+            verbatim_score = finding.get("verbatim_score", 0.0)
+            answer = finding.get("answer", "")
+
+            # Build evidence summary
+            if canary_detected:
+                evidence_type = "Canary token extracted"
+                evidence_detail = f"count={finding.get('canary_count', 0)}"
+            else:
+                evidence_type = "Verbatim leakage"
+                evidence_detail = f"score={verbatim_score:.2%}"
+
+            # Get attribution
+            attributions = finding.get("attribution", [])
+            attr_categories: list[str] = []
+            hints: list[str] = []
+            for attr in attributions:
+                cat = attr.get("category", "")
+                attr_categories.append(cat)
+                hint = attr.get("hint", "")
+                if hint:
+                    hints.append(hint)
+
+            # If no attribution, try to infer
+            if not attr_categories:
+                if canary_detected:
+                    attr_categories.append("retrieval_included_secret")
+                    hints.append(
+                        REMEDIATION_HINTS.get(
+                            AttributionCategory.RETRIEVAL_INCLUDED_SECRET, ""
+                        )
+                    )
+                elif verbatim_score > 0.1:
+                    attr_categories.append("high_verbatim_overlap")
+                    hints.append("Review which documents are being retrieved.")
+
+            # Format finding
+            if is_markdown:
+                lines.append(f"### {idx}. {code(test_id)}")
+                lines.append("")
+                lines.append(f"- {bold('Threat:')} {threat}")
+                lines.append(f"- {bold('Evidence:')} {evidence_type} ({evidence_detail})")
+                if attr_categories:
+                    lines.append(f"- {bold('Attribution:')} {', '.join(attr_categories)}")
+                if hints:
+                    lines.append(f"- {bold('Remediation:')} {hints[0]}")
+                lines.append(f"- {bold('Answer (truncated):')} {truncate(answer, 100)}")
+                lines.append("")
+            else:
+                lines.append(f"{idx}. [{test_id}]")
+                lines.append(f"   Threat: {threat}")
+                lines.append(f"   Evidence: {evidence_type} ({evidence_detail})")
+                if attr_categories:
+                    lines.append(f"   Attribution: {', '.join(attr_categories)}")
+                if hints:
+                    lines.append(f"   Remediation: {hints[0]}")
+                lines.append(f"   Answer: {truncate(answer, 100)}")
+                lines.append("")
+    else:
+        lines.append(heading("Findings", 2))
+        lines.append("No individual findings with leaks detected in runs.jsonl.")
+        lines.append("")
+
+    # Next steps
+    if not overall_pass:
+        lines.append(heading("Next Steps", 2))
+        if is_markdown:
+            lines.append("1. Review the findings above to understand what leaked")
+            lines.append("2. Check the attribution categories for root causes")
+            lines.append("3. Apply remediations to fix the underlying issues")
+            lines.append("4. Re-run the pack to verify: `ragleaklab run --pack <pack> ...`")
+            lines.append("5. See `docs/TRIAGE.md` for detailed guidance")
+        else:
+            lines.append("1. Review the findings above to understand what leaked")
+            lines.append("2. Check the attribution categories for root causes")
+            lines.append("3. Apply remediations to fix the underlying issues")
+            lines.append("4. Re-run the pack to verify")
+            lines.append("5. See docs/TRIAGE.md for detailed guidance")
+        lines.append("")
+
+    # Output
+    output = "\n".join(lines)
+    typer.echo(output)
+
+
 @app.command()
 def version() -> None:
     """Show version information."""
