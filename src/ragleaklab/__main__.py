@@ -29,6 +29,11 @@ def run(
         "-p",
         help="Built-in attack pack: canary-basic, verbatim-basic, membership-basic",
     ),
+    poisoning_pack: list[str] = typer.Option(
+        [],
+        "--poisoning-pack",
+        help="Built-in poisoning pack: integrity-dummy",
+    ),
     format: list[str] = typer.Option(
         [], "--format", "-f", help="Additional output formats: junit, sarif"
     ),
@@ -68,6 +73,26 @@ def run(
                 cases = load_cases(pack_path)
                 pack_cases.extend(cases)
                 typer.echo(f"   {pack_name}: {len(cases)} cases")
+            except ValueError as e:
+                typer.echo(f"❌ {e}", err=True)
+                raise typer.Exit(1) from None
+
+    # Load poisoning pack cases if specified
+    poisoning_cases = []
+    if poisoning_pack:
+        from ragleaklab.poisoning.packs import (
+            get_poisoning_pack_path,
+            get_poisoning_pack_version,
+        )
+        from ragleaklab.poisoning.packs.runner import load_poisoning_cases
+
+        typer.echo(f"🧪 Loading poisoning packs (version {get_poisoning_pack_version()}):")
+        for pack_name in poisoning_pack:
+            try:
+                pack_path = get_poisoning_pack_path(pack_name)
+                pcases = load_poisoning_cases(pack_path)
+                poisoning_cases.extend(pcases)
+                typer.echo(f"   {pack_name}: {len(pcases)} cases")
             except ValueError as e:
                 typer.echo(f"❌ {e}", err=True)
                 raise typer.Exit(1) from None
@@ -315,6 +340,19 @@ def run(
         for r in verdict.reasons
     ]
 
+    # Run poisoning packs if specified
+    integrity_section = None
+    if poisoning_cases:
+        from ragleaklab.poisoning.packs.runner import run_poisoning_pack
+
+        typer.echo("🧪 Evaluating integrity...")
+        integrity_section = run_poisoning_pack(poisoning_cases, artifacts)
+        findings = len(integrity_section.packs)
+        if findings > 0:
+            typer.echo(f"   Found {findings} integrity violations")
+        else:
+            typer.echo("   No integrity violations detected")
+
     report = Report(
         tool_version=tool_version,
         total_cases=len(cases),
@@ -327,6 +365,7 @@ def run(
         corpus_path=str(corpus_path.resolve()),
         attacks_path=str(attacks_path.resolve()) if attacks_path else "built-in packs",
         config_hash=config_hash,
+        integrity=integrity_section.model_dump() if integrity_section else None,
     )
 
     # Write report.json

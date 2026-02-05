@@ -1,0 +1,10 @@
+name: integrity-dummy
+version: "1.0.0"
+pack_type: mixed
+description: "Dummy integrity pack for testing infrastructure"
+test_count: 3
+expected_report_fields:
+  - integrity.integrity_summary.total_findings
+  - integrity.integrity_summary.retrieval_poisoned
+  - integrity.integrity_summary.claim_poisoned
+  - integrity.integrity_summary.sentinel_triggered

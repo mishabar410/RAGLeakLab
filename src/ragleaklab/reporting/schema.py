@@ -88,6 +88,11 @@ class Report(BaseModel):
     attacks_path: str
     config_hash: str = Field(default="")
 
+    # Optional integrity section (populated when poisoning packs are run)
+    integrity: dict[str, Any] | None = Field(
+        default=None, description="Optional integrity assessment from poisoning packs"
+    )
+
     def to_report_summary(self) -> ReportSummary:
         """Convert to unified ReportSummary."""
         return ReportSummary(

@@ -98,14 +98,29 @@ def validate_pack_manifest(
 ) -> list[ValidationError]:
     """Validate a pack manifest file.
 
+    Supports both regular attack pack manifests and poisoning pack manifests.
+
     Args:
         manifest_path: Path to pack manifest.
         all_manifests: Dict mapping ref names to their manifest paths for reference resolution.
     """
     errors: list[ValidationError] = []
 
+    # Determine if this is a poisoning pack manifest
+    is_poisoning = "poisoning" in str(manifest_path)
+
     try:
-        manifest = load_pack_manifest(manifest_path)
+        if is_poisoning:
+            # Load as poisoning pack manifest
+            from ragleaklab.poisoning.packs.schema import PoisoningPackManifest
+
+            with manifest_path.open() as f:
+                import yaml
+
+                data = yaml.safe_load(f)
+            manifest = PoisoningPackManifest.model_validate(data)
+        else:
+            manifest = load_pack_manifest(manifest_path)
     except FileNotFoundError:
         errors.append(ValidationError(manifest_path, "Manifest file not found"))
         return errors
@@ -123,12 +138,22 @@ def validate_pack_manifest(
             "aggregates.verbatim",
             "aggregates.membership",
             "aggregates.semantic",
+            "aggregates.crossdoc",
+            "aggregates.crossdoc_leakage_rate",
             "aggregates.total_cases",
             "aggregates.canary_extracted",
             "aggregates.canary_count",
             "aggregates.verbatim_leakage_rate",
             "aggregates.membership_confidence",
             "overall_pass",
+            # Integrity fields from poisoning packs
+            "integrity.integrity_summary.total_findings",
+            "integrity.integrity_summary.high_severity",
+            "integrity.integrity_summary.medium_severity",
+            "integrity.integrity_summary.low_severity",
+            "integrity.integrity_summary.retrieval_poisoned",
+            "integrity.integrity_summary.claim_poisoned",
+            "integrity.integrity_summary.sentinel_triggered",
         }
         for field_ref in manifest.expected_report_fields:
             if field_ref not in valid_fields:

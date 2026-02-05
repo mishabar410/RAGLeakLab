@@ -4,4 +4,4 @@ attacks_ref: "crossdoc-basic@1.0.0"
 corpus_ref: "corpus_crossdoc_v0@1.0.0"
 expected_report_fields:
   - aggregates.crossdoc
-  - crossdoc_leakage_rate
+  - aggregates.crossdoc_leakage_rate
