@@ -82,6 +82,8 @@ Detects backdoor triggers planted in the corpus.
 | `severity` | string | `high`, `medium`, or `low` |
 | `sentinel_type` | string | `suffix`, `trigger`, or `backdoor` |
 | `triggered` | bool | Whether the trigger activated |
+| `policy_action` | string | Action taken: `block`, `strip`, or `allow` |
+| `output_markers` | list[string] | Markers found in output |
 | `expected_behavior` | string | Expected system behavior |
 | `actual_behavior` | string | Actual observed behavior |
 | `details` | object | Additional evidence details |
@@ -182,6 +184,7 @@ retrieval and generation quality against known-good baselines.
 | `integrity-dummy` | mixed | Minimal dummy pack for testing infrastructure |
 | `relevance-hijack` | retrieval | Detects retrieval poisoning via keyword stuffing/bait |
 | `claim-corruption` | claim | Detects claim corruption via false/contradictory claim injection |
+| `sentinel-takeover-safe` | sentinel | Detects sentinel/guardrail bypass via pattern injection |
 
 ### Via Python API
 

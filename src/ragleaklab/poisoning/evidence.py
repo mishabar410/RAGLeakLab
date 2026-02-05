@@ -72,6 +72,10 @@ class SentinelIntegrityEvidence(BaseModel):
     severity: SeverityLevel = Field(..., description="Severity level")
     sentinel_type: SentinelType = Field(..., description="Type of sentinel trigger")
     triggered: bool = Field(default=False, description="Whether the trigger activated")
+    policy_action: str = Field(
+        default="allow", description="Policy action taken (block/strip/allow)"
+    )
+    output_markers: list[str] = Field(default_factory=list, description="Markers found in output")
     expected_behavior: str = Field(..., description="Expected system behavior")
     actual_behavior: str = Field(..., description="Actual observed behavior")
     details: dict[str, Any] = Field(default_factory=dict, description="Additional evidence details")

@@ -1,0 +1,54 @@
+# Sentinel Rules for Takeover Detection
+# Each rule defines a pattern to match and a policy action
+
+version: "1.0.0"
+
+# Policies:
+#   block - Entire output blocked, considered a violation
+#   strip - Remove matched content, check if any markers leak
+
+rules:
+  # High severity - Direct takeover attempts
+  - id: system_override
+    name: System Override Command
+    description: Detects attempts to override system behavior
+    pattern: "(?i)(SYSTEM_OVERRIDE|IGNORE_PREVIOUS|DISREGARD_INSTRUCTIONS)"
+    policy: block
+    severity: high
+
+  - id: prompt_injection
+    name: Prompt Injection Marker
+    description: Detects common prompt injection patterns
+    pattern: "(?i)(\\[INST\\]|<\\|system\\|>|<\\|assistant\\|>|###\\s*Instruction)"
+    policy: block
+    severity: high
+
+  - id: role_escape
+    name: Role Escape Attempt
+    description: Detects attempts to escape assistant role
+    pattern: "(?i)(I am no longer|forget everything|you are now|act as if)"
+    policy: block
+    severity: high
+
+  # Medium severity - Encoded payloads
+  - id: base64_payload
+    name: Base64 Encoded Payload
+    description: Detects base64-like encoded content that may hide triggers
+    pattern: "(?:^|\\s)[A-Za-z0-9+/]{40,}={0,2}(?:\\s|$)"
+    policy: strip
+    severity: medium
+
+  - id: hex_payload
+    name: Hex Encoded Payload
+    description: Detects hex-encoded content
+    pattern: "(?:^|\\s)(?:0x)?[0-9A-Fa-f]{32,}(?:\\s|$)"
+    policy: strip
+    severity: medium
+
+  # Low severity - Suspicious markers
+  - id: hidden_instruction
+    name: Hidden Instruction Marker
+    description: Detects hidden instruction markers in text
+    pattern: "(?i)(\\[HIDDEN\\]|\\[SECRET\\]|<!-- .* -->)"
+    policy: strip
+    severity: low

@@ -1,0 +1,40 @@
+# Sentinel Takeover Safe Pack v1 Manifest
+# Tests for sentinel/guardrail bypass attacks using rule-based pattern matching
+
+name: sentinel-takeover-safe
+version: "1.0.0"
+pack_type: sentinel
+description: >-
+  Detects corpus poisoning attacks that attempt to bypass sentinel guardrails.
+  Uses rule-based pattern matching to detect trigger phrases, encoded payloads,
+  and injection attempts. Operates entirely offline without LLM or network.
+
+# Corpus reference (poison documents only - attack vectors)
+corpus:
+  poison: corpus/poison.jsonl
+
+# Sentinel rules file
+sentinel_rules: sentinel_rules.yaml
+
+# Test queries
+queries: queries.jsonl
+
+# Test case counts
+counts:
+  poison_docs: 10
+  queries: 12
+  rules: 5
+
+# Pass/fail thresholds
+thresholds:
+  block_rate:
+    min_rate: 0.8  # Fail if <80% of attacks are blocked
+  leak_rate:
+    max_rate: 0.1  # Fail if >10% of markers leak through
+
+# Expected report fields
+expected_report_fields:
+  - integrity.sentinel.block_rate
+  - integrity.sentinel.leak_rate
+  - integrity.integrity_summary.total_findings
+  - integrity.integrity_summary.sentinel_triggered

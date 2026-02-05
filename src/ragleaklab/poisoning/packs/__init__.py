@@ -15,6 +15,7 @@ AVAILABLE_POISONING_PACKS = [
     "integrity-dummy",
     "relevance-hijack",
     "claim-corruption",
+    "sentinel-takeover-safe",
 ]
 
 
@@ -59,6 +60,15 @@ def get_poisoning_pack_path(pack_name: str, version: str | None = None) -> Path:
         path = project_root / "data" / "packs" / "poisoning_v1" / "claim_corruption"
         if not path.exists():
             msg = f"Claim corruption pack not found: {path}"
+            raise ValueError(msg)
+        return path
+
+    # Special handling for sentinel-takeover-safe (uses data/packs structure)
+    if pack_name == "sentinel-takeover-safe":
+        project_root = _get_packs_dir().parent.parent.parent.parent
+        path = project_root / "data" / "packs" / "poisoning_v1" / "sentinel_takeover_safe"
+        if not path.exists():
+            msg = f"Sentinel takeover safe pack not found: {path}"
             raise ValueError(msg)
         return path
 

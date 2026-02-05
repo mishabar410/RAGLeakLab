@@ -95,8 +95,12 @@ def run(
                 poisoning_pack_names.append(pack_name)
 
                 # For yaml-based packs, load cases directly
-                # Specialized packs (relevance-hijack, claim-corruption) use their own loaders
-                if pack_name not in ("relevance-hijack", "claim-corruption"):
+                # Specialized packs use their own loaders
+                if pack_name not in (
+                    "relevance-hijack",
+                    "claim-corruption",
+                    "sentinel-takeover-safe",
+                ):
                     pcases = load_poisoning_cases(pack_path)
                     poisoning_cases.extend(pcases)
                     typer.echo(f"   {pack_name}: {len(pcases)} cases")
@@ -196,6 +200,19 @@ def run(
             pack_path = get_poisoning_pack_path(pack_name)
             rh_pack = load_relevance_hijack_pack(pack_path)
             pack_test_cases = pack_to_test_cases(rh_pack)
+            cases.extend(pack_test_cases)
+            typer.echo(f"   Injected {len(pack_test_cases)} queries from {pack_name}")
+
+        elif pack_name == "sentinel-takeover-safe":
+            from ragleaklab.poisoning.packs import get_poisoning_pack_path
+            from ragleaklab.poisoning.packs.sentinel_takeover_safe import (
+                load_sentinel_pack,
+                pack_to_test_cases,
+            )
+
+            pack_path = get_poisoning_pack_path(pack_name)
+            st_pack = load_sentinel_pack(pack_path)
+            pack_test_cases = pack_to_test_cases(st_pack)
             cases.extend(pack_test_cases)
             typer.echo(f"   Injected {len(pack_test_cases)} queries from {pack_name}")
 
@@ -400,6 +417,23 @@ def run(
                 # Use specialized claim corruption evaluator
                 # Note: requires clean and poisoned results - for now just report capability
                 typer.echo(f"   {pack_name}: requires two-phase evaluation (not yet in CLI)")
+
+            elif pack_name == "sentinel-takeover-safe":
+                # Use specialized sentinel evaluator
+                from ragleaklab.poisoning.packs.sentinel_takeover_safe import (
+                    load_sentinel_pack,
+                    run_sentinel_from_artifacts,
+                )
+
+                st_pack = load_sentinel_pack(pack_path)
+                st_result = run_sentinel_from_artifacts(st_pack, artifacts)
+                section = st_result.to_integrity_section()
+                all_packs.extend(section.packs)
+                total_findings += len([e for e in section.packs if e])
+                typer.echo(
+                    f"   {pack_name}: {len(st_result.query_results)} queries, "
+                    f"block_rate={st_result.block_rate:.1%}, leak_rate={st_result.leak_rate:.1%}"
+                )
 
             else:
                 # Use generic YAML-based runner for other packs
