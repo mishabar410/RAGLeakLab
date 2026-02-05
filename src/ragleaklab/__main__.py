@@ -981,6 +981,72 @@ def report_summarize(
         lines.append("No individual findings with leaks detected in runs.jsonl.")
         lines.append("")
 
+    # Integrity section (corpus poisoning detection)
+    if "integrity" in report:
+        integrity = report["integrity"]
+        summary = integrity.get("integrity_summary", {})
+        packs = integrity.get("packs", [])
+
+        if summary.get("total_findings", 0) > 0:
+            lines.append(heading("Integrity Findings", 2))
+            lines.append("")
+
+            # Summary stats
+            lines.append(f"- Total integrity findings: {summary.get('total_findings', 0)}")
+            lines.append(f"- High severity: {summary.get('high_severity', 0)}")
+            lines.append(f"- Medium severity: {summary.get('medium_severity', 0)}")
+            lines.append(f"- Low severity: {summary.get('low_severity', 0)}")
+            lines.append("")
+
+            # Sort packs deterministically: severity → pack_id → query_id
+            severity_order = {"high": 0, "medium": 1, "low": 2}
+            sorted_packs = sorted(
+                packs,
+                key=lambda e: (
+                    severity_order.get(e.get("severity", "low"), 99),
+                    e.get("pack_id", ""),
+                    e.get("query_id", ""),
+                ),
+            )
+
+            # Show top findings
+            for idx, evidence in enumerate(sorted_packs[:top], 1):
+                pack_id = evidence.get("pack_id", "unknown")
+                query_id = evidence.get("query_id", "unknown")
+                severity = evidence.get("severity", "unknown")
+
+                # Determine evidence type
+                if "expected_doc_ids" in evidence:
+                    evidence_type = "Retrieval Poisoning"
+                    evidence_detail = f"confidence={evidence.get('confidence', 0):.2f}"
+                elif "expected_claim" in evidence:
+                    evidence_type = "Claim Poisoning"
+                    evidence_detail = (
+                        f"semantic_distance={evidence.get('semantic_distance', 0):.2f}"
+                    )
+                elif "sentinel_type" in evidence:
+                    evidence_type = "Sentinel Trigger"
+                    evidence_detail = f"type={evidence.get('sentinel_type', 'unknown')}"
+                else:
+                    evidence_type = "Unknown"
+                    evidence_detail = ""
+
+                if is_markdown:
+                    lines.append(f"### {idx}. {code(pack_id)}:{code(query_id)}")
+                    lines.append("")
+                    lines.append(f"- {bold('Severity:')} {severity}")
+                    lines.append(f"- {bold('Type:')} {evidence_type}")
+                    if evidence_detail:
+                        lines.append(f"- {bold('Details:')} {evidence_detail}")
+                    lines.append("")
+                else:
+                    lines.append(f"{idx}. [{pack_id}:{query_id}]")
+                    lines.append(f"   Severity: {severity}")
+                    lines.append(f"   Type: {evidence_type}")
+                    if evidence_detail:
+                        lines.append(f"   Details: {evidence_detail}")
+                    lines.append("")
+
     # Next steps
     if not overall_pass:
         lines.append(heading("Next Steps", 2))

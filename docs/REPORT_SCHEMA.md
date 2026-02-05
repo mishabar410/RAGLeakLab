@@ -64,3 +64,49 @@ To prevent bloated output files:
 - Context strings exceeding 20,000 characters are truncated
 - When truncation occurs, `context_stats.truncated` is set to `true`
 - Original `context_chars` reflects the full character count before truncation
+
+## Integrity Section (Optional)
+
+When integrity packs are run, the report may include an optional `integrity` section
+for corpus poisoning detection results.
+
+### Structure
+
+```json
+{
+  "integrity": {
+    "packs": [...],
+    "integrity_summary": {...}
+  }
+}
+```
+
+### Integrity Summary
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `total_findings` | int | Total number of integrity violations |
+| `high_severity` | int | Count of high severity findings |
+| `medium_severity` | int | Count of medium severity findings |
+| `low_severity` | int | Count of low severity findings |
+| `retrieval_poisoned` | int | Count of retrieval manipulation findings |
+| `claim_poisoned` | int | Count of claim manipulation findings |
+| `sentinel_triggered` | int | Count of backdoor trigger activations |
+
+### Evidence Types
+
+Each item in `packs` is one of:
+
+- **RetrievalIntegrityEvidence**: Poisoned retrieval behavior
+- **ClaimIntegrityEvidence**: Manipulated claim generation
+- **SentinelIntegrityEvidence**: Backdoor trigger detection
+
+All evidence types share common fields:
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `pack_id` | string | Pack that generated this evidence |
+| `query_id` | string | Query ID within the pack |
+| `severity` | string | `high`, `medium`, or `low` |
+
+See [docs/poisoning.md](poisoning.md) for detailed documentation.

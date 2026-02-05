@@ -6,6 +6,8 @@ These models define the canonical data structures used across all modules:
 - reporting collects CaseResult and produces ReportSummary
 """
 
+from __future__ import annotations
+
 from datetime import datetime
 from typing import Any
 
@@ -88,6 +90,11 @@ class RunArtifact(BaseModel):
     meta: dict[str, Any] = Field(
         default_factory=dict, description="Additional metadata (strategy, original_query, etc.)"
     )
+    # Optional integrity section for poisoning/integrity threat detection
+    # This field is only populated when integrity packs are run
+    integrity: IntegritySection | None = Field(  # noqa: F821
+        default=None, description="Optional integrity assessment from poisoning packs"
+    )
 
     @property
     def retrieved_ids(self) -> list[str]:
@@ -150,3 +157,15 @@ class ReportSummary(BaseModel):
         default_factory=dict,
         description="Additional metadata (corpus_path, attacks_path, config_hash, etc.)",
     )
+
+
+# Deferred import and model rebuild to resolve forward reference for IntegritySection.
+# This pattern avoids circular import issues while keeping Pydantic model resolution working.
+def _rebuild_models() -> None:
+    """Rebuild models with forward references resolved."""
+    from ragleaklab.poisoning.evidence import IntegritySection
+
+    RunArtifact.model_rebuild(_types_namespace={"IntegritySection": IntegritySection})
+
+
+_rebuild_models()

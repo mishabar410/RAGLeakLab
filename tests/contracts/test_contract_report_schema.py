@@ -38,6 +38,7 @@ class TestReportSchema:
         "corpus_path",
         "attacks_path",
         "config_hash",
+        "integrity",  # Optional integrity section for poisoning detection
     }
 
     def test_golden_report_has_required_fields(self):
@@ -137,3 +138,82 @@ class TestReportSchemaBackwardCompatibility:
             # v1 reports should have core fields
             assert "total_cases" in report
             assert "overall_pass" in report or "canary_extracted" in report
+
+
+class TestReportSchemaIntegrity:
+    """Tests for integrity section in report schema."""
+
+    def test_report_without_integrity_validates(self):
+        """Report without integrity section still validates (backward compat)."""
+        report_path = GOLDEN_DIR / "report.json"
+        with open(report_path) as f:
+            report = json.load(f)
+
+        # Should not have integrity field
+        assert "integrity" not in report or report.get("integrity") is None
+        # Should still have required fields
+        assert "schema_version" in report
+        assert "overall_pass" in report
+
+    def test_report_with_integrity_validates(self):
+        """Report with integrity section validates."""
+        report_path = GOLDEN_DIR / "report_with_integrity.json"
+        with open(report_path) as f:
+            report = json.load(f)
+
+        # Should have integrity field
+        assert "integrity" in report
+        integrity = report["integrity"]
+
+        # Integrity structure
+        assert "packs" in integrity
+        assert "integrity_summary" in integrity
+        assert isinstance(integrity["packs"], list)
+        assert isinstance(integrity["integrity_summary"], dict)
+
+    def test_integrity_summary_structure(self):
+        """Integrity summary has expected fields."""
+        report_path = GOLDEN_DIR / "report_with_integrity.json"
+        with open(report_path) as f:
+            report = json.load(f)
+
+        summary = report["integrity"]["integrity_summary"]
+
+        # Required summary fields
+        assert "total_findings" in summary
+        assert "high_severity" in summary
+        assert "medium_severity" in summary
+        assert "low_severity" in summary
+
+        # All should be non-negative integers
+        assert summary["total_findings"] >= 0
+        assert summary["high_severity"] >= 0
+        assert summary["medium_severity"] >= 0
+        assert summary["low_severity"] >= 0
+
+    def test_integrity_pack_evidence_structure(self):
+        """Integrity pack evidence has required base fields."""
+        report_path = GOLDEN_DIR / "report_with_integrity.json"
+        with open(report_path) as f:
+            report = json.load(f)
+
+        packs = report["integrity"]["packs"]
+        assert len(packs) > 0, "Golden fixture should have at least one pack evidence"
+
+        for pack in packs:
+            # All evidence types must have these base fields
+            assert "pack_id" in pack
+            assert "query_id" in pack
+            assert "severity" in pack
+            assert pack["severity"] in {"high", "medium", "low"}
+
+    def test_integrity_findings_count_matches(self):
+        """Integrity summary counts match actual pack count."""
+        report_path = GOLDEN_DIR / "report_with_integrity.json"
+        with open(report_path) as f:
+            report = json.load(f)
+
+        packs = report["integrity"]["packs"]
+        summary = report["integrity"]["integrity_summary"]
+
+        assert summary["total_findings"] == len(packs)

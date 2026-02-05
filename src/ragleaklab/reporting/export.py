@@ -170,6 +170,40 @@ def _build_sarif_rules() -> list[dict]:
             "defaultConfiguration": {"level": "error"},
             "properties": {"security-severity": "8.5"},
         },
+        # Integrity threat rules (poisoning detection)
+        {
+            "id": "integrity-retrieval-poisoning",
+            "name": "RetrievalPoisoning",
+            "shortDescription": {"text": "Poisoned retrieval detected"},
+            "fullDescription": {
+                "text": "Retrieval results were manipulated by corpus poisoning, "
+                "causing injected documents to rank higher than expected."
+            },
+            "defaultConfiguration": {"level": "error"},
+            "properties": {"security-severity": "8.5"},
+        },
+        {
+            "id": "integrity-claim-poisoning",
+            "name": "ClaimPoisoning",
+            "shortDescription": {"text": "Poisoned claim generation detected"},
+            "fullDescription": {
+                "text": "Generated claims were manipulated through corpus poisoning, "
+                "causing false or misleading information to appear in output."
+            },
+            "defaultConfiguration": {"level": "error"},
+            "properties": {"security-severity": "8.0"},
+        },
+        {
+            "id": "integrity-sentinel-trigger",
+            "name": "SentinelTrigger",
+            "shortDescription": {"text": "Backdoor sentinel trigger detected"},
+            "fullDescription": {
+                "text": "A planted backdoor trigger in the corpus was activated, "
+                "indicating the system is vulnerable to sentinel-based attacks."
+            },
+            "defaultConfiguration": {"level": "error"},
+            "properties": {"security-severity": "9.0"},
+        },
     ]
 
 
@@ -253,5 +287,19 @@ def _threat_to_rule_id(threat: str) -> str:
         "membership": "membership-inference",
         "semantic": "semantic-leakage",
         "crossdoc": "crossdoc-leakage",
+        # Integrity threats (poisoning)
+        "integrity-retrieval": "integrity-retrieval-poisoning",
+        "integrity-claim": "integrity-claim-poisoning",
+        "integrity-sentinel": "integrity-sentinel-trigger",
     }
     return mapping.get(threat, "unknown")
+
+
+def _integrity_evidence_to_rule_id(evidence_type: str) -> str:
+    """Map integrity evidence type to SARIF rule ID."""
+    mapping = {
+        "RetrievalIntegrityEvidence": "integrity-retrieval-poisoning",
+        "ClaimIntegrityEvidence": "integrity-claim-poisoning",
+        "SentinelIntegrityEvidence": "integrity-sentinel-trigger",
+    }
+    return mapping.get(evidence_type, "unknown")
