@@ -119,3 +119,42 @@ class TestContractsImportAndInstantiate:
         assert summary.overall_pass is True
         assert summary.schema_version == "2.0.0"
         assert "generated_at" in summary.model_dump()
+
+
+class TestCiSmokeCoverage:
+    """Contract tests for CI smoke script coverage."""
+
+    CI_SMOKE_PATH = "scripts/ci_smoke.sh"
+
+    def _read_ci_smoke(self) -> str:
+        """Read CI smoke script content."""
+        from pathlib import Path
+
+        # Navigate from tests/ to project root (parent of tests/)
+        project_root = Path(__file__).parent.parent
+        script_path = project_root / self.CI_SMOKE_PATH
+        return script_path.read_text()
+
+    def test_ci_smoke_includes_relevance_hijack(self):
+        """CI smoke must include relevance hijack pack."""
+        content = self._read_ci_smoke()
+        assert "relevance-hijack" in content or "relevance_hijack" in content
+        assert "poisoning_v1/relevance_hijack" in content
+
+    def test_ci_smoke_includes_claim_corruption(self):
+        """CI smoke must include claim corruption pack."""
+        content = self._read_ci_smoke()
+        assert "claim-corruption" in content or "claim_corruption" in content
+        assert "poisoning_v1/claim_corruption" in content
+
+    def test_ci_smoke_documents_sentinel_nightly(self):
+        """CI smoke must document sentinel pack is nightly-only."""
+        content = self._read_ci_smoke()
+        assert "sentinel" in content.lower()
+        assert "nightly" in content.lower()
+
+    def test_ci_smoke_has_baseline_diff_for_poisoning(self):
+        """CI smoke must diff against poisoning baselines."""
+        content = self._read_ci_smoke()
+        assert "baselines/poisoning_v1" in content
+        assert "claim_corruption_report.json" in content

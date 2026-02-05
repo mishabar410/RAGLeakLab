@@ -217,3 +217,68 @@ class TestReportSchemaIntegrity:
         summary = report["integrity"]["integrity_summary"]
 
         assert summary["total_findings"] == len(packs)
+
+
+class TestIntegrityTriageSummary:
+    """Contract tests for enhanced triage summary fields."""
+
+    def test_triage_summary_has_worst_poison_dominance(self):
+        """Integrity summary has worst_poison_dominance field."""
+        report_path = GOLDEN_DIR / "integrity_report.json"
+        with open(report_path) as f:
+            report = json.load(f)
+
+        summary = report["integrity"]["integrity_summary"]
+        assert "worst_poison_dominance" in summary
+        assert 0.0 <= summary["worst_poison_dominance"] <= 1.0
+
+    def test_triage_summary_has_worst_claim_corruption(self):
+        """Integrity summary has worst_claim_corruption field."""
+        report_path = GOLDEN_DIR / "integrity_report.json"
+        with open(report_path) as f:
+            report = json.load(f)
+
+        summary = report["integrity"]["integrity_summary"]
+        assert "worst_claim_corruption" in summary
+        assert 0.0 <= summary["worst_claim_corruption"] <= 1.0
+
+    def test_triage_summary_has_sentinel_failures(self):
+        """Integrity summary has sentinel_failures field."""
+        report_path = GOLDEN_DIR / "integrity_report.json"
+        with open(report_path) as f:
+            report = json.load(f)
+
+        summary = report["integrity"]["integrity_summary"]
+        assert "sentinel_failures" in summary
+        assert summary["sentinel_failures"] >= 0
+
+    def test_triage_summary_values_match_evidence(self):
+        """Triage summary values match what's in the evidence."""
+        report_path = GOLDEN_DIR / "integrity_report.json"
+        with open(report_path) as f:
+            report = json.load(f)
+
+        summary = report["integrity"]["integrity_summary"]
+        packs = report["integrity"]["packs"]
+
+        # Check worst_poison_dominance matches max from retrieval evidence
+        retrieval_rates = [
+            p.get("details", {}).get("poison_rate_at_k", 0.0)
+            for p in packs
+            if "expected_doc_ids" in p or "actual_doc_ids" in p
+        ]
+        if retrieval_rates:
+            assert summary["worst_poison_dominance"] == max(retrieval_rates)
+
+        # Check worst_claim_corruption matches max from claim evidence
+        claim_rates = [
+            p.get("details", {}).get("poison_claim_rate", 0.0)
+            for p in packs
+            if "matched_poison_claims" in p or "expected_claim_ids" in p
+        ]
+        if claim_rates:
+            assert summary["worst_claim_corruption"] == max(claim_rates)
+
+        # Check sentinel_failures matches triggered count
+        triggered_count = sum(1 for p in packs if p.get("triggered", False))
+        assert summary["sentinel_failures"] == triggered_count

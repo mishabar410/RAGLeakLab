@@ -140,7 +140,27 @@ else
     skip "relevance hijack pack (pack or baseline not found)"
 fi
 
-# Step 12: Determinism verification
+# Step 12: Claim corruption poisoning pack (if pack and baseline exist)
+if [ -d "data/packs/poisoning_v1/claim_corruption" ] && [ -f "baselines/poisoning_v1/claim_corruption_report.json" ]; then
+    step "Running claim corruption poisoning pack..."
+    uv run python -m ragleaklab run \
+        --corpus data/packs/poisoning_v1/claim_corruption/corpus \
+        --poisoning-pack claim-corruption \
+        --out out/claim_corruption/ || fail "Claim corruption pack failed"
+    success "Claim corruption pack completed"
+
+    step "Checking claim corruption regression..."
+    uv run python -m ragleaklab diff \
+        --baseline baselines/poisoning_v1/claim_corruption_report.json \
+        --current out/claim_corruption/report.json || fail "Claim corruption regression failed"
+    success "Claim corruption baseline passed"
+else
+    skip "claim corruption pack (pack or baseline not found)"
+fi
+
+# Note: sentinel-takeover-safe pack runs in nightly CI only (slower rule-based checks)
+
+# Step 13: Determinism verification
 step "Running determinism check..."
 if uv run python -m ragleaklab verify determinism --help >/dev/null 2>&1; then
     # Use canary-basic pack for determinism check

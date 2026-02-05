@@ -13,7 +13,11 @@ Local and GitHub Actions CI use **a single script** (`scripts/ci_smoke.sh`) to e
 | Basic pack | Run + diff against `baselines/v1/` |
 | Semantic pack | Run + diff against `baselines/semantic_v1/` |
 | Crossdoc pack | Run + diff against `baselines/crossdoc_v0/` |
+| Relevance hijack | Run + diff against `baselines/poisoning_v1/` |
+| Claim corruption | Run + diff against `baselines/poisoning_v1/claim_corruption_report.json` |
 | Determinism | `ragleaklab verify determinism` (2 runs) |
+
+> **Note**: `sentinel-takeover-safe` runs in **nightly CI only** (slower rule-based checks).
 
 ## Running Locally
 
@@ -69,6 +73,10 @@ uv sync --frozen
 The script skips checks gracefully when components are missing:
 - `SKIP assets validate (command not available)` — CLI command not present
 - `SKIP crossdoc pack (pack or baseline not found)` — Missing pack/baseline
+- `SKIP relevance hijack pack (pack or baseline not found)` — Missing pack/baseline
+- `SKIP claim corruption pack (pack or baseline not found)` — Missing pack/baseline
 - `SKIP determinism check (command not available)` — Verify command missing
 
 Skips are informational; mandatory checks will fail explicitly.
+
+See [INTEGRITY_TESTING.md](INTEGRITY_TESTING.md) for poisoning pack governance.

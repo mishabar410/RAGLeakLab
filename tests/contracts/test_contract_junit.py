@@ -104,3 +104,73 @@ class TestJunitSchema:
         for testsuite in root.findall("testsuite"):
             suite_tests = int(testsuite.attrib.get("tests", 0))
             assert suite_tests >= 0
+
+
+class TestIntegrityJunitSchema:
+    """Contract tests for integrity JUnit XML with proper naming."""
+
+    def test_integrity_junit_is_valid_xml(self):
+        """Golden integrity JUnit file is valid XML."""
+        junit_path = GOLDEN_DIR / "integrity.junit.xml"
+        tree = ET.parse(junit_path)
+        assert tree.getroot() is not None
+
+    def test_integrity_junit_has_testsuite_root(self):
+        """Integrity JUnit uses testsuite as root (single suite export)."""
+        junit_path = GOLDEN_DIR / "integrity.junit.xml"
+        tree = ET.parse(junit_path)
+        root = tree.getroot()
+
+        assert root.tag == "testsuite", f"Root should be 'testsuite', got '{root.tag}'"
+
+    def test_integrity_testcase_classname_follows_pattern(self):
+        """Integrity testcases have classname pattern: ragleaklab.integrity.{pack_id}."""
+        junit_path = GOLDEN_DIR / "integrity.junit.xml"
+        tree = ET.parse(junit_path)
+        root = tree.getroot()
+
+        testcases = root.findall("testcase")
+        assert len(testcases) > 0, "Should have testcases"
+
+        for testcase in testcases:
+            classname = testcase.attrib.get("classname", "")
+            assert classname.startswith("ragleaklab.integrity."), (
+                f"classname should start with 'ragleaklab.integrity.', got '{classname}'"
+            )
+
+    def test_integrity_testcase_name_follows_pattern(self):
+        """Integrity testcases have name pattern: {evidence_type}:{query_id}."""
+        junit_path = GOLDEN_DIR / "integrity.junit.xml"
+        tree = ET.parse(junit_path)
+        root = tree.getroot()
+
+        testcases = root.findall("testcase")
+        for testcase in testcases:
+            name = testcase.attrib.get("name", "")
+            assert ":" in name, f"testcase name should have format 'type:query_id', got '{name}'"
+
+    def test_integrity_failures_have_type_attribute(self):
+        """Integrity failures have type attribute with integrity- prefix."""
+        junit_path = GOLDEN_DIR / "integrity.junit.xml"
+        tree = ET.parse(junit_path)
+        root = tree.getroot()
+
+        testcases = root.findall("testcase")
+        for testcase in testcases:
+            for failure in testcase.findall("failure"):
+                failure_type = failure.attrib.get("type", "")
+                assert failure_type.startswith("integrity-"), (
+                    f"failure type should start with 'integrity-', got '{failure_type}'"
+                )
+
+    def test_integrity_tests_count_matches_testcases(self):
+        """Tests attribute matches actual testcase count."""
+        junit_path = GOLDEN_DIR / "integrity.junit.xml"
+        tree = ET.parse(junit_path)
+        root = tree.getroot()
+
+        declared_tests = int(root.attrib.get("tests", 0))
+        actual_testcases = len(root.findall("testcase"))
+        assert declared_tests == actual_testcases, (
+            f"tests={declared_tests} but found {actual_testcases} testcases"
+        )

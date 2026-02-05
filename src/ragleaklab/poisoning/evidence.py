@@ -97,6 +97,19 @@ class IntegritySummary(BaseModel):
     )
     claim_poisoned: int = Field(default=0, ge=0, description="Claim poisoning findings count")
     sentinel_triggered: int = Field(default=0, ge=0, description="Sentinel trigger findings count")
+    # Triage summary fields
+    worst_poison_dominance: float = Field(
+        default=0.0,
+        ge=0.0,
+        le=1.0,
+        description="Highest poison_rate_at_k across retrieval findings",
+    )
+    worst_claim_corruption: float = Field(
+        default=0.0, ge=0.0, le=1.0, description="Highest poison_claim_rate across claim findings"
+    )
+    sentinel_failures: int = Field(
+        default=0, ge=0, description="Count of triggered sentinel findings"
+    )
 
 
 class IntegritySection(BaseModel):
@@ -117,6 +130,10 @@ class IntegritySection(BaseModel):
         """Compute summary statistics from packs."""
         summary = IntegritySummary(total_findings=len(self.packs))
 
+        worst_poison_dominance = 0.0
+        worst_claim_corruption = 0.0
+        sentinel_failures = 0
+
         for evidence in self.packs:
             # Count by severity
             if evidence.severity == "high":
@@ -126,13 +143,28 @@ class IntegritySection(BaseModel):
             elif evidence.severity == "low":
                 summary.low_severity += 1
 
-            # Count by type
+            # Count and track by type
             if isinstance(evidence, RetrievalIntegrityEvidence):
                 summary.retrieval_poisoned += 1
+                # Track worst poison dominance from details
+                poison_rate = evidence.details.get("poison_rate_at_k", 0.0)
+                if isinstance(poison_rate, (int, float)):
+                    worst_poison_dominance = max(worst_poison_dominance, float(poison_rate))
             elif isinstance(evidence, ClaimIntegrityEvidence):
                 summary.claim_poisoned += 1
+                # Track worst claim corruption from details
+                poison_rate = evidence.details.get("poison_claim_rate", 0.0)
+                if isinstance(poison_rate, (int, float)):
+                    worst_claim_corruption = max(worst_claim_corruption, float(poison_rate))
             elif isinstance(evidence, SentinelIntegrityEvidence):
                 summary.sentinel_triggered += 1
+                # Count triggered sentinels as failures
+                if evidence.triggered:
+                    sentinel_failures += 1
+
+        summary.worst_poison_dominance = worst_poison_dominance
+        summary.worst_claim_corruption = worst_claim_corruption
+        summary.sentinel_failures = sentinel_failures
 
         return summary
 

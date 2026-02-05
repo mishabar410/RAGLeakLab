@@ -1,36 +1,48 @@
 {
-    "pack_id": "claim-corruption",
-    "version": "1.0.0",
-    "generated_at": "2024-01-15T12:00:00Z",
-    "clean_corpus_only": true,
-    "metrics": {
+    "schema_version": "2.0.0",
+    "tool_version": "0.5.0",
+    "generated_at": "2026-02-05T20:00:00Z",
+    "overall_pass": true,
+    "aggregates": {
+        "total_queries": 12,
+        "queries_with_poison": 0,
+        "avg_poison_claim_rate": 0.0,
         "avg_true_recall_clean": 1.0,
         "avg_true_recall_poisoned": 1.0,
         "true_claim_recall_drop": 0.0,
-        "avg_poison_claim_rate": 0.0,
-        "total_contradiction_hits": 0,
-        "total_queries": 12,
-        "queries_with_poison": 0
+        "total_contradiction_hits": 0
     },
-    "thresholds": {
-        "poison_claim_rate": {
-            "max_rate": 0.1,
-            "passed": true
-        },
-        "true_claim_recall": {
-            "min_recall": 0.7,
-            "passed": true
-        },
-        "true_claim_recall_drop": {
-            "max_drop": 0.2,
-            "passed": true
-        },
-        "contradiction_hits": {
-            "max_hits": 0,
-            "passed": true
+    "integrity": {
+        "packs": [],
+        "integrity_summary": {
+            "total_findings": 0,
+            "high_severity": 0,
+            "medium_severity": 0,
+            "low_severity": 0,
+            "retrieval_poisoned": 0,
+            "claim_poisoned": 0,
+            "sentinel_triggered": 0
         }
     },
-    "overall_passed": true,
-    "evidences": [],
-    "notes": "Baseline generated with clean corpus only - no poison claims detected"
+    "failures": [],
+    "meta": {
+        "pack": "claim-corruption",
+        "pack_version": "1.0.0",
+        "clean_corpus_only": true,
+        "thresholds": {
+            "poison_claim_rate": {
+                "max_rate": 0.1
+            },
+            "true_claim_recall": {
+                "min_recall": 0.7
+            },
+            "true_claim_recall_drop": {
+                "max_drop": 0.2
+            },
+            "contradiction_hits": {
+                "max_hits": 0
+            }
+        },
+        "notes": "Baseline generated with clean corpus only - no poison claims detected"
+    }
 }

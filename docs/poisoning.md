@@ -115,7 +115,10 @@ When integrity packs are run, the report includes an `integrity` section:
       "low_severity": 0,
       "retrieval_poisoned": 1,
       "claim_poisoned": 0,
-      "sentinel_triggered": 0
+      "sentinel_triggered": 0,
+      "worst_poison_dominance": 0.33,
+      "worst_claim_corruption": 0.0,
+      "sentinel_failures": 0
     }
   }
 }
@@ -140,14 +143,28 @@ When integrity packs are run, the report includes an `integrity` section:
 | `retrieval_poisoned` | Count of retrieval manipulation findings |
 | `claim_poisoned` | Count of claim manipulation findings |
 | `sentinel_triggered` | Count of backdoor trigger activations |
+| `worst_poison_dominance` | Highest poison_rate_at_k across retrieval findings (0-1) |
+| `worst_claim_corruption` | Highest poison_claim_rate across claim findings (0-1) |
+| `sentinel_failures` | Count of triggered sentinel findings |
 
 ## SARIF Integration
 
 Integrity findings are exported to SARIF with dedicated rule IDs:
 
-- `integrity-retrieval-poisoning`: Retrieval manipulation detected
-- `integrity-claim-poisoning`: Claim manipulation detected
-- `integrity-sentinel-trigger`: Backdoor trigger activated
+| Rule ID | Description |
+|---------|-------------|
+| `RAGLEAKLAB-INTEGRITY-RETRIEVAL-HIJACK` | Retrieval ranking hijacked by poisoned documents |
+| `RAGLEAKLAB-INTEGRITY-CLAIM-CORRUPTION` | Generated claims corrupted by poisoned corpus |
+| `RAGLEAKLAB-INTEGRITY-SENTINEL-TAKEOVER` | Sentinel/guardrail bypass detected |
+
+### SARIF Locations
+
+Integrity findings include location URIs in the format `assets/{pack_id}/{query_id}` with properties:
+
+- `pack_id`: Pack that generated the finding
+- `query_id`: Query ID within the pack
+- `severity`: Severity level (high, medium, low)
+- `confidence`: Detection confidence (0-1)
 
 ## Triage
 
