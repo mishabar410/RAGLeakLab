@@ -179,6 +179,18 @@ else
     skip "delta gate smoke (patch fixture not found)"
 fi
 
+# Step 15: Benchmark bundle smoke (dry-run)
+if [ -f "benchmarks/ragleakbench_v1/bundle.yaml" ]; then
+    step "Running benchmark bundle smoke (dry-run)..."
+    uv run python -m ragleaklab bench bundle \
+        --bundle benchmarks/ragleakbench_v1/bundle.yaml \
+        --out out/bench_smoke/ \
+        --dry-run || fail "Benchmark bundle smoke failed"
+    success "Benchmark bundle smoke passed"
+else
+    skip "benchmark bundle smoke (bundle.yaml not found)"
+fi
+
 # Note: sentinel-takeover-safe pack runs in nightly CI only (slower rule-based checks)
 
 # Step 13: Determinism verification

@@ -12,7 +12,7 @@ class TestBenchCommand:
     def test_bench_help(self) -> None:
         """Test bench --help works."""
         result = subprocess.run(
-            [sys.executable, "-m", "ragleaklab", "bench", "--help"],
+            [sys.executable, "-m", "ragleaklab", "bench", "time", "--help"],
             capture_output=True,
             text=True,
             env={**dict(__import__("os").environ), "NO_COLOR": "1"},
@@ -36,6 +36,7 @@ class TestBenchCommand:
                 "-m",
                 "ragleaklab",
                 "bench",
+                "time",
                 "--pack",
                 "canary-basic",
                 "--runs",
@@ -84,6 +85,7 @@ class TestBenchCommand:
                 "-m",
                 "ragleaklab",
                 "bench",
+                "time",
                 "--pack",
                 "nonexistent-pack",
                 "--out",
@@ -106,6 +108,7 @@ class TestBenchCommand:
                 "-m",
                 "ragleaklab",
                 "bench",
+                "time",
                 "--pack",
                 "canary-basic",
                 "--runs",

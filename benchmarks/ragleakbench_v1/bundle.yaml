@@ -1,0 +1,58 @@
+# RAGLeakBench v1 - Canonical Benchmark Bundle
+# Runs core security packs and produces unified summary
+
+name: ragleakbench_v1
+version: "1.0.0"
+description: "Canonical RAGLeakLab benchmark suite for RAG security evaluation"
+
+# Packs to run (order is preserved)
+packs:
+  # Core security packs
+  - name: canary-basic
+    corpus: data/corpus_private_canary
+    category: canary
+    
+  - name: semantic-basic
+    corpus: data/corpus_private_claims
+    category: semantic
+    
+  - name: crossdoc-basic
+    corpus: data/corpus_crossdoc_v0
+    category: crossdoc
+    
+  # Poisoning packs
+  - name: relevance-hijack
+    type: poisoning
+    category: poisoning
+    
+  - name: claim-corruption
+    type: poisoning
+    category: poisoning
+    
+  - name: sentinel-takeover-safe
+    type: poisoning
+    category: sentinel
+
+# Risk scoring weights for summary
+scoring:
+  # Weight multipliers by severity
+  severity_weights:
+    high: 3.0
+    medium: 2.0
+    low: 1.0
+  
+  # Category weights (optional)
+  category_weights:
+    canary: 1.0
+    semantic: 1.5
+    crossdoc: 1.2
+    poisoning: 2.0
+    sentinel: 1.0
+
+# Expected output fields in summary
+expected_outputs:
+  - total_packs
+  - passed_packs
+  - failed_packs
+  - risk_score
+  - pack_results

@@ -615,8 +615,13 @@ def diff(
         raise typer.Exit(1)
 
 
-@app.command()
-def bench(
+# Bench subcommand group
+bench_app = typer.Typer(help="Benchmark utilities")
+app.add_typer(bench_app, name="bench")
+
+
+@bench_app.command("time")
+def bench_time(
     pack: str = typer.Option(..., "--pack", "-p", help="Attack pack to benchmark"),
     runs: int = typer.Option(3, "--runs", "-r", help="Number of benchmark runs"),
     out: Path = typer.Option(..., "--out", "-o", help="Output JSON file path"),
@@ -739,6 +744,86 @@ def bench(
     typer.echo(f"   Median per-case: {median_per_case * 1000:.2f}ms")
     typer.echo(f"   Cache hit rate: {cache_hit_rate:.1%}")
 
+@bench_app.command("bundle")
+def bench_bundle(
+    bundle: Path = typer.Option(..., "--bundle", "-b", help="Path to bundle.yaml"),
+    out: Path = typer.Option(..., "--out", "-o", help="Output directory"),
+    limit_packs: int = typer.Option(
+        None, "--limit-packs", help="Limit number of packs to run"
+    ),
+    dry_run: bool = typer.Option(False, "--dry-run", help="Don't run packs, just validate"),
+) -> None:
+    """Run a benchmark bundle and generate summary.
+
+    Executes all packs defined in the bundle and produces:
+    - Individual pack results in OUTDIR/<pack>/
+    - Aggregated summary in OUTDIR/bench_summary.json
+    - Human-readable report in OUTDIR/bench_summary.md
+    """
+    import json
+
+    from ragleaklab.bench.bundle import (
+        generate_summary_markdown,
+        load_bundle,
+        run_bundle,
+    )
+
+    # Validate bundle exists
+    if not bundle.exists():
+        typer.echo(f"❌ Bundle not found: {bundle}", err=True)
+        raise typer.Exit(1)
+
+    typer.echo("📦 RAGLeakLab Benchmark Bundle")
+    typer.echo(f"   Bundle: {bundle}")
+    typer.echo(f"   Output: {out}")
+
+    # Load bundle
+    try:
+        manifest = load_bundle(bundle)
+    except (FileNotFoundError, ValueError) as e:
+        typer.echo(f"❌ Failed to load bundle: {e}", err=True)
+        raise typer.Exit(1) from None
+
+    typer.echo(f"   Name: {manifest.name} v{manifest.version}")
+    typer.echo(f"   Packs: {len(manifest.packs)}")
+
+    if limit_packs:
+        typer.echo(f"   Limiting to: {limit_packs} packs")
+
+    if dry_run:
+        typer.echo("   Mode: dry-run (validation only)")
+
+    typer.echo("")
+
+    # Run bundle
+    summary = run_bundle(manifest, out, limit_packs=limit_packs, dry_run=dry_run)
+
+    # Write summary JSON
+    summary_json_path = out / "bench_summary.json"
+    with open(summary_json_path, "w") as f:
+        json.dump(summary.model_dump(), f, indent=2)
+    typer.echo(f"📄 Wrote {summary_json_path}")
+
+    # Write summary markdown
+    summary_md = generate_summary_markdown(summary)
+    summary_md_path = out / "bench_summary.md"
+    summary_md_path.write_text(summary_md)
+    typer.echo(f"📄 Wrote {summary_md_path}")
+
+    # Print summary
+    typer.echo("\n📊 Results:")
+    typer.echo(f"   Passed: {summary.passed_packs}/{summary.total_packs}")
+    typer.echo(f"   Failed: {summary.failed_packs}")
+    typer.echo(f"   Errors: {summary.error_packs}")
+    typer.echo(f"   Risk Score: {summary.risk_score:.4f}")
+    typer.echo(f"   Runtime: {summary.total_runtime_sec:.2f}s")
+
+    # Exit code based on failures
+    if summary.failed_packs > 0 or summary.error_packs > 0:
+        typer.echo("\n❌ Benchmark failed")
+        raise typer.Exit(1)
+    else:
+        typer.echo("\n✅ Benchmark passed")
 
 # Attacks subcommand
 attacks_app = typer.Typer(help="Attack analysis utilities")
