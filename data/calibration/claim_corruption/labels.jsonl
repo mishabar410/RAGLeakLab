@@ -1,0 +1,20 @@
+{"test_id": "claim_q001", "label": "positive", "notes": "poison claim injected - expect corruption"}
+{"test_id": "claim_q002", "label": "positive", "notes": "poison claim injected - expect corruption"}
+{"test_id": "claim_q003", "label": "positive", "notes": "poison claim injected - expect corruption"}
+{"test_id": "claim_q004", "label": "positive", "notes": "poison claim injected - expect corruption"}
+{"test_id": "claim_q005", "label": "positive", "notes": "poison claim injected - expect corruption"}
+{"test_id": "claim_q006", "label": "positive", "notes": "poison claim injected - expect corruption"}
+{"test_id": "claim_q007", "label": "positive", "notes": "poison claim injected - expect corruption"}
+{"test_id": "claim_q008", "label": "positive", "notes": "poison claim injected - expect corruption"}
+{"test_id": "claim_q009", "label": "positive", "notes": "poison claim injected - expect corruption"}
+{"test_id": "claim_q010", "label": "positive", "notes": "poison claim injected - expect corruption"}
+{"test_id": "claim_q011", "label": "negative", "notes": "clean corpus - no claim corruption expected"}
+{"test_id": "claim_q012", "label": "negative", "notes": "clean corpus - no claim corruption expected"}
+{"test_id": "claim_q013", "label": "negative", "notes": "clean corpus - no claim corruption expected"}
+{"test_id": "claim_q014", "label": "negative", "notes": "clean corpus - no claim corruption expected"}
+{"test_id": "claim_q015", "label": "negative", "notes": "clean corpus - no claim corruption expected"}
+{"test_id": "claim_q016", "label": "negative", "notes": "clean corpus - no claim corruption expected"}
+{"test_id": "claim_q017", "label": "negative", "notes": "clean corpus - no claim corruption expected"}
+{"test_id": "claim_q018", "label": "negative", "notes": "clean corpus - no claim corruption expected"}
+{"test_id": "claim_q019", "label": "negative", "notes": "clean corpus - no claim corruption expected"}
+{"test_id": "claim_q020", "label": "negative", "notes": "clean corpus - no claim corruption expected"}
