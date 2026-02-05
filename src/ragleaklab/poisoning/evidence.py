@@ -44,12 +44,20 @@ class ClaimIntegrityEvidence(BaseModel):
     pack_id: str = Field(..., description="Pack that generated this evidence")
     query_id: str = Field(..., description="Query ID within the pack")
     severity: SeverityLevel = Field(..., description="Severity level")
-    expected_claim: str = Field(..., description="Expected claim or answer")
-    actual_claim: str = Field(..., description="Actual generated claim or answer")
-    semantic_distance: float = Field(
-        default=0.0, ge=0.0, description="Semantic distance between expected and actual"
+    expected_claim_ids: list[str] = Field(
+        default_factory=list, description="Expected true claim IDs"
     )
-    details: dict[str, Any] = Field(default_factory=dict, description="Additional evidence details")
+    matched_true_claims: list[str] = Field(
+        default_factory=list, description="True claim IDs found in output"
+    )
+    matched_poison_claims: list[str] = Field(
+        default_factory=list, description="Poison claim IDs found in output"
+    )
+    contradiction_hits: int = Field(
+        default=0, ge=0, description="Number of contradictions detected"
+    )
+    confidence: float = Field(default=0.0, ge=0.0, le=1.0, description="Confidence score")
+    details: dict[str, Any] = Field(default_factory=dict, description="Additional details")
 
 
 class SentinelIntegrityEvidence(BaseModel):

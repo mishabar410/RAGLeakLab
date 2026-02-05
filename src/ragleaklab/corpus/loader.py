@@ -31,10 +31,13 @@ def load_corpus(directory: Path | str, extensions: tuple[str, ...] = (".txt",)) 
     Args:
         directory: Path to directory containing documents.
         extensions: File extensions to include (default: .txt only).
+                   Supports .txt (plain text), .jsonl (JSON lines with doc_id and text fields).
 
     Returns:
         List of Document objects with doc_id derived from filename.
     """
+    import json
+
     directory = Path(directory)
     if not directory.exists():
         return []
@@ -42,15 +45,32 @@ def load_corpus(directory: Path | str, extensions: tuple[str, ...] = (".txt",)) 
     documents = []
     for path in sorted(directory.iterdir()):
         if path.is_file() and path.suffix in extensions:
-            doc_id = path.stem  # filename without extension
-            text = path.read_text(encoding="utf-8")
-            documents.append(
-                Document(
-                    doc_id=doc_id,
-                    text=text,
-                    source_path=str(path),
+            if path.suffix == ".jsonl":
+                # Load JSONL format: each line is {"doc_id": "...", "text": "..."}
+                with path.open(encoding="utf-8") as f:
+                    for line in f:
+                        line = line.strip()
+                        if not line:
+                            continue
+                        data = json.loads(line)
+                        documents.append(
+                            Document(
+                                doc_id=data.get("doc_id", data.get("id", path.stem)),
+                                text=data.get("text", data.get("content", "")),
+                                source_path=str(path),
+                            )
+                        )
+            else:
+                # Load plain text format
+                doc_id = path.stem  # filename without extension
+                text = path.read_text(encoding="utf-8")
+                documents.append(
+                    Document(
+                        doc_id=doc_id,
+                        text=text,
+                        source_path=str(path),
+                    )
                 )
-            )
     return documents
 
 

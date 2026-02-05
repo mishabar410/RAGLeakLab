@@ -1,0 +1,41 @@
+name: claim-corruption
+version: "1.0.0"
+pack_type: claim
+description: >
+  Detects corpus poisoning attacks that inject false or contradictory claims.
+  Measures true claim recall drop between clean and poisoned corpus.
+
+corpus:
+  legit: corpus/legit.jsonl
+  poison: corpus/poison.jsonl
+
+claims:
+  true_claims: claims/true_claims.jsonl
+  poison_claims: claims/poison_claims.jsonl
+  claim_map: claims/claim_map.jsonl
+
+queries: queries.jsonl
+
+counts:
+  legit_docs: 12
+  poison_docs: 8
+  true_claims: 20
+  poison_claims: 15
+  queries: 12
+
+thresholds:
+  poison_claim_rate:
+    max_rate: 0.1
+  true_claim_recall:
+    min_recall: 0.7
+  true_claim_recall_drop:
+    max_drop: 0.2
+  contradiction_hits:
+    max_hits: 0
+
+expected_report_fields:
+  - integrity.claim.poison_claim_rate
+  - integrity.claim.true_claim_recall
+  - integrity.claim.true_claim_recall_drop
+  - integrity.claim.contradiction_hits
+  - integrity.integrity_summary.claim_poisoned

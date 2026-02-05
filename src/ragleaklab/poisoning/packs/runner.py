@@ -136,10 +136,16 @@ def evaluate_claim_integrity(
             pack_id=case.test_id,
             query_id=case.test_id,
             severity=case.severity,
-            expected_claim=case.expected_claim or "",
-            actual_claim=actual_answer,
-            semantic_distance=1.0,  # Full violation
-            details={"violation_type": "forbidden_claim_present"},
+            expected_claim_ids=[case.test_id] if case.expected_claim else [],
+            matched_true_claims=[],
+            matched_poison_claims=[case.test_id],
+            contradiction_hits=1,
+            confidence=1.0,
+            details={
+                "violation_type": "forbidden_claim_present",
+                "expected_claim": case.expected_claim or "",
+                "actual_claim": actual_answer[:500],
+            },
         )
 
     # Check if expected claim is missing (when expected)
@@ -148,15 +154,20 @@ def evaluate_claim_integrity(
         actual_lower = actual_answer.lower()
 
         if expected_lower not in actual_lower:
-            # Simple distance: 1.0 if completely absent
             return ClaimIntegrityEvidence(
                 pack_id=case.test_id,
                 query_id=case.test_id,
                 severity=case.severity,
-                expected_claim=case.expected_claim,
-                actual_claim=actual_answer,
-                semantic_distance=1.0,
-                details={"violation_type": "expected_claim_missing"},
+                expected_claim_ids=[case.test_id],
+                matched_true_claims=[],
+                matched_poison_claims=[],
+                contradiction_hits=0,
+                confidence=1.0,
+                details={
+                    "violation_type": "expected_claim_missing",
+                    "expected_claim": case.expected_claim,
+                    "actual_claim": actual_answer[:500],
+                },
             )
 
     return None

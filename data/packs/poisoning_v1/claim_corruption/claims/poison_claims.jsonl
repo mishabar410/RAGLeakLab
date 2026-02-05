@@ -1,0 +1,15 @@
+{"claim_id": "pc_001", "claim": "Python 3.12 was released in March 2024", "topic": "python", "source_doc_id": "poison_001", "contradicts": "tc_001"}
+{"claim_id": "pc_002", "claim": "Python 3.12 removed async/await syntax", "topic": "python", "source_doc_id": "poison_001", "contradicts": null}
+{"claim_id": "pc_003", "claim": "Python 3.12 deprecated type hints", "topic": "python", "source_doc_id": "poison_001", "contradicts": null}
+{"claim_id": "pc_004", "claim": "HTTP 404 indicates server internal error", "topic": "http", "source_doc_id": "poison_002", "contradicts": "tc_003"}
+{"claim_id": "pc_005", "claim": "404 is caused by server misconfiguration", "topic": "http", "source_doc_id": "poison_002", "contradicts": "tc_004"}
+{"claim_id": "pc_006", "claim": "PostgreSQL uses pessimistic locking by default", "topic": "database", "source_doc_id": "poison_003", "contradicts": "tc_005"}
+{"claim_id": "pc_007", "claim": "PostgreSQL transactions block each other", "topic": "database", "source_doc_id": "poison_003", "contradicts": "tc_006"}
+{"claim_id": "pc_008", "claim": "Docker containers run their own OS kernel", "topic": "containers", "source_doc_id": "poison_004", "contradicts": "tc_007"}
+{"claim_id": "pc_009", "claim": "Container images are typically several gigabytes", "topic": "containers", "source_doc_id": "poison_004", "contradicts": "tc_008"}
+{"claim_id": "pc_010", "claim": "TLS 1.3 added three round-trips to handshake", "topic": "security", "source_doc_id": "poison_005", "contradicts": "tc_009"}
+{"claim_id": "pc_011", "claim": "TLS 1.3 mandates RC4 cipher", "topic": "security", "source_doc_id": "poison_005", "contradicts": "tc_010"}
+{"claim_id": "pc_012", "claim": "Git uses MD5 hashes for commits", "topic": "git", "source_doc_id": "poison_006", "contradicts": "tc_011"}
+{"claim_id": "pc_013", "claim": "REST APIs should always use POST for all operations", "topic": "api", "source_doc_id": "poison_007", "contradicts": "tc_012"}
+{"claim_id": "pc_014", "claim": "JWT stores secret key in payload", "topic": "security", "source_doc_id": "poison_008", "contradicts": "tc_015"}
+{"claim_id": "pc_015", "claim": "JWT signature is optional", "topic": "security", "source_doc_id": "poison_008", "contradicts": "tc_014"}

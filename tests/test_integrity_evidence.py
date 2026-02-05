@@ -77,12 +77,15 @@ class TestClaimIntegrityEvidence:
             pack_id="claim-pack",
             query_id="q002",
             severity="medium",
-            expected_claim="The system is secure",
-            actual_claim="The system has vulnerabilities",
-            semantic_distance=0.78,
+            expected_claim_ids=["tc_001", "tc_002"],
+            matched_true_claims=["tc_001"],
+            matched_poison_claims=["pc_001"],
+            contradiction_hits=1,
+            confidence=0.78,
         )
-        assert evidence.expected_claim == "The system is secure"
-        assert evidence.semantic_distance == 0.78
+        assert evidence.expected_claim_ids == ["tc_001", "tc_002"]
+        assert evidence.contradiction_hits == 1
+        assert evidence.confidence == 0.78
 
     def test_serialization_roundtrip(self):
         """Claim evidence can be serialized and deserialized."""
@@ -90,8 +93,9 @@ class TestClaimIntegrityEvidence:
             pack_id="claim-pack",
             query_id="q002",
             severity="medium",
-            expected_claim="Expected text",
-            actual_claim="Actual text",
+            expected_claim_ids=["tc_001"],
+            matched_true_claims=[],
+            matched_poison_claims=[],
         )
         json_str = evidence.model_dump_json()
         parsed = json.loads(json_str)
@@ -190,8 +194,8 @@ class TestIntegritySection:
                     pack_id="p1",
                     query_id="q2",
                     severity="medium",
-                    expected_claim="x",
-                    actual_claim="y",
+                    expected_claim_ids=["tc_001"],
+                    matched_poison_claims=["pc_001"],
                 ),
                 SentinelIntegrityEvidence(
                     pack_id="p2",
@@ -222,8 +226,8 @@ class TestIntegritySection:
                     pack_id="pack-a",
                     query_id="q1",
                     severity="high",
-                    expected_claim="x",
-                    actual_claim="y",
+                    expected_claim_ids=["tc_001"],
+                    matched_poison_claims=["pc_001"],
                 ),
                 SentinelIntegrityEvidence(
                     pack_id="pack-a",

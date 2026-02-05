@@ -315,7 +315,10 @@ def run_relevance_hijack_from_artifacts(
 
     for artifact in artifacts:
         # Match artifact to query by test_id
+        # Strip the "rh_" prefix if present (added by pack_to_test_cases)
         query_id = artifact.test_id
+        if query_id.startswith("rh_"):
+            query_id = query_id[3:]  # Remove "rh_" prefix
         doc_ids = [hit.chunk.doc_id for hit in artifact.retrieved]
         scores = [hit.score or 0.0 for hit in artifact.retrieved]
         retrieved_results[query_id] = (doc_ids, scores)
@@ -341,3 +344,34 @@ def get_relevance_hijack_pack_path() -> Path:
 
     msg = "Relevance hijack pack not found"
     raise FileNotFoundError(msg)
+
+
+def pack_to_test_cases(pack: RelevanceHijackPack) -> list:
+    """Convert pack queries to TestCase objects for the attack runner.
+
+    This allows the pack's queries to be executed by the regular attack
+    pipeline, generating retrieval results that can then be evaluated
+    for relevance hijacking.
+
+    Args:
+        pack: Loaded relevance hijack pack.
+
+    Returns:
+        List of TestCase objects from the pack's queries.
+    """
+    from ragleaklab.attacks.schema import TestCase
+
+    test_cases = []
+    for query in pack.queries:
+        test_cases.append(
+            TestCase(
+                test_id=f"rh_{query.query_id}",  # Prefix to identify pack queries
+                threat="semantic",  # Use semantic as it's closest to retrieval evaluation
+                query=query.query,
+                strategy="direct_extract",
+                expected=None,
+                description=query.description,
+                tags=["relevance-hijack", "poisoning"],
+            )
+        )
+    return test_cases

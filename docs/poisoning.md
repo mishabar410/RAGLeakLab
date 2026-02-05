@@ -64,9 +64,11 @@ Detects when generated claims are manipulated through corpus poisoning.
 | `pack_id` | string | Pack that generated this evidence |
 | `query_id` | string | Query ID within the pack |
 | `severity` | string | `high`, `medium`, or `low` |
-| `expected_claim` | string | Expected claim or answer |
-| `actual_claim` | string | Actual generated claim or answer |
-| `semantic_distance` | float | Semantic distance between expected and actual |
+| `expected_claim_ids` | list[string] | Expected true claim IDs |
+| `matched_true_claims` | list[string] | True claim IDs found in output |
+| `matched_poison_claims` | list[string] | Poison claim IDs found in output |
+| `contradiction_hits` | int | Number of contradictions detected |
+| `confidence` | float | Confidence score (0-1) |
 | `details` | object | Additional evidence details |
 
 ### SentinelIntegrityEvidence
@@ -179,6 +181,7 @@ retrieval and generation quality against known-good baselines.
 |-----------|------|-------------|
 | `integrity-dummy` | mixed | Minimal dummy pack for testing infrastructure |
 | `relevance-hijack` | retrieval | Detects retrieval poisoning via keyword stuffing/bait |
+| `claim-corruption` | claim | Detects claim corruption via false/contradictory claim injection |
 
 ### Via Python API
 
@@ -187,7 +190,7 @@ from ragleaklab.poisoning.packs import get_poisoning_pack_path, list_poisoning_p
 from ragleaklab.poisoning.packs.runner import load_poisoning_cases, run_poisoning_pack
 
 # List available packs
-packs = list_poisoning_packs()  # ['integrity-dummy', 'relevance-hijack']
+packs = list_poisoning_packs()  # ['integrity-dummy', 'relevance-hijack', 'claim-corruption']
 
 # Load and run
 path = get_poisoning_pack_path("integrity-dummy")
@@ -321,11 +324,86 @@ data/packs/poisoning_v1/relevance_hijack/
 └── README.md            # Detailed documentation
 ```
 
+## Claim Corruption Pack
+
+The **claim-corruption** pack detects corpus poisoning attacks that inject false
+or contradictory claims, causing RAG systems to generate incorrect answers.
+
+### Threat Model
+
+Claim corruption targets the factual accuracy of generated content:
+
+| Attack Type | Technique |
+|-------------|-----------|
+| **Contradiction Injection** | Claims that directly contradict true facts |
+| **False Claim Injection** | Plausible-sounding but incorrect claims |
+| **Source Authority Spoofing** | False claims with fake attribution |
+
+### Two-Phase Evaluation
+
+The pack uses a two-phase evaluation methodology:
+
+1. **Clean Phase**: Run queries against clean corpus to establish baseline recall
+2. **Poisoned Phase**: Run queries against corpus with injected poison documents
+
+The difference in true claim recall measures the impact of the attack.
+
+### Metrics
+
+| Metric | Description | Threshold |
+|--------|-------------|-----------|
+| `poison_claim_rate` | Fraction of matched claims that are poisoned | max 0.1 |
+| `true_claim_recall` | Fraction of expected claims in output | min 0.7 |
+| `true_claim_recall_drop` | Recall reduction from clean to poisoned | max 0.2 |
+| `contradiction_hits` | Count of contradictions to expected claims | max 0 |
+
+### Claim Matching
+
+The pack uses deterministic fingerprint-based matching:
+1. Text normalization (NFKC, lowercase, remove punctuation, collapse whitespace)
+2. SHA-256 hashing of normalized text
+3. Substring matching for claim detection in output
+
+### Usage
+
+```python
+from ragleaklab.poisoning.packs.claim_corruption import (
+    load_claim_corruption_pack,
+    evaluate_claim_corruption,
+)
+
+# Load pack
+pack = load_claim_corruption_pack("data/packs/poisoning_v1/claim_corruption")
+
+# Run two-phase evaluation
+result = evaluate_claim_corruption(pack, clean_results, poisoned_results)
+
+# Check threshold violations
+print(f"Recall drop: {result.true_claim_recall_drop}")
+print(f"Contradiction hits: {result.total_contradiction_hits}")
+```
+
+### Pack Contents
+
+```
+data/packs/poisoning_v1/claim_corruption/
+├── manifest.yaml           # Pack config with thresholds
+├── corpus/
+│   ├── legit.jsonl         # 12 legitimate documents
+│   └── poison.jsonl        # 15 poisoned documents
+├── claims/
+│   ├── true_claims.jsonl   # 20 ground truth claims
+│   ├── poison_claims.jsonl # 15 false claims with contradictions
+│   └── claim_map.jsonl     # Claim ID to document mapping
+├── queries.jsonl           # 12 test queries
+└── README.md               # Detailed documentation
+```
+
 ## Future Work
 
 - [x] Implement poisoning pack infrastructure
 - [x] Add dummy integrity pack
 - [x] Add retrieval ranking anomaly detection (relevance-hijack)
+- [x] Add claim corruption detection (claim-corruption)
 - [ ] Add semantic embedding attack detection
 - [ ] Add PoisonedRAG-style attack simulation
-

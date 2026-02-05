@@ -14,6 +14,7 @@ PACK_VERSION = "v1"
 AVAILABLE_POISONING_PACKS = [
     "integrity-dummy",
     "relevance-hijack",
+    "claim-corruption",
 ]
 
 
@@ -49,6 +50,15 @@ def get_poisoning_pack_path(pack_name: str, version: str | None = None) -> Path:
         path = project_root / "data" / "packs" / "poisoning_v1" / "relevance_hijack"
         if not path.exists():
             msg = f"Relevance hijack pack not found: {path}"
+            raise ValueError(msg)
+        return path
+
+    # Special handling for claim-corruption (uses data/packs structure)
+    if pack_name == "claim-corruption":
+        project_root = _get_packs_dir().parent.parent.parent.parent
+        path = project_root / "data" / "packs" / "poisoning_v1" / "claim_corruption"
+        if not path.exists():
+            msg = f"Claim corruption pack not found: {path}"
             raise ValueError(msg)
         return path
 

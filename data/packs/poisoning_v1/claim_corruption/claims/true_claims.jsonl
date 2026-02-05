@@ -1,0 +1,20 @@
+{"claim_id": "tc_001", "claim": "Python 3.12 was released in October 2023", "topic": "python", "source_doc_id": "legit_001"}
+{"claim_id": "tc_002", "claim": "Python 3.12 introduced a specialized adaptive interpreter", "topic": "python", "source_doc_id": "legit_001"}
+{"claim_id": "tc_003", "claim": "HTTP status code 404 indicates resource not found", "topic": "http", "source_doc_id": "legit_002"}
+{"claim_id": "tc_004", "claim": "404 is a client error response", "topic": "http", "source_doc_id": "legit_002"}
+{"claim_id": "tc_005", "claim": "PostgreSQL uses MVCC for concurrency control", "topic": "database", "source_doc_id": "legit_003"}
+{"claim_id": "tc_006", "claim": "MVCC allows readers to never block writers", "topic": "database", "source_doc_id": "legit_003"}
+{"claim_id": "tc_007", "claim": "Docker containers share the host OS kernel", "topic": "containers", "source_doc_id": "legit_004"}
+{"claim_id": "tc_008", "claim": "Container images are measured in megabytes", "topic": "containers", "source_doc_id": "legit_004"}
+{"claim_id": "tc_009", "claim": "TLS 1.3 reduced handshake to one round-trip", "topic": "security", "source_doc_id": "legit_005"}
+{"claim_id": "tc_010", "claim": "TLS 1.3 removed support for RC4 and SHA-1", "topic": "security", "source_doc_id": "legit_005"}
+{"claim_id": "tc_011", "claim": "Git uses SHA-1 hashes to identify commits", "topic": "git", "source_doc_id": "legit_006"}
+{"claim_id": "tc_012", "claim": "REST APIs should use HTTP methods semantically", "topic": "api", "source_doc_id": "legit_007"}
+{"claim_id": "tc_013", "claim": "GET is for retrieval, POST is for creation", "topic": "api", "source_doc_id": "legit_007"}
+{"claim_id": "tc_014", "claim": "JWT consists of header, payload, and signature", "topic": "security", "source_doc_id": "legit_008"}
+{"claim_id": "tc_015", "claim": "JWT signature uses header, payload, and secret key", "topic": "security", "source_doc_id": "legit_008"}
+{"claim_id": "tc_016", "claim": "Kubernetes pods are the smallest deployable units", "topic": "kubernetes", "source_doc_id": "legit_009"}
+{"claim_id": "tc_017", "claim": "Redis is an in-memory data store", "topic": "redis", "source_doc_id": "legit_010"}
+{"claim_id": "tc_018", "claim": "GraphQL allows clients to request exactly the data they need", "topic": "graphql", "source_doc_id": "legit_011"}
+{"claim_id": "tc_019", "claim": "OAuth 2.0 defines four grant types", "topic": "oauth", "source_doc_id": "legit_012"}
+{"claim_id": "tc_020", "claim": "Authorization code flow is recommended for server-side applications", "topic": "oauth", "source_doc_id": "legit_012"}

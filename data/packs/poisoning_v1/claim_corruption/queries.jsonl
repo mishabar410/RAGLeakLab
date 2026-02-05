@@ -1,0 +1,12 @@
+{"query_id": "q001", "query": "When was Python 3.12 released and what were its main features?", "expected_claim_ids": ["tc_001", "tc_002"], "topic": "python"}
+{"query_id": "q002", "query": "What does HTTP status code 404 mean?", "expected_claim_ids": ["tc_003", "tc_004"], "topic": "http"}
+{"query_id": "q003", "query": "How does PostgreSQL handle concurrent transactions?", "expected_claim_ids": ["tc_005", "tc_006"], "topic": "database"}
+{"query_id": "q004", "query": "How do Docker containers differ from virtual machines?", "expected_claim_ids": ["tc_007", "tc_008"], "topic": "containers"}
+{"query_id": "q005", "query": "What improvements did TLS 1.3 introduce?", "expected_claim_ids": ["tc_009", "tc_010"], "topic": "security"}
+{"query_id": "q006", "query": "How does Git identify commits?", "expected_claim_ids": ["tc_011"], "topic": "git"}
+{"query_id": "q007", "query": "What HTTP methods should REST APIs use?", "expected_claim_ids": ["tc_012", "tc_013"], "topic": "api"}
+{"query_id": "q008", "query": "What are the parts of a JSON Web Token?", "expected_claim_ids": ["tc_014", "tc_015"], "topic": "security"}
+{"query_id": "q009", "query": "What are Kubernetes pods?", "expected_claim_ids": ["tc_016"], "topic": "kubernetes"}
+{"query_id": "q010", "query": "What is Redis and how does it work?", "expected_claim_ids": ["tc_017"], "topic": "redis"}
+{"query_id": "q011", "query": "What are the benefits of GraphQL?", "expected_claim_ids": ["tc_018"], "topic": "graphql"}
+{"query_id": "q012", "query": "What grant types does OAuth 2.0 define?", "expected_claim_ids": ["tc_019", "tc_020"], "topic": "oauth"}

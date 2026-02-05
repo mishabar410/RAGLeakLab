@@ -182,8 +182,8 @@ class TestClaimIntegrityEvaluation:
 
         assert evidence is not None
         assert evidence.pack_id == "test1"
-        assert evidence.expected_claim == "correct answer"
-        assert evidence.actual_claim == actual_answer
+        assert evidence.details["expected_claim"] == "correct answer"
+        assert evidence.details["actual_claim"] == actual_answer
         assert evidence.details["violation_type"] == "expected_claim_missing"
 
     def test_violation_when_forbidden_claim_present(self):

@@ -77,8 +77,9 @@ def run(
                 typer.echo(f"❌ {e}", err=True)
                 raise typer.Exit(1) from None
 
-    # Load poisoning pack cases if specified
-    poisoning_cases = []
+    # Track poisoning packs for specialized post-attack evaluation
+    poisoning_pack_names: list[str] = []
+    poisoning_cases: list = []
     if poisoning_pack:
         from ragleaklab.poisoning.packs import (
             get_poisoning_pack_path,
@@ -90,9 +91,18 @@ def run(
         for pack_name in poisoning_pack:
             try:
                 pack_path = get_poisoning_pack_path(pack_name)
-                pcases = load_poisoning_cases(pack_path)
-                poisoning_cases.extend(pcases)
-                typer.echo(f"   {pack_name}: {len(pcases)} cases")
+                # Track the pack name for specialized evaluation later
+                poisoning_pack_names.append(pack_name)
+
+                # For yaml-based packs, load cases directly
+                # Specialized packs (relevance-hijack, claim-corruption) use their own loaders
+                if pack_name not in ("relevance-hijack", "claim-corruption"):
+                    pcases = load_poisoning_cases(pack_path)
+                    poisoning_cases.extend(pcases)
+                    typer.echo(f"   {pack_name}: {len(pcases)} cases")
+                else:
+                    # Specialized packs are evaluated post-attack
+                    typer.echo(f"   {pack_name}: specialized pack (evaluated post-attack)")
             except ValueError as e:
                 typer.echo(f"❌ {e}", err=True)
                 raise typer.Exit(1) from None
@@ -124,8 +134,9 @@ def run(
         if corpus is None:
             typer.echo("❌ --corpus required", err=True)
             raise typer.Exit(1)
-        if attacks is None and not pack_cases:
-            typer.echo("❌ --attacks or --pack required", err=True)
+        # Allow --poisoning-pack without --attacks or --pack
+        if attacks is None and not pack_cases and not poisoning_pack_names:
+            typer.echo("❌ --attacks, --pack, or --poisoning-pack required", err=True)
             raise typer.Exit(1)
         corpus_path = corpus
         attacks_path = attacks if attacks else None
@@ -156,9 +167,9 @@ def run(
 
     out.mkdir(parents=True, exist_ok=True)
 
-    # Load corpus
+    # Load corpus (supports .txt and .jsonl files)
     typer.echo(f"📁 Loading corpus from: {corpus_path}")
-    corpus_docs = load_corpus(corpus_path)
+    corpus_docs = load_corpus(corpus_path, extensions=(".txt", ".jsonl"))
     rag_docs = [Document(doc_id=d.doc_id, text=d.text) for d in corpus_docs]
     typer.echo(f"   Loaded {len(corpus_docs)} documents")
 
@@ -172,6 +183,22 @@ def run(
         custom_cases = load_cases(attacks_path)
         cases.extend(custom_cases)
         typer.echo(f"   Loaded {len(custom_cases)} custom test cases")
+
+    # Inject specialized pack queries into attack pipeline
+    for pack_name in poisoning_pack_names:
+        if pack_name == "relevance-hijack":
+            from ragleaklab.poisoning.packs import get_poisoning_pack_path
+            from ragleaklab.poisoning.packs.relevance_hijack import (
+                load_relevance_hijack_pack,
+                pack_to_test_cases,
+            )
+
+            pack_path = get_poisoning_pack_path(pack_name)
+            rh_pack = load_relevance_hijack_pack(pack_path)
+            pack_test_cases = pack_to_test_cases(rh_pack)
+            cases.extend(pack_test_cases)
+            typer.echo(f"   Injected {len(pack_test_cases)} queries from {pack_name}")
+
     typer.echo(f"   Total: {len(cases)} test cases")
 
     # Run attacks
@@ -342,16 +369,69 @@ def run(
 
     # Run poisoning packs if specified
     integrity_section = None
-    if poisoning_cases:
-        from ragleaklab.poisoning.packs.runner import run_poisoning_pack
+    if poisoning_pack_names:
+        from ragleaklab.poisoning.evidence import IntegritySection, IntegritySummary
+        from ragleaklab.poisoning.packs import get_poisoning_pack_path
 
         typer.echo("🧪 Evaluating integrity...")
-        integrity_section = run_poisoning_pack(poisoning_cases, artifacts)
-        findings = len(integrity_section.packs)
-        if findings > 0:
-            typer.echo(f"   Found {findings} integrity violations")
+
+        # Collect all integrity evidence from different pack types
+        all_packs: list[Any] = []
+        total_findings = 0
+
+        for pack_name in poisoning_pack_names:
+            pack_path = get_poisoning_pack_path(pack_name)
+
+            if pack_name == "relevance-hijack":
+                # Use specialized relevance hijack evaluator
+                from ragleaklab.poisoning.packs.relevance_hijack import (
+                    load_relevance_hijack_pack,
+                    run_relevance_hijack_from_artifacts,
+                )
+
+                rh_pack = load_relevance_hijack_pack(pack_path)
+                rh_result = run_relevance_hijack_from_artifacts(rh_pack, artifacts)
+                section = rh_result.to_integrity_section()
+                all_packs.extend(section.packs)
+                total_findings += len([e for e in section.packs if e])
+                typer.echo(f"   {pack_name}: {len(rh_result.query_results)} queries evaluated")
+
+            elif pack_name == "claim-corruption":
+                # Use specialized claim corruption evaluator
+                # Note: requires clean and poisoned results - for now just report capability
+                typer.echo(f"   {pack_name}: requires two-phase evaluation (not yet in CLI)")
+
+            else:
+                # Use generic YAML-based runner for other packs
+                from ragleaklab.poisoning.packs.runner import (
+                    load_poisoning_cases,
+                    run_poisoning_pack,
+                )
+
+                pcases = load_poisoning_cases(pack_path)
+                if pcases:
+                    section = run_poisoning_pack(pcases, artifacts)
+                    all_packs.extend(section.packs)
+                    total_findings += len(section.packs)
+                    typer.echo(f"   {pack_name}: {len(pcases)} cases evaluated")
+
+        # Build combined integrity section
+        if all_packs:
+            integrity_section = IntegritySection(
+                packs=all_packs,
+                summary=IntegritySummary(
+                    total_findings=total_findings,
+                    retrieval_poisoned=any(hasattr(p, "top_k_doc_ids") for p in all_packs if p),
+                    claim_injected=any(hasattr(p, "matched_poison_claims") for p in all_packs if p),
+                    sentinel_triggered=any(hasattr(p, "triggered") for p in all_packs if p),
+                ),
+            )
+            if total_findings > 0:
+                typer.echo(f"   Found {total_findings} integrity violations")
+            else:
+                typer.echo("   No integrity violations detected")
         else:
-            typer.echo("   No integrity violations detected")
+            typer.echo("   No integrity evidence generated")
 
     report = Report(
         tool_version=tool_version,
