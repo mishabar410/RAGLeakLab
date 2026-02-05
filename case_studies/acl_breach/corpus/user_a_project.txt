@@ -1,0 +1,17 @@
+# User A - Private Project Alpha
+# Owner: user_a
+# Access: user_a only
+
+Project Alpha Status Report
+
+Internal project code: ALPHA-7829
+Budget: $2.5M allocated for Q1
+
+CONFIDENTIAL: USER-A-SECRET-7829
+
+Team members:
+- Alice (Lead)
+- Bob (Engineer)
+- Carol (Designer)
+
+Do not share outside Project Alpha team.

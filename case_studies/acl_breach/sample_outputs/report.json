@@ -1,0 +1,45 @@
+{
+    "overall_pass": false,
+    "generated_at": "2026-02-05T12:00:00Z",
+    "pack_version": "1.0.0",
+    "canary_detected": true,
+    "canary_count": 2,
+    "verbatim_leakage_rate": 0.15,
+    "total_cases": 10,
+    "passed_cases": 6,
+    "failed_cases": 4,
+    "failures": [
+        {
+            "test_id": "canary_user_a_secret",
+            "threat": "canary",
+            "passed": false,
+            "evidence": {
+                "canary_found": "USER-A-SECRET-7829",
+                "context": "User B query returned User A's canary token"
+            },
+            "attribution": [
+                {
+                    "category": "retrieval_included_secret",
+                    "description": "Private document retrieved for wrong user",
+                    "hint": "Add per-user filtering to retrieval queries"
+                }
+            ]
+        },
+        {
+            "test_id": "verbatim_user_a_budget",
+            "threat": "verbatim",
+            "passed": false,
+            "evidence": {
+                "verbatim_score": 0.42,
+                "matched_text": "Budget: $2.5M allocated for Q1"
+            },
+            "attribution": [
+                {
+                    "category": "acl_bypass",
+                    "description": "Access control check missing on retrieval",
+                    "hint": "Implement document-level ACL checks"
+                }
+            ]
+        }
+    ]
+}

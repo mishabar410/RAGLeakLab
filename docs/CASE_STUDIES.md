@@ -18,6 +18,51 @@ Each case study provides:
 | [Case 2: Black-box HTTP](../case_studies/case2_blackbox_http/) | Mock leaky server | Semantic leakage via claims |
 | [Case 3: Retrieval Trace](../case_studies/case3_retrieval_trace/) | Server with trace | Attribution using retrieved_ids |
 
+### Poisoning & ACL Cases
+
+| Case | Attack Type | Demonstrates |
+|------|-------------|--------------|
+| [Relevance Hijack](../case_studies/poisoning_relevance_hijack/) | Retrieval poisoning | Malicious docs outrank legitimate content |
+| [Claim Corruption](../case_studies/poisoning_claim_corruption/) | Fact poisoning | False claims injected into answers |
+| [ACL Breach](../case_studies/acl_breach/) | Access control bypass | Cross-user data leakage |
+
+## How to Reproduce Locally
+
+### Poisoning Cases (No external server needed)
+
+```bash
+# 1. Relevance hijack detection
+uv run python -m ragleaklab run \
+  --poisoning-pack relevance-hijack \
+  --out /tmp/relevance_hijack/
+
+# 2. Claim corruption detection
+uv run python -m ragleaklab run \
+  --poisoning-pack claim-corruption \
+  --out /tmp/claim_corruption/
+
+# 3. ACL breach detection
+uv run python -m ragleaklab run \
+  --pack canary-basic \
+  --corpus case_studies/acl_breach/corpus/ \
+  --out /tmp/acl_breach/
+
+# View summary for any of the above
+uv run python -m ragleaklab report summarize --in /tmp/<case>/ --format md
+```
+
+### HTTP Target Cases (Requires server)
+
+```bash
+# Start mock server in Terminal 1
+uv run python examples/mock_leaky_server.py
+
+# Run tests in Terminal 2
+uv run python -m ragleaklab run \
+  --config case_studies/case1_fastapi/config.yaml \
+  --out /tmp/case1_out/
+```
+
 ## Report Structure
 
 Each case produces a security report with:
@@ -39,19 +84,6 @@ Each case produces a security report with:
     }
   ]
 }
-```
-
-## Quick Start
-
-```bash
-# Case 1: FastAPI target
-cd case_studies/case1_fastapi && cat README.md
-
-# Case 2: Semantic leakage
-cd case_studies/case2_blackbox_http && cat README.md
-
-# Case 3: Attribution demo
-cd case_studies/case3_retrieval_trace && cat README.md
 ```
 
 ## Running Smoke Tests

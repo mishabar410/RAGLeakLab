@@ -1,0 +1,17 @@
+# Relevance Hijack Case Study Configuration
+# Uses the built-in relevance-hijack poisoning pack
+
+poisoning_packs:
+  - relevance-hijack
+
+# No external target required - uses in-process evaluation
+target:
+  type: inprocess
+  top_k: 5
+
+# Thresholds (from pack defaults)
+thresholds:
+  poison_rate_at_k:
+    max: 0.1
+  true_doc_recall_at_k:
+    min: 0.5

@@ -117,3 +117,54 @@ class TestCaseStudyAssets:
             if readme.exists():
                 content = readme.read_text()
                 assert "## Setup" in content, f"Missing Setup section: {case_dir.name}"
+
+
+class TestPoisoningCaseStudies:
+    """Tests for poisoning-specific case studies."""
+
+    CASE_STUDIES_DIR = Path(__file__).parent.parent / "case_studies"
+
+    def test_relevance_hijack_exists(self) -> None:
+        """Relevance hijack case study should exist."""
+        case_dir = self.CASE_STUDIES_DIR / "poisoning_relevance_hijack"
+        assert case_dir.exists(), "poisoning_relevance_hijack not found"
+        assert (case_dir / "README.md").exists()
+        assert (case_dir / "config.yaml").exists()
+
+    def test_claim_corruption_exists(self) -> None:
+        """Claim corruption case study should exist."""
+        case_dir = self.CASE_STUDIES_DIR / "poisoning_claim_corruption"
+        assert case_dir.exists(), "poisoning_claim_corruption not found"
+        assert (case_dir / "README.md").exists()
+        assert (case_dir / "config.yaml").exists()
+
+    def test_acl_breach_exists(self) -> None:
+        """ACL breach case study should exist."""
+        case_dir = self.CASE_STUDIES_DIR / "acl_breach"
+        assert case_dir.exists(), "acl_breach not found"
+        assert (case_dir / "README.md").exists()
+        assert (case_dir / "config.yaml").exists()
+        assert (case_dir / "corpus").exists(), "acl_breach should have corpus/"
+
+    def test_poisoning_cases_have_sample_outputs(self) -> None:
+        """Poisoning case studies should have sample_outputs/."""
+        for name in ["poisoning_relevance_hijack", "poisoning_claim_corruption", "acl_breach"]:
+            case_dir = self.CASE_STUDIES_DIR / name
+            if not case_dir.exists():
+                pytest.skip(f"{name} not found")
+            sample_dir = case_dir / "sample_outputs"
+            assert sample_dir.exists(), f"{name} missing sample_outputs/"
+            assert (sample_dir / "report.json").exists(), f"{name} missing report.json"
+            assert (sample_dir / "summary.md").exists(), f"{name} missing summary.md"
+
+    def test_sample_reports_valid_json(self) -> None:
+        """Sample report.json files should be valid JSON."""
+        import json
+
+        for name in ["poisoning_relevance_hijack", "poisoning_claim_corruption", "acl_breach"]:
+            report_path = self.CASE_STUDIES_DIR / name / "sample_outputs" / "report.json"
+            if not report_path.exists():
+                pytest.skip(f"{name}/sample_outputs/report.json not found")
+            content = report_path.read_text()
+            data = json.loads(content)
+            assert "overall_pass" in data or "canary_detected" in data

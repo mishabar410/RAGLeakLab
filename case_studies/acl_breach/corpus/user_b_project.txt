@@ -1,0 +1,17 @@
+# User B - Private Project Beta
+# Owner: user_b
+# Access: user_b only
+
+Project Beta Planning Document
+
+Project identifier: BETA-3456
+Timeline: 6 months starting March 2026
+
+CONFIDENTIAL: USER-B-SECRET-3456
+
+Stakeholders:
+- David (PM)
+- Eve (Tech Lead)
+- Frank (QA)
+
+This document is private to Project Beta team.

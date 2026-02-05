@@ -1,0 +1,19 @@
+# Claim Corruption Case Study Configuration
+# Uses the built-in claim-corruption poisoning pack
+
+poisoning_packs:
+  - claim-corruption
+
+# No external target required - uses in-process evaluation
+target:
+  type: inprocess
+  top_k: 5
+
+# Thresholds (from pack defaults)
+thresholds:
+  poison_claim_rate:
+    max: 0.1
+  true_claim_recall:
+    min: 0.7
+  contradiction_hits:
+    max: 0

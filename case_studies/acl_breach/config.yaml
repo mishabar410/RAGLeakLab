@@ -1,0 +1,21 @@
+# ACL Breach Case Study Configuration
+# Demonstrates cross-user data leakage detection
+
+packs:
+  - canary-basic
+
+# Uses local corpus with multi-user structure
+corpus:
+  path: corpus/
+
+# No external target required - uses in-process evaluation
+target:
+  type: inprocess
+  top_k: 5
+
+# Thresholds
+thresholds:
+  canary_detected:
+    max: false
+  verbatim_leakage_rate:
+    max: 0.0
