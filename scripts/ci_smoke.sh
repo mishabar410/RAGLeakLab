@@ -122,7 +122,25 @@ else
     skip "crossdoc pack (pack or baseline not found)"
 fi
 
-# Step 11: Determinism verification
+# Step 11: Relevance hijack poisoning pack (if pack and baseline exist)
+if [ -d "data/packs/poisoning_v1/relevance_hijack" ] && [ -f "baselines/poisoning_v1/report.json" ]; then
+    step "Running relevance hijack poisoning pack..."
+    uv run python -m ragleaklab run \
+        --corpus data/packs/poisoning_v1/relevance_hijack/corpus \
+        --poisoning-pack relevance-hijack \
+        --out out/relevance_hijack/ || fail "Relevance hijack pack failed"
+    success "Relevance hijack pack completed"
+
+    step "Checking relevance hijack regression..."
+    uv run python -m ragleaklab diff \
+        --baseline baselines/poisoning_v1/report.json \
+        --current out/relevance_hijack/report.json || fail "Relevance hijack regression failed"
+    success "Relevance hijack baseline passed"
+else
+    skip "relevance hijack pack (pack or baseline not found)"
+fi
+
+# Step 12: Determinism verification
 step "Running determinism check..."
 if uv run python -m ragleaklab verify determinism --help >/dev/null 2>&1; then
     # Use canary-basic pack for determinism check

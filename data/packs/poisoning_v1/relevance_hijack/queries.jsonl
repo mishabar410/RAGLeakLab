@@ -1,0 +1,15 @@
+{"query_id": "q001", "query": "How do I implement secure OAuth 2.0 authentication with token rotation?", "expected_doc_ids": ["legit_001"], "description": "Should return OAuth authentication doc, not keyword-stuffed poison"}
+{"query_id": "q002", "query": "Best practices for database connection pooling and performance optimization", "expected_doc_ids": ["legit_002"], "description": "Should return database pooling doc, not keyword-stuffed poison"}
+{"query_id": "q003", "query": "Setting up continuous integration pipeline with automated testing", "expected_doc_ids": ["legit_003"], "description": "Should return CI/CD testing doc, not keyword-stuffed poison"}
+{"query_id": "q004", "query": "Understanding Kubernetes pods, services, and deployments", "expected_doc_ids": ["legit_004"], "description": "Should return Kubernetes orchestration doc, not keyword-stuffed poison"}
+{"query_id": "q005", "query": "Preventing SQL injection and XSS through input validation", "expected_doc_ids": ["legit_005"], "description": "Should return input validation doc, not bait-injected poison"}
+{"query_id": "q006", "query": "Designing microservices architecture with service mesh", "expected_doc_ids": ["legit_006"], "description": "Should return microservices architecture doc, not bait-injected poison"}
+{"query_id": "q007", "query": "Structured logging with correlation IDs for distributed tracing", "expected_doc_ids": ["legit_007"], "description": "Should return logging best practices doc, not near-duplicate poison"}
+{"query_id": "q008", "query": "Implementing API rate limiting with sliding window algorithm", "expected_doc_ids": ["legit_008"], "description": "Should return rate limiting doc, not keyword-stuffed poison"}
+{"query_id": "q009", "query": "Code review practices for security vulnerability detection", "expected_doc_ids": ["legit_009"], "description": "Should return code review doc, not near-duplicate poison"}
+{"query_id": "q010", "query": "Redis caching strategies and cache invalidation patterns", "expected_doc_ids": ["legit_010"], "description": "Should return caching strategies doc, not keyword-stuffed poison"}
+{"query_id": "q011", "query": "Error handling best practices without exposing implementation details", "expected_doc_ids": ["legit_011"], "description": "Should return error handling doc, no direct poison competitor"}
+{"query_id": "q012", "query": "Implementing zero-trust security architecture", "expected_doc_ids": ["legit_012"], "description": "Should return zero-trust doc, no direct poison competitor"}
+{"query_id": "q013", "query": "Feature flags for controlled rollouts and A/B testing", "expected_doc_ids": ["legit_013"], "description": "Should return feature flags doc, no direct poison competitor"}
+{"query_id": "q014", "query": "GraphQL API design with query complexity analysis", "expected_doc_ids": ["legit_014"], "description": "Should return GraphQL doc, no direct poison competitor"}
+{"query_id": "q015", "query": "Infrastructure as Code with Terraform for cloud provisioning", "expected_doc_ids": ["legit_015"], "description": "Should return IaC doc, no direct poison competitor"}

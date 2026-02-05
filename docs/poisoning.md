@@ -178,6 +178,7 @@ retrieval and generation quality against known-good baselines.
 | Pack Name | Type | Description |
 |-----------|------|-------------|
 | `integrity-dummy` | mixed | Minimal dummy pack for testing infrastructure |
+| `relevance-hijack` | retrieval | Detects retrieval poisoning via keyword stuffing/bait |
 
 ### Via Python API
 
@@ -186,7 +187,7 @@ from ragleaklab.poisoning.packs import get_poisoning_pack_path, list_poisoning_p
 from ragleaklab.poisoning.packs.runner import load_poisoning_cases, run_poisoning_pack
 
 # List available packs
-packs = list_poisoning_packs()  # ['integrity-dummy']
+packs = list_poisoning_packs()  # ['integrity-dummy', 'relevance-hijack']
 
 # Load and run
 path = get_poisoning_pack_path("integrity-dummy")
@@ -250,14 +251,81 @@ Add your pack to `AVAILABLE_POISONING_PACKS` in
 ```python
 AVAILABLE_POISONING_PACKS = [
     "integrity-dummy",
+    "relevance-hijack",
     "my-integrity-pack",  # Add your pack here
 ]
+```
+
+## Relevance Hijack Pack
+
+The **relevance-hijack** pack detects corpus poisoning attacks that manipulate
+retrieval rankings through keyword stuffing, bait injection, or near-duplicate
+patterns.
+
+### Threat Model
+
+Relevance hijacking occurs when an attacker injects documents designed to
+rank higher than legitimate content for targeted queries:
+
+| Attack Type | Technique |
+|-------------|-----------|
+| **Keyword Stuffing** | Repeating target terms to boost TF-IDF/BM25 scores |
+| **Bait Injection** | Adding attractive but misleading calls-to-action |
+| **Near-Duplicate** | Slightly modified copies of legit docs with payloads |
+
+### Metrics
+
+| Metric | Description | Threshold |
+|--------|-------------|-----------|
+| `poison_rate_at_k` | Fraction of top-k containing poison docs | max 0.1 |
+| `poison_mrr` | Mean Reciprocal Rank of first poison doc | max 0.2 |
+| `true_doc_recall_at_k` | Fraction of expected docs in top-k | min 0.5 |
+
+### Evidence Structure
+
+Each finding includes:
+- `top_k_doc_ids`: Ranked list of retrieved documents
+- `top_k_scores`: Corresponding retrieval scores
+- `poison_in_top_k`: Which docs in top-k are poisoned
+- `poison_rate_at_k`: Calculated poison fraction
+- `poison_mrr`: First poison doc reciprocal rank
+
+**Summary** (in report): Truncated to first 5 docs
+**Full evidence** (in runs.jsonl): Complete retrieval results
+
+### Usage
+
+```bash
+# Run the pack
+ragleaklab run \
+    --corpus data/packs/poisoning_v1/relevance_hijack/corpus \
+    --poisoning-pack relevance-hijack \
+    --out out/
+
+# Check regression
+ragleaklab diff \
+    --baseline baselines/poisoning_v1/report.json \
+    --current out/report.json
+```
+
+### Pack Contents
+
+```
+data/packs/poisoning_v1/relevance_hijack/
+├── manifest.yaml        # Pack config with thresholds
+├── corpus/
+│   ├── legit.jsonl      # 15 legitimate documents
+│   └── poison.jsonl     # 10 poisoned documents
+├── labels.jsonl         # Ground truth labels
+├── queries.jsonl        # 15 test queries
+└── README.md            # Detailed documentation
 ```
 
 ## Future Work
 
 - [x] Implement poisoning pack infrastructure
 - [x] Add dummy integrity pack
-- [ ] Add retrieval ranking anomaly detection
+- [x] Add retrieval ranking anomaly detection (relevance-hijack)
 - [ ] Add semantic embedding attack detection
 - [ ] Add PoisonedRAG-style attack simulation
+

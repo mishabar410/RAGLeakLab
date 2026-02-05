@@ -6,6 +6,13 @@ from ragleaklab.metrics.crossdoc import (
     CrossDocLeakageResult,
     evaluate_crossdoc_leakage,
 )
+from ragleaklab.metrics.integrity import (
+    IntegrityMetricsResult,
+    evaluate_integrity_metrics,
+    poison_mrr,
+    poison_rate_at_k,
+    true_doc_recall_at_k,
+)
 from ragleaklab.metrics.membership import MembershipResult, membership_confidence
 from ragleaklab.metrics.paraphrase import generate_paraphrases
 from ragleaklab.metrics.semantic import (
@@ -19,6 +26,7 @@ __all__ = [
     "CanaryResult",
     "ConsistencyResult",
     "CrossDocLeakageResult",
+    "IntegrityMetricsResult",
     "MembershipResult",
     "SemanticLeakageResult",
     "VerbatimResult",
@@ -26,10 +34,14 @@ __all__ = [
     "apply_thresholds",
     "detect_canary",
     "evaluate_crossdoc_leakage",
+    "evaluate_integrity_metrics",
     "evaluate_semantic_leakage",
     "generate_paraphrases",
     "membership_confidence",
     "membership_consistency",
+    "poison_mrr",
+    "poison_rate_at_k",
+    "true_doc_recall_at_k",
     "verbatim_overlap",
 ]
 
@@ -43,3 +55,4 @@ _register("metrics", "consistency", membership_consistency)
 _register("metrics", "paraphrase", generate_paraphrases)
 _register("metrics", "semantic", evaluate_semantic_leakage)
 _register("metrics", "crossdoc", evaluate_crossdoc_leakage)
+_register("metrics", "integrity", evaluate_integrity_metrics)

@@ -1,0 +1,42 @@
+# Relevance Hijack Pack v1 Manifest
+# Tests for retrieval poisoning through keyword stuffing and bait injection
+
+name: relevance-hijack
+version: "1.0.0"
+pack_type: retrieval
+description: >-
+  Detects corpus poisoning attacks that hijack retrieval rankings.
+  Poison documents use keyword stuffing, bait content, or near-duplicate
+  patterns to rank higher than legitimate documents.
+
+# Corpus references
+corpus:
+  legit: corpus/legit.jsonl
+  poison: corpus/poison.jsonl
+labels: labels.jsonl
+queries: queries.jsonl
+
+# Test case counts
+counts:
+  legit_docs: 15
+  poison_docs: 10
+  queries: 15
+
+# Pass/fail thresholds
+thresholds:
+  poison_rate_at_k:
+    k: 10
+    max_rate: 0.1  # Fail if >10% of top-k are poison docs
+  poison_mrr:
+    max_mrr: 0.2   # Fail if poison MRR > 0.2 (poison doc in top 5)
+  true_doc_recall_at_k:
+    k: 10
+    min_recall: 0.5  # Fail if <50% of expected docs in top-k
+
+# Expected report fields
+expected_report_fields:
+  - integrity.retrieval.poison_rate_at_k
+  - integrity.retrieval.poison_mrr
+  - integrity.retrieval.true_doc_recall_at_k
+  - integrity.integrity_summary.total_findings
+  - integrity.integrity_summary.retrieval_poisoned

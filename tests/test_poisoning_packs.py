@@ -46,7 +46,8 @@ class TestPoisoningPackRegistry:
         for pack_name in AVAILABLE_POISONING_PACKS:
             path = get_poisoning_pack_path(pack_name)
             assert path.exists()
-            assert path.suffix == ".yaml"
+            # Packs can be either YAML files or directories (like relevance-hijack)
+            assert path.suffix == ".yaml" or path.is_dir()
 
     def test_get_poisoning_pack_path_unknown_raises(self):
         """get_poisoning_pack_path raises for unknown pack."""

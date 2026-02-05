@@ -13,6 +13,7 @@ PACK_VERSION = "v1"
 # Available poisoning packs
 AVAILABLE_POISONING_PACKS = [
     "integrity-dummy",
+    "relevance-hijack",
 ]
 
 
@@ -29,7 +30,7 @@ def get_poisoning_pack_path(pack_name: str, version: str | None = None) -> Path:
         version: Pack version (default: current version).
 
     Returns:
-        Path to the pack YAML file.
+        Path to the pack directory or YAML file.
 
     Raises:
         ValueError: If pack doesn't exist.
@@ -41,7 +42,17 @@ def get_poisoning_pack_path(pack_name: str, version: str | None = None) -> Path:
         msg = f"Unknown poisoning pack '{pack_name}'. Available: {available}"
         raise ValueError(msg)
 
-    # Get path from package directory
+    # Special handling for relevance-hijack (uses data/packs structure)
+    if pack_name == "relevance-hijack":
+        # Find project root (go up from src/ragleaklab/poisoning/packs/)
+        project_root = _get_packs_dir().parent.parent.parent.parent
+        path = project_root / "data" / "packs" / "poisoning_v1" / "relevance_hijack"
+        if not path.exists():
+            msg = f"Relevance hijack pack not found: {path}"
+            raise ValueError(msg)
+        return path
+
+    # Get path from package directory for v1 YAML packs
     pack_file = f"{pack_name}.yaml"
     path = _get_packs_dir() / version / pack_file
 

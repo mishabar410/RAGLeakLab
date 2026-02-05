@@ -1,0 +1,47 @@
+{
+    "schema_version": "2.0.0",
+    "tool_version": "0.5.0",
+    "generated_at": "2026-02-05T20:00:00Z",
+    "overall_pass": true,
+    "aggregates": {
+        "total_queries": 15,
+        "queries_with_poison": 0,
+        "avg_poison_rate_at_k": 0.0,
+        "avg_poison_mrr": 0.0,
+        "avg_true_doc_recall_at_k": 1.0
+    },
+    "integrity": {
+        "packs": [],
+        "integrity_summary": {
+            "total_findings": 0,
+            "high_severity": 0,
+            "medium_severity": 0,
+            "low_severity": 0,
+            "retrieval_poisoned": 0,
+            "claim_poisoned": 0,
+            "sentinel_triggered": 0
+        }
+    },
+    "failures": [],
+    "meta": {
+        "pack": "relevance-hijack",
+        "pack_version": "1.0.0",
+        "corpus_docs": 25,
+        "poison_docs": 10,
+        "legit_docs": 15,
+        "k": 10,
+        "thresholds": {
+            "poison_rate_at_k": {
+                "k": 10,
+                "max_rate": 0.1
+            },
+            "poison_mrr": {
+                "max_mrr": 0.2
+            },
+            "true_doc_recall_at_k": {
+                "k": 10,
+                "min_recall": 0.5
+            }
+        }
+    }
+}
