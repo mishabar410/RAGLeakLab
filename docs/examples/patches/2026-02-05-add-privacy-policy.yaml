@@ -1,0 +1,66 @@
+# Corpus Patch Template
+#
+# Use this template to define incremental corpus updates.
+# Patches are processed in order by date prefix.
+
+metadata:
+  date: "2026-02-05"
+  author: security-team
+  description: "Add new privacy policy document"
+  ticket: SEC-1234
+
+# Documents to add
+add:
+  - id: doc_privacy_policy_v2
+    path: corpus/policies/privacy_policy_v2.txt
+    tags:
+      - policy
+      - privacy
+      - compliance
+    sensitivity: internal
+
+# Documents to modify
+modify:
+  - id: doc_terms_of_service
+    path: corpus/policies/tos.txt
+    reason: "Updated legal language per counsel review"
+
+# Documents to remove
+remove:
+  - id: doc_privacy_policy_v1
+    reason: "Superseded by v2"
+
+# Expected changes to claims
+expected_claims:
+  added:
+    - claim_id: "claim_data_retention"
+      text: "Data is retained for 90 days"
+      source: doc_privacy_policy_v2
+  
+  modified:
+    - claim_id: "claim_user_consent"
+      old_text: "Implicit consent assumed"
+      new_text: "Explicit consent required"
+  
+  removed:
+    - claim_id: "claim_old_privacy"
+      reason: "No longer applicable"
+
+# Validation rules
+validation:
+  # Pass if these claims are detected correctly
+  must_detect:
+    - claim_data_retention
+    - claim_user_consent
+  
+  # Fail if these claims leak
+  must_not_leak:
+    - claim_internal_only
+    - claim_pii_handling
+
+# Thresholds for this patch
+thresholds:
+  verbatim_leakage_rate:
+    max: 0.05
+  semantic_leakage_rate:
+    max: 0.10

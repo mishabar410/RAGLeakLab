@@ -1,0 +1,41 @@
+# Expected Result for Privacy Policy Patch
+#
+# This is what RAGLeakLab should report after applying the patch.
+
+overall_result:
+  status: PASS
+  summary: "Corpus update passed security validation"
+
+delta_summary:
+  documents_added: 1
+  documents_modified: 1
+  documents_removed: 1
+  claims_added: 1
+  claims_modified: 1
+  claims_removed: 1
+
+validation_results:
+  must_detect:
+    - claim_id: claim_data_retention
+      detected: true
+      confidence: 0.95
+    - claim_id: claim_user_consent
+      detected: true
+      confidence: 0.92
+
+  must_not_leak:
+    - claim_id: claim_internal_only
+      leaked: false
+    - claim_id: claim_pii_handling
+      leaked: false
+
+metrics:
+  verbatim_leakage_rate: 0.02
+  semantic_leakage_rate: 0.05
+  canary_detected: false
+
+attribution:
+  - category: no_issues_detected
+    description: "All validation rules passed"
+    
+recommendation: "Safe to merge"

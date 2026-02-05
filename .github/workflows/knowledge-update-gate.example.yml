@@ -1,0 +1,100 @@
+# Knowledge Update Gate - Example Workflow
+# 
+# This workflow gates PRs that modify corpus, claims, or patches.
+# Copy to .github/workflows/knowledge-update-gate.yml to enable.
+#
+# NOT ENABLED BY DEFAULT - this is an example template.
+
+name: Knowledge Update Gate
+
+on:
+  pull_request:
+    paths:
+      - 'data/corpus/**'
+      - 'data/claims/**'
+      - 'data/patches/**'
+      - 'data/packs/**/corpus/**'
+      - 'data/packs/**/claims/**'
+
+jobs:
+  delta-gate:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      pull-requests: write
+      
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Full history for diff
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Detect changed packs
+        id: detect
+        run: |
+          # Find which packs have changes
+          CHANGED_PACKS=$(git diff --name-only origin/main...HEAD | \
+            grep -E '^data/(corpus|claims|patches|packs)' | \
+            sed -E 's|data/packs/([^/]+)/.*|\1|' | \
+            sort -u | \
+            tr '\n' ',' | sed 's/,$//')
+          
+          echo "changed_packs=$CHANGED_PACKS" >> $GITHUB_OUTPUT
+          echo "Changed packs: $CHANGED_PACKS"
+
+      - name: Run delta check
+        id: delta
+        run: |
+          # Run delta against baseline
+          uv run python -m ragleaklab delta run \
+            --baseline baselines/current.json \
+            --out /tmp/delta_out/ \
+            --format json || true
+            
+          # Check for regressions
+          if [ -f /tmp/delta_out/report.json ]; then
+            uv run python -m ragleaklab diff \
+              --baseline baselines/current.json \
+              --current /tmp/delta_out/report.json \
+              --strict
+          fi
+
+      - name: Generate step summary
+        if: always()
+        run: |
+          if [ -f /tmp/delta_out/report.json ]; then
+            uv run python -m ragleaklab report summarize \
+              --in /tmp/delta_out/ \
+              --format md >> $GITHUB_STEP_SUMMARY
+          else
+            echo "## ⚠️ No delta report generated" >> $GITHUB_STEP_SUMMARY
+            echo "Could not generate delta report. Check logs for details." >> $GITHUB_STEP_SUMMARY
+          fi
+
+      - name: Annotate PR with findings
+        if: always()
+        run: |
+          if [ -f /tmp/delta_out/report.json ]; then
+            uv run python -m ragleaklab report annotate \
+              --in /tmp/delta_out/ \
+              --max 20
+          fi
+
+      - name: Upload artifacts
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: delta-results
+          path: /tmp/delta_out/
+          retention-days: 7
