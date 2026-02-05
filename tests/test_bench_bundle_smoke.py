@@ -34,9 +34,7 @@ class TestBundleSmokeUnit:
             ],
         )
 
-    def test_dry_run_skips_execution(
-        self, minimal_bundle: BundleManifest, tmp_path: Path
-    ) -> None:
+    def test_dry_run_skips_execution(self, minimal_bundle: BundleManifest, tmp_path: Path) -> None:
         """Dry run mode skips pack execution."""
         out = tmp_path / "out"
 

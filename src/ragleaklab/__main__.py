@@ -744,13 +744,12 @@ def bench_time(
     typer.echo(f"   Median per-case: {median_per_case * 1000:.2f}ms")
     typer.echo(f"   Cache hit rate: {cache_hit_rate:.1%}")
 
+
 @bench_app.command("bundle")
 def bench_bundle(
     bundle: Path = typer.Option(..., "--bundle", "-b", help="Path to bundle.yaml"),
     out: Path = typer.Option(..., "--out", "-o", help="Output directory"),
-    limit_packs: int = typer.Option(
-        None, "--limit-packs", help="Limit number of packs to run"
-    ),
+    limit_packs: int = typer.Option(None, "--limit-packs", help="Limit number of packs to run"),
     dry_run: bool = typer.Option(False, "--dry-run", help="Don't run packs, just validate"),
 ) -> None:
     """Run a benchmark bundle and generate summary.
@@ -824,6 +823,7 @@ def bench_bundle(
         raise typer.Exit(1)
     else:
         typer.echo("\n✅ Benchmark passed")
+
 
 # Attacks subcommand
 attacks_app = typer.Typer(help="Attack analysis utilities")
@@ -1305,6 +1305,138 @@ def report_summarize(
     # Output
     output = "\n".join(lines)
     typer.echo(output)
+
+
+@report_app.command("annotate")
+def report_annotate(
+    input_dir: Path = typer.Option(
+        ..., "--in", "-i", help="Input directory containing report.json"
+    ),
+    max_annotations: int = typer.Option(
+        50, "--max", "-m", help="Maximum number of annotations to emit"
+    ),
+) -> None:
+    """Emit GitHub Actions annotations for failures.
+
+    Prints ::error:: and ::warning:: lines that GitHub Actions parses
+    to create PR annotations and workflow summaries.
+
+    Example:
+        ::error title=Data Leak::Test xyz leaked claim "email@example.com"
+    """
+    import json
+
+    # Validate input directory
+    if not input_dir.exists():
+        typer.echo(f"❌ Input directory not found: {input_dir}", err=True)
+        raise typer.Exit(1)
+
+    report_path = input_dir / "report.json"
+    runs_path = input_dir / "runs.jsonl"
+
+    if not report_path.exists():
+        typer.echo(f"❌ report.json not found in: {input_dir}", err=True)
+        raise typer.Exit(1)
+
+    # Load report
+    with open(report_path) as f:
+        report = json.load(f)
+
+    # Load runs if available
+    runs: list[dict] = []
+    if runs_path.exists():
+        with open(runs_path) as f:
+            for line in f:
+                line = line.strip()
+                if line:
+                    runs.append(json.loads(line))
+
+    # Collect failed test_ids from report
+    failed_ids: set[str] = set()
+    if "failures" in report:
+        for fail in report["failures"]:
+            test_id = fail.get("test_id") or fail.get("case_id", "unknown")
+            failed_ids.add(test_id)
+
+    # Helper to escape message for annotations
+    def escape_msg(msg: str) -> str:
+        # GitHub annotations use %0A for newlines, escape special chars
+        return msg.replace("%", "%25").replace("\r", "%0D").replace("\n", "%0A")
+
+    def truncate(text: str, max_len: int = 200) -> str:
+        if len(text) <= max_len:
+            return text
+        return text[: max_len - 3] + "..."
+
+    annotation_count = 0
+
+    # Emit annotations for each failed run
+    for run in runs:
+        if annotation_count >= max_annotations:
+            break
+
+        test_id = run.get("test_id", "unknown")
+        if test_id not in failed_ids:
+            continue
+
+        evidence = run.get("evidence", {})
+        answer = run.get("answer", "")
+
+        # Determine annotation type and message
+        canary = evidence.get("canary_detected", False)
+        verbatim = evidence.get("verbatim_score", 0)
+        membership = evidence.get("membership_confidence", 0)
+
+        if canary:
+            title = "Canary Token Leaked"
+            msg = f"Test {test_id} leaked canary token in answer"
+        elif verbatim > 0.1:
+            title = "High Verbatim Overlap"
+            msg = f"Test {test_id} has {verbatim:.0%} verbatim overlap"
+        elif membership > 0.5:
+            title = "Membership Inference"
+            msg = f"Test {test_id} reveals corpus membership ({membership:.0%})"
+        else:
+            title = "Security Test Failed"
+            msg = f"Test {test_id} failed"
+
+        # Add truncated answer snippet
+        if answer:
+            msg += f": {truncate(answer, 150)}"
+
+        # Emit GitHub annotation
+        print(f"::error title={escape_msg(title)}::{escape_msg(msg)}")
+        annotation_count += 1
+
+    # Emit integrity findings as warnings
+    if "integrity" in report:
+        for finding in report["integrity"].get("packs", []):
+            if annotation_count >= max_annotations:
+                break
+
+            pack_id = finding.get("pack_id", "unknown")
+            query_id = finding.get("query_id", "")
+            severity = finding.get("severity", "medium")
+            evidence_type = finding.get("evidence", {}).get("type", "unknown")
+
+            title = f"Integrity: {pack_id}"
+            msg = f"Query {query_id}: {evidence_type} ({severity})"
+
+            level = "warning" if severity in ("low", "medium") else "error"
+            print(f"::{level} title={escape_msg(title)}::{escape_msg(msg)}")
+            annotation_count += 1
+
+    # Summary annotation if any failures
+    if annotation_count > 0:
+        total_failures = len(failed_ids)
+        total_shown = min(annotation_count, total_failures)
+        if total_failures > total_shown:
+            print(
+                f"::warning title=More Findings::"
+                f"{total_failures - total_shown} additional findings not shown"
+            )
+
+    typer.echo(f"Emitted {annotation_count} annotations", err=True)
 
 
 @app.command()

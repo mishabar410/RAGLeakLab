@@ -116,3 +116,63 @@ The action automatically uploads SARIF results to GitHub's Code Scanning. Findin
 
 > [!NOTE]
 > SARIF upload requires the repository to have GitHub Advanced Security enabled, or be a public repository.
+
+## Step Summary
+
+When the action runs, a detailed markdown summary is automatically written to `$GITHUB_STEP_SUMMARY`. This appears in the **Actions** tab without needing to download artifacts:
+
+**What's shown:**
+- Overall pass/fail status with metrics
+- Top 20 findings with what leaked and why
+- Attribution categories (root cause analysis)
+- Remediation hints
+- Integrity findings from poisoning packs
+
+**CLI command used:**
+```bash
+ragleaklab report summarize --in $OUT_DIR --top 20 --format md
+```
+
+## PR Annotations
+
+Security findings appear as inline annotations in Pull Requests using GitHub's workflow commands:
+
+```
+::error title=Canary Token Leaked::Test xyz leaked canary token in answer
+::warning title=Integrity::Query corrupted claim detected (medium)
+```
+
+**CLI command used:**
+```bash
+ragleaklab report annotate --in $OUT_DIR --max 30
+```
+
+> [!TIP]
+> Annotations show directly in the PR diff and Files changed tabs, making it easy to see what failed without clicking through to the action logs.
+
+## CLI Commands for CI
+
+### Generate MD Summary
+
+```bash
+ragleaklab report summarize --in out/ --top 20 --format md
+```
+
+### Emit GitHub Annotations
+
+```bash
+ragleaklab report annotate --in out/ --max 50
+```
+
+### Complete CI Flow
+
+```bash
+# Run security audit
+ragleaklab run --pack canary-basic --out out/
+
+# Write step summary
+ragleaklab report summarize --in out/ --format md >> $GITHUB_STEP_SUMMARY
+
+# Emit PR annotations
+ragleaklab report annotate --in out/
+```

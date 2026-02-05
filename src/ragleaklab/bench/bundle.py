@@ -353,8 +353,6 @@ def generate_summary_markdown(summary: BundleSummary) -> str:
     if summary.failed_packs == 0 and summary.error_packs == 0:
         lines.append("✅ **All packs passed**")
     else:
-        lines.append(
-            f"❌ **{summary.failed_packs} failed, {summary.error_packs} errors**"
-        )
+        lines.append(f"❌ **{summary.failed_packs} failed, {summary.error_packs} errors**")
 
     return "\n".join(lines)

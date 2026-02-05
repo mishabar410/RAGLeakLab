@@ -17,10 +17,7 @@ class TestBundleSchema:
     def test_load_canonical_bundle(self) -> None:
         """Canonical ragleakbench_v1 bundle loads successfully."""
         bundle_path = (
-            Path(__file__).parent.parent
-            / "benchmarks"
-            / "ragleakbench_v1"
-            / "bundle.yaml"
+            Path(__file__).parent.parent / "benchmarks" / "ragleakbench_v1" / "bundle.yaml"
         )
 
         # Skip if bundle doesn't exist yet

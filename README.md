@@ -120,6 +120,15 @@ This shows:
 
 See [docs/TRIAGE.md](docs/TRIAGE.md) for the complete triage guide.
 
+For GitHub Actions, annotations appear directly in PR diffs:
+
+```bash
+# Emit GitHub-style annotations (::error::, ::warning::)
+uv run python -m ragleaklab report annotate --in out/
+```
+
+See [docs/ACTION.md](docs/ACTION.md) for full GitHub Action integration.
+
 
 ## Updating Baseline
 

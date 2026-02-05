@@ -127,6 +127,25 @@ runs:
           --baseline ${{ inputs.baseline_path }} \
           --current ${{ inputs.out_dir }}/report.json
 
+    - name: Generate Step Summary
+      if: always()
+      shell: bash
+      run: |
+        echo "## 🔍 RAGLeakLab Security Audit Results" >> $GITHUB_STEP_SUMMARY
+        echo "" >> $GITHUB_STEP_SUMMARY
+        uv run python -m ragleaklab report summarize \
+          --in ${{ inputs.out_dir }} \
+          --top 20 \
+          --format md >> $GITHUB_STEP_SUMMARY || echo "⚠️ Could not generate summary" >> $GITHUB_STEP_SUMMARY
+
+    - name: Annotate Failures
+      if: always()
+      shell: bash
+      run: |
+        uv run python -m ragleaklab report annotate \
+          --in ${{ inputs.out_dir }} \
+          --max 30 || true
+
     - name: Upload artifacts
       if: inputs.upload_artifacts == 'true' && always()
       uses: actions/upload-artifact@v4
