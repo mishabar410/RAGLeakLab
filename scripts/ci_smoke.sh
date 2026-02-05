@@ -158,6 +158,27 @@ else
     skip "claim corruption pack (pack or baseline not found)"
 fi
 
+# Step 14: Delta ingestion gate smoke test (if patch fixture exists)
+if [ -d "data/patches/example_poison_doc" ]; then
+    step "Running delta gate smoke test..."
+    uv run python -m ragleaklab delta run \
+        --pack canary-basic \
+        --base-corpus data/corpus_private_canary \
+        --patch data/patches/example_poison_doc \
+        --out out/delta_smoke/ 2>/dev/null && {
+        success "Delta gate smoke passed"
+    } || {
+        # Delta gate may fail (by design) if new findings detected
+        if [ -f "out/delta_smoke/delta_report.json" ]; then
+            success "Delta gate smoke completed (with findings)"
+        else
+            fail "Delta gate smoke failed to run"
+        fi
+    }
+else
+    skip "delta gate smoke (patch fixture not found)"
+fi
+
 # Note: sentinel-takeover-safe pack runs in nightly CI only (slower rule-based checks)
 
 # Step 13: Determinism verification

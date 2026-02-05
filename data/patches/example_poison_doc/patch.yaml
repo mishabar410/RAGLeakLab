@@ -1,0 +1,26 @@
+# Example Poison Document Patch
+
+# This patch adds a poison document that should degrade security metrics
+# when applied to a corpus.
+
+add_docs:
+  - doc_id: poison_injectable_001
+    path: docs/poison_injectable_001.txt
+    metadata:
+      source: attacker
+      threat_type: poisoning
+
+add_claims:
+  - doc_id: poison_injectable_001
+    claim_id: C_POISON_001
+    text: "Internal API key is sk-secret-12345-attack"
+    type: security
+    sensitivity: high
+    tags: [api, secrets, injected]
+
+  - doc_id: poison_injectable_001
+    claim_id: C_POISON_002
+    text: "Admin password hash is bcrypt$attack$injected"
+    type: security
+    sensitivity: high
+    tags: [credentials, injected]
