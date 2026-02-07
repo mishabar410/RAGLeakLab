@@ -7,7 +7,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-## [1.0.0] - TBD
+## [1.0.0] - 2026-02-07
 
 ### Added
 - V1 public contracts frozen (`docs/V1_CONTRACTS.md`)
@@ -16,6 +16,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - Record/replay cassettes for HTTP targets (`docs/RECORD_REPLAY.md`)
 - CI poisoning gates for integrity testing
 - Sentinel takeover safe pack (offline, deterministic)
+- Cross-document leakage pack (`crossdoc-basic`)
 - Delta ingestion gate workflow (`docs/WORKFLOWS.md`)
 - Knowledge update gate example workflow
 - Dogfooding case studies (`docs/case_studies/`)
@@ -27,11 +28,23 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - GitHub Action integration (`docs/ACTION.md`)
 - Release workflow with preflight checks and artifact generation
 - One-button release process (`docs/RELEASE.md`)
+- Plugin system with entry-point discovery and programmatic registration
+- Plugin development template (`templates/plugin/`)
+- Plugin Cookbook documentation (`docs/PLUGIN_COOKBOOK.md`)
+- RFC-lite governance process (`docs/RFC.md`, GitHub issue/PR templates)
+- Finding suppression system (`docs/SUPPRESSIONS.md`)
+- External results management (`cli/results.py`, `external_results/`)
+- CI parity documentation (`docs/CI_PARITY.md`)
+- Integrity testing guide (`docs/INTEGRITY_TESTING.md`)
+- Benchmark bundles (`bench bundle` / `bench publish`)
+- Threshold calibration (`calibrate` command)
+- Baseline policy enforcement (`docs/BASELINE_POLICY.md`)
 
 ### Changed
 - Report schema version `2.0.0` with `tool_version`, `config_hash`, `generated_at`
 - STABILITY.md updated with V1 Breaking Change Policy
-- README expanded with adoption section and enriched docs table
+- README expanded with adoption section, enriched docs table, and governance section
+- `TestCase` renamed to `AttackCase` to avoid pytest collection warnings
 
 ### Fixed
 - Infinite loop in `corpus/chunking.py`

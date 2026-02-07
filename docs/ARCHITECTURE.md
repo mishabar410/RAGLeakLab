@@ -35,6 +35,10 @@ RAGLeakLab follows a modular pipeline architecture for security testing of RAG s
 │    │   Canary    │ │  Verbatim   │ │ Membership  │             │
 │    │  Detection  │ │   Overlap   │ │  Inference  │             │
 │    └─────────────┘ └─────────────┘ └─────────────┘             │
+│    ┌─────────────┐ ┌─────────────┐                             │
+│    │  Semantic   │ │ Cross-Doc   │                             │
+│    │   Claims    │ │   Leakage   │                             │
+│    └─────────────┘ └─────────────┘                             │
 │    ┌─────────────────────────────────────────────┐             │
 │    │              Verdict Rules                  │             │
 │    └─────────────────────────────────────────────┘             │
@@ -63,6 +67,7 @@ The `ragleaklab.cli` package splits the CLI into one file per command group:
 | `cli/calibrate.py` | `calibrate` — threshold calibration |
 | `cli/delta.py` | `delta run` — ingestion gate |
 | `cli/config_cmd.py` | `config validate` — config validation & JSON schema export |
+| `cli/results.py` | `results` — external results management |
 | `cli/version.py` | `version` — show version info |
 
 `__main__.py` re-exports `app` from `cli/app.py` and remains the entry-point.
@@ -139,7 +144,7 @@ attacks/*.yaml
 | **corpus** | `src/ragleaklab/corpus/` | Load documents, chunk text, inject canaries |
 | **rag** | `src/ragleaklab/rag/` | TF-IDF retrieval, context building, mock generation |
 | **attacks** | `src/ragleaklab/attacks/` | Test case schema, strategy catalog, execution runner |
-| **packs** | `src/ragleaklab/packs/` | Built-in threat packs (canary, verbatim, membership, semantic, crossdoc) |
+| **packs** | `src/ragleaklab/packs/` | Built-in threat packs (canary, verbatim, membership, semantic, crossdoc, sentinel) |
 | **targets** | `src/ragleaklab/targets/` | Adapters for in-process, HTTP (with SSRF protection), and mock targets |
 | **metrics** | `src/ragleaklab/metrics/` | Canary detection, verbatim overlap, membership inference, semantic claims |
 | **reporting** | `src/ragleaklab/reporting/` | Report schema (JSON, SARIF, JUnit) and secret redaction |
@@ -149,6 +154,8 @@ attacks/*.yaml
 | **poisoning** | `src/ragleaklab/poisoning/` | Corpus poisoning detection (sentinel takeover, relevance hijack) |
 | **analysis** | `src/ragleaklab/analysis/` | Attack coverage analysis |
 | **assets** | `src/ragleaklab/assets/` | Asset generation and validation |
+| **ci** | `src/ragleaklab/ci/` | CI policy checks (baseline policy enforcement) |
+| **suppressions** | `src/ragleaklab/suppressions/` | Finding suppression system (allowlists, rule-based) |
 
 ## Core Contracts
 

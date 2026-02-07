@@ -258,7 +258,17 @@ To ensure reproducible builds and tests:
 
 ## RFC Process
 
-For proposing new threat packs, metrics, or major features, see [docs/RFC.md](docs/RFC.md).
+Proposing new threat classes, core metrics, breaking changes, or new claim types
+requires an RFC. See [docs/RFC.md](docs/RFC.md) for the lightweight RFC-lite process,
+including templates, lifecycle, and acceptance criteria.
+
+You can submit an RFC via [GitHub Issue](https://github.com/mishabar410/RAGLeakLab/issues/new?template=rfc.yml)
+or [Pull Request](https://github.com/mishabar410/RAGLeakLab/pulls).
+
+## Plugin Development
+
+For building external plugins, use the ready-to-copy scaffold in [`templates/plugin/`](templates/plugin/)
+and follow the [Plugin Cookbook](docs/PLUGIN_COOKBOOK.md) for a step-by-step guide.
 
 ## Good First Issues
 

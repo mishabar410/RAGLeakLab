@@ -309,11 +309,15 @@ See also: [docs/SELL_SHEET.md](docs/SELL_SHEET.md) — one-page feature overview
 | [docs/V1_CONTRACTS.md](docs/V1_CONTRACTS.md) | V1 public contract catalogue |
 | [docs/V1_PREFLIGHT.md](docs/V1_PREFLIGHT.md) | V1 release preflight checklist |
 | [docs/STABILITY.md](docs/STABILITY.md) | Stability policy and versioning |
+| [docs/BASELINE_POLICY.md](docs/BASELINE_POLICY.md) | Baseline update policy |
 | [docs/EXTENDING.md](docs/EXTENDING.md) | Writing plugins |
+| [docs/PLUGIN_COOKBOOK.md](docs/PLUGIN_COOKBOOK.md) | Plugin development cookbook |
 | [docs/CI.md](docs/CI.md) | CI integration guide |
+| [docs/CI_PARITY.md](docs/CI_PARITY.md) | CI parity between local and remote |
 | [docs/DOCKER.md](docs/DOCKER.md) | Container build and run |
 | [docs/ACTION.md](docs/ACTION.md) | GitHub Action usage |
 | [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md) | HTTP target examples |
+| [docs/INTEGRITY_TESTING.md](docs/INTEGRITY_TESTING.md) | Integrity and poisoning testing |
 | [docs/RECORD_REPLAY.md](docs/RECORD_REPLAY.md) | Cassette record/replay for HTTP |
 | [docs/CALIBRATION.md](docs/CALIBRATION.md) | Threshold calibration guide |
 | [docs/BENCHMARKS.md](docs/BENCHMARKS.md) | Benchmark bundle reference |
@@ -321,12 +325,16 @@ See also: [docs/SELL_SHEET.md](docs/SELL_SHEET.md) — one-page feature overview
 | [docs/WORKFLOWS.md](docs/WORKFLOWS.md) | GitHub Actions workflow patterns |
 | [docs/TRIAGE.md](docs/TRIAGE.md) | Failure triage guide |
 | [docs/PERFORMANCE.md](docs/PERFORMANCE.md) | Performance tuning |
+| [docs/SUPPRESSIONS.md](docs/SUPPRESSIONS.md) | Finding suppression system |
 | [docs/ROADMAP.md](docs/ROADMAP.md) | Future roadmap |
 | [docs/poisoning.md](docs/poisoning.md) | Corpus poisoning detection |
 | [docs/SECURITY_TOOLING.md](docs/SECURITY_TOOLING.md) | Security tooling overview |
-| [docs/RFC.md](docs/RFC.md) | RFC process for new features |
+| [docs/RFC.md](docs/RFC.md) | RFC governance process |
 | [docs/GOOD_FIRST_ISSUES.md](docs/GOOD_FIRST_ISSUES.md) | Beginner-friendly tasks |
 | [docs/RELEASE.md](docs/RELEASE.md) | Release process |
+| [docs/ASSETS.md](docs/ASSETS.md) | Asset build and validation |
+| [docs/CASE_STUDIES.md](docs/CASE_STUDIES.md) | Security case studies |
+| [docs/REPO_HEALTH.md](docs/REPO_HEALTH.md) | Repository health overview |
 | [docs/threats/](docs/threats/) | Individual threat specifications |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute |
 | [SECURITY.md](SECURITY.md) | Security policy |
@@ -408,13 +416,17 @@ src/ragleaklab/        # Main package
 ├── calibration/       # Threshold calibration
 ├── poisoning/         # Corpus poisoning detection
 ├── analysis/          # Attack coverage analysis
-└── assets/            # Asset generation and validation
-tests/                 # Test files (865+ tests)
-docs/                  # Documentation (30+ documents)
+├── assets/            # Asset generation and validation
+├── ci/                # CI policy checks (baseline policy)
+└── suppressions/      # Finding suppression system
+tests/                 # Test files (995+ tests)
+docs/                  # Documentation (40+ documents)
 data/                  # Test data and corpora
 baselines/             # CI baselines
 benchmarks/            # Benchmark bundles
 integrations/          # Framework integration recipes
 examples/              # Sample files
 scripts/               # CI smoke, SBOM generation
+templates/             # Plugin development templates
+external_results/      # Community benchmark results
 ```
