@@ -2,200 +2,177 @@
 
 This document describes how to prepare and publish a RAGLeakLab release.
 
-## Pre-Release Checklist
+---
 
-Before starting a release, verify:
+## Preflight Checklist
 
-- [ ] All CI checks pass on `main`
-- [ ] No open security issues
-- [ ] CHANGELOG updated with all changes
-
-## Release Steps
-
-### 1. Validate Assets
+Run **all** checks locally before starting a release.
+Every step must pass; do not proceed until green.
 
 ```bash
+# 1. Full CI smoke (format + lint + test + packs + regression + determinism)
+bash scripts/ci_smoke.sh
+
+# 2. Explicit determinism verification (≥ 2 packs, 3 runs each)
+uv run python -m ragleaklab verify determinism \
+  --pack canary-basic --runs 3
+uv run python -m ragleaklab verify determinism \
+  --pack verbatim-basic --runs 3
+
+# 3. Asset validation (strict mode)
 uv run python -m ragleaklab assets validate --path . --strict
+
+# 4. Contract tests
+uv run pytest tests/contracts/ -v
 ```
 
-All asset manifests must be valid with no warnings.
+> [!IMPORTANT]
+> If any step fails, fix it before proceeding. A release with failing
+> checks is never acceptable.
 
-### 2. Run All Packs
+---
 
-```bash
-# Run each pack and verify against baselines
-uv run python -m ragleaklab run \
-  --corpus data/corpus_private_canary \
-  --pack canary-basic \
-  --out out/canary/
+## Version Bump
 
-uv run python -m ragleaklab run \
-  --corpus data/corpus_private_canary \
-  --pack verbatim-basic \
-  --out out/verbatim/
-
-uv run python -m ragleaklab run \
-  --corpus data/corpus_private_canary \
-  --pack semantic-basic \
-  --out out/semantic/
-```
-
-### 3. Verify Regression Gates
-
-```bash
-uv run python -m ragleaklab diff \
-  --baseline baselines/v1/report.json \
-  --current out/canary/report.json
-
-uv run python -m ragleaklab diff \
-  --baseline baselines/semantic_v1/report.json \
-  --current out/semantic/report.json
-```
-
-All gates must pass.
-
-### 4. Bump Version
-
-Update version in `pyproject.toml`:
+Update the version in `pyproject.toml`:
 
 ```toml
 [project]
-version = "X.Y.Z"
+version = "1.0.0"
 ```
 
-### 5. Update CHANGELOG
-
-Add release entry to `CHANGELOG.md`:
-
-```markdown
-## [X.Y.Z] - YYYY-MM-DD
-
-### Added
-- New features...
-
-### Changed
-- Changes...
-
-### Fixed
-- Bug fixes...
-```
-
-### 6. Commit and Tag
+Verify the version is picked up:
 
 ```bash
-git add pyproject.toml CHANGELOG.md
-git commit -m "release: v0.X.Y"
-git tag v0.X.Y
+uv run python -m ragleaklab version
+```
+
+---
+
+## Tagging Rules
+
+| Tag | When |
+|-----|------|
+| `v1.0.0` | First stable release |
+| `v1.1.0` | New features (no breaking changes) |
+| `v1.0.1` | Bug fixes only |
+| `v2.0.0` | Breaking changes to contracts in `V1_CONTRACTS.md` |
+
+Tags are always prefixed with `v` and follow [Semantic Versioning](https://semver.org/).
+
+```bash
+git tag v1.0.0
 git push origin main --tags
 ```
 
-### 7. Build Package
+---
+
+## Release Artifacts
+
+Every release produces these artifacts in `dist/`:
+
+| Artifact | Command |
+|----------|---------|
+| Wheel (`.whl`) | `uv build` |
+| Source dist (`.tar.gz`) | `uv build` |
+| SBOM (`sbom.json`) | `uv run python scripts/generate_sbom.py --out dist/sbom.json` |
+| Sample report | `cp out/report.json dist/sample_report.json` |
+| Checksums | `sha256sum dist/* > dist/SHA256SUMS` |
+
+### Build Locally
 
 ```bash
-uv build
-```
-
-Verify the built package:
-
-```bash
-ls dist/
-# ragleaklab-X.Y.Z.tar.gz
-# ragleaklab-X.Y.Z-py3-none-any.whl
-```
-
-### 8. Generate SBOM
-
-Generate a CycloneDX Software Bill of Materials:
-
-```bash
-uv run python scripts/generate_sbom.py --out dist/sbom.json
-```
-
-The SBOM includes all runtime and dev dependencies from the environment.
-
-### 9. Publish (Optional)
-
-```bash
-# Test PyPI
-uv publish --repository testpypi
-
-# Production PyPI
-uv publish
-```
-
-### 10. Create GitHub Release
-
-**Option A: Manual release**
-
-1. Go to Releases → Draft new release
-2. Choose tag `vX.Y.Z`
-3. Copy CHANGELOG entry as description
-4. Attach wheel/sdist/sbom from `dist/`
-5. Publish
-
-**Option B: Use release workflow**
-
-1. Go to Actions → Release → Run workflow
-2. Enter version (e.g., `0.2.0`)
-3. Workflow validates, builds, generates SBOM, and creates draft release
-4. Review and publish the draft release
-
-## SBOM (Software Bill of Materials)
-
-After building, the SBOM is located at `dist/sbom.json`. It contains:
-- All runtime dependencies
-- All dev dependencies  
-- Package URLs (purls) for vulnerability scanning
-- CycloneDX 1.4 format compatible with most security tools
-
-To regenerate SBOM manually:
-
-```bash
-uv run python scripts/generate_sbom.py --out dist/sbom.json
-```
-
-## Local Build Reproduction
-
-To reproduce a release build locally:
-
-```bash
-# 1. Clone at specific tag
-git clone --depth 1 --branch vX.Y.Z https://github.com/mishabar410/RAGLeakLab.git
-cd RAGLeakLab
-
-# 2. Install dependencies (exact versions from uv.lock)
-uv sync --all-extras
-
-# 3. Run validation
-uv run pytest -q
-uv run python -m ragleaklab assets validate --path .
-
-# 4. Build
+# Build wheel + sdist
 uv build
 
-# 5. Generate SBOM
+# Generate SBOM (CycloneDX JSON)
 uv run python scripts/generate_sbom.py --out dist/sbom.json
 
-# 6. Verify
-ls -la dist/
+# Generate sample report
+uv run python -m ragleaklab run \
+  --corpus data/corpus_private_canary \
+  --attacks data/attacks \
+  --out out/
+cp out/report.json dist/sample_report.json
+
+# Checksums
+cd dist && sha256sum * > SHA256SUMS && cd ..
 ```
 
-## Version Numbering
+### Automated Release
 
-We follow [Semantic Versioning](https://semver.org/):
+Use the GitHub Actions release workflow:
 
-| Version | When to bump |
-|---------|--------------|
-| MAJOR (1.0.0) | Breaking changes to CLI or report schema |
-| MINOR (0.2.0) | New features, new attack types |
-| PATCH (0.1.1) | Bug fixes, documentation |
+1. Go to **Actions → Release → Run workflow**
+2. Enter the version (e.g., `1.0.0`)
+3. The workflow runs preflight, builds, generates SBOM, and creates a draft release
+4. Review the draft release, then publish
+
+---
+
+## Commit and Tag
+
+```bash
+git add pyproject.toml CHANGELOG.md
+git commit -m "release: v1.0.0"
+git tag v1.0.0
+git push origin main --tags
+```
+
+---
+
+## Post-Release
+
+### 1. Update CHANGELOG
+
+Move items from `[Unreleased]` to the new version section:
+
+```markdown
+## [1.0.0] - 2026-02-07
+
+### Added
+- ...
+```
+
+### 2. Bump to Next Dev Version
+
+```toml
+[project]
+version = "1.1.0-dev"
+```
+
+### 3. Announce
+
+- Create GitHub Release from the draft (attach `dist/` artifacts)
+- Post to relevant channels
+
+---
 
 ## Hotfix Process
 
-For critical fixes:
+For critical fixes after release:
 
-1. Create branch from tag: `git checkout -b hotfix/v0.1.1 v0.1.0`
-2. Apply minimal fix
-3. Run validation steps
-4. Tag and release
-5. Cherry-pick to `main` if applicable
+```bash
+git checkout -b hotfix/v1.0.1 v1.0.0
+# Apply minimal fix
+# Run preflight checklist
+git tag v1.0.1
+git push origin hotfix/v1.0.1 --tags
+# Cherry-pick to main
+```
+
+---
+
+## Local Build Reproduction
+
+To reproduce a release build from a tag:
+
+```bash
+git clone --depth 1 --branch v1.0.0 https://github.com/mishabar410/RAGLeakLab.git
+cd RAGLeakLab
+uv sync --frozen --all-extras
+bash scripts/ci_smoke.sh
+uv build
+uv run python scripts/generate_sbom.py --out dist/sbom.json
+sha256sum dist/* > dist/SHA256SUMS
+```

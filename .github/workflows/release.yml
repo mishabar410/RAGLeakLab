@@ -4,11 +4,11 @@ on:
   workflow_dispatch:
     inputs:
       version:
-        description: 'Version to release (e.g., 0.2.0)'
+        description: 'Version to release (e.g., 1.0.0)'
         required: true
         type: string
       publish_pypi:
-        description: 'Publish to PyPI'
+        description: 'Publish to PyPI (requires PYPI_API_TOKEN secret)'
         required: false
         type: boolean
         default: false
@@ -16,10 +16,10 @@ on:
 permissions:
   contents: write
   id-token: write
-  
+
 jobs:
-  validate:
-    name: Validate Release
+  preflight:
+    name: Preflight Checks
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -34,24 +34,18 @@ jobs:
         with:
           version: "latest"
 
-      - name: Install dependencies
-        run: uv sync --all-extras
+      - name: Install dependencies (frozen lockfile)
+        run: uv sync --frozen --all-extras
 
-      - name: Lint
-        run: uv run ruff check .
+      - name: CI smoke (format + lint + test + packs + regression + determinism)
+        run: bash scripts/ci_smoke.sh
 
-      - name: Run tests
-        run: uv run pytest -q
-
-      - name: Validate assets
-        run: uv run python -m ragleaklab assets validate --path .
-
-      - name: Verify determinism
-        run: uv run python -m ragleaklab verify-determinism --path data/corpus_private_canary --samples 3
+      - name: Contract tests
+        run: uv run pytest tests/contracts/ -v
 
   build:
-    name: Build Package
-    needs: validate
+    name: Build & Package
+    needs: preflight
     runs-on: ubuntu-latest
     outputs:
       wheel_name: ${{ steps.build.outputs.wheel_name }}
@@ -69,34 +63,46 @@ jobs:
         with:
           version: "latest"
 
-      - name: Install dependencies
-        run: uv sync --all-extras
+      - name: Install dependencies (frozen lockfile)
+        run: uv sync --frozen --all-extras
 
-      - name: Update version in pyproject.toml
+      - name: Bump version in pyproject.toml
         run: |
           sed -i "s/version = \".*\"/version = \"${{ inputs.version }}\"/" pyproject.toml
-          cat pyproject.toml | grep "version"
+          grep 'version' pyproject.toml | head -1
 
-      - name: Build package
+      - name: Build wheel + sdist
         id: build
         run: |
           uv build
           echo "wheel_name=$(ls dist/*.whl | xargs basename)" >> $GITHUB_OUTPUT
           echo "sdist_name=$(ls dist/*.tar.gz | xargs basename)" >> $GITHUB_OUTPUT
 
-      - name: Generate SBOM
-        run: |
-          uv run python scripts/generate_sbom.py --out dist/sbom.json
-          cat dist/sbom.json | head -50
+      - name: Generate SBOM (CycloneDX)
+        run: uv run python scripts/generate_sbom.py --out dist/sbom.json
 
-      - name: Upload build artifacts
+      - name: Generate sample report
+        run: |
+          uv run python -m ragleaklab run \
+            --corpus data/corpus_private_canary \
+            --attacks data/attacks \
+            --out out/
+          cp out/report.json dist/sample_report.json
+
+      - name: Generate checksums
+        run: |
+          cd dist
+          sha256sum * > SHA256SUMS
+          cat SHA256SUMS
+
+      - name: Upload release artifacts
         uses: actions/upload-artifact@v4
         with:
           name: dist
           path: dist/
-          retention-days: 30
+          retention-days: 90
 
-  # Uncomment when ready to publish to PyPI
+  # Uncomment when PYPI_API_TOKEN secret is configured
   # publish:
   #   name: Publish to PyPI
   #   needs: build
@@ -137,7 +143,7 @@ jobs:
           name: dist
           path: dist/
 
-      - name: Create Release
+      - name: Create Draft Release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: v${{ inputs.version }}
@@ -148,22 +154,24 @@ jobs:
             dist/*.whl
             dist/*.tar.gz
             dist/sbom.json
+            dist/sample_report.json
+            dist/SHA256SUMS
           body: |
             ## Release v${{ inputs.version }}
 
             ### Artifacts
-            - Wheel: `${{ needs.build.outputs.wheel_name }}`
-            - Source: `${{ needs.build.outputs.sdist_name }}`
-            - SBOM: `sbom.json`
+            | File | Description |
+            |------|-------------|
+            | `${{ needs.build.outputs.wheel_name }}` | Python wheel |
+            | `${{ needs.build.outputs.sdist_name }}` | Source distribution |
+            | `sbom.json` | CycloneDX SBOM |
+            | `sample_report.json` | Example report output |
+            | `SHA256SUMS` | SHA-256 checksums |
 
             ### Verification
             ```bash
-            # Verify wheel hash
-            sha256sum dist/*.whl
-
-            # Verify SBOM
-            cat dist/sbom.json | jq '.metadata.component'
+            sha256sum -c SHA256SUMS
             ```
 
             ### Changes
-            See CHANGELOG.md for details.
+            See [CHANGELOG.md](CHANGELOG.md) for details.
