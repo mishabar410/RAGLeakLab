@@ -334,6 +334,33 @@ See also: [docs/SELL_SHEET.md](docs/SELL_SHEET.md) — one-page feature overview
 
 ---
 
+## Project Governance
+
+RAGLeakLab uses lightweight governance to keep the project cohesive
+as it grows:
+
+| Process | What it covers | Document |
+|---------|---------------|----------|
+| **RFC** | New threat classes, core metrics, breaking changes | [docs/RFC.md](docs/RFC.md) |
+| **Baseline Policy** | When and how baselines can be updated | [docs/BASELINE_POLICY.md](docs/BASELINE_POLICY.md) |
+| **Stability Contracts** | What constitutes a breaking change | [docs/STABILITY.md](docs/STABILITY.md) |
+| **Contributing** | Code style, testing, commit conventions | [CONTRIBUTING.md](CONTRIBUTING.md) |
+| **Security** | Vulnerability reporting | [SECURITY.md](SECURITY.md) |
+
+### When do I need an RFC?
+
+- Adding a **new threat class** (e.g. prompt injection, model extraction)
+- Adding a **new core metric** (shipped with the main package)
+- Making a **breaking change** to report schemas, CLI flags, or contracts
+- Adding a **new claim type** (e.g. `attribution`, `privacy`)
+
+Everything else — bug fixes, docs, integration recipes, external
+plugins — just opens a regular PR.
+
+See [docs/RFC.md](docs/RFC.md) for the full process.
+
+---
+
 ## Development
 
 ```bash
