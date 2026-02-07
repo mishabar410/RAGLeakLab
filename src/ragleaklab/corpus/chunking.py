@@ -30,6 +30,13 @@ def chunk_text(
     Returns:
         List of Chunk objects.
     """
+    if chunk_size <= 0:
+        raise ValueError("chunk_size must be positive")
+    if overlap < 0:
+        raise ValueError("overlap must be non-negative")
+    if overlap >= chunk_size:
+        raise ValueError("overlap must be less than chunk_size")
+
     if not text:
         return []
 

@@ -10,7 +10,7 @@ from pydantic import BaseModel, Field, model_validator
 # Re-export core type
 from ragleaklab.core.contracts import RunArtifact
 
-__all__ = ["ChatTurn", "RunArtifact", "TestCase"]
+__all__ = ["AttackCase", "ChatTurn", "RunArtifact", "TestCase"]
 
 
 class ChatTurn(BaseModel):
@@ -20,12 +20,14 @@ class ChatTurn(BaseModel):
     content: str = Field(..., description="Content of the message")
 
 
-class TestCase(BaseModel):
+class AttackCase(BaseModel):
     """A single attack test case loaded from YAML.
 
     Supports both single-turn (query) and multi-turn (turns) attacks.
     Exactly one of query or turns must be provided.
     """
+
+    __test__ = False  # Prevent pytest collection
 
     test_id: str = Field(..., description="Unique test identifier")
     threat: Literal["canary", "verbatim", "membership", "semantic", "crossdoc"] = Field(
@@ -41,7 +43,7 @@ class TestCase(BaseModel):
     tags: list[str] = Field(default_factory=list, description="Tags for filtering")
 
     @model_validator(mode="after")
-    def validate_query_or_turns(self) -> "TestCase":
+    def validate_query_or_turns(self) -> "AttackCase":
         """Ensure exactly one of query or turns is provided."""
         if self.query is None and self.turns is None:
             raise ValueError("Either 'query' or 'turns' must be provided")
@@ -68,3 +70,7 @@ class TestCase(BaseModel):
                 parts.append(f"[System: {turn.content}]")
             # Skip assistant turns in flattened query
         return " ".join(parts)
+
+
+# Backward compatibility alias
+TestCase = AttackCase
