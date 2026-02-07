@@ -58,7 +58,7 @@ def my_custom_metric(text: str, sources: list[str]) -> MetricScore:
 [project]
 name = "my-ragleaklab-plugin"
 version = "0.1.0"
-dependencies = ["ragleaklab>=0.1.0"]
+dependencies = ["ragleaklab>=1.0.0"]
 
 [project.entry-points."ragleaklab.metrics"]
 my_custom = "my_plugin:my_custom_metric"

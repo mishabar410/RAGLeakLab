@@ -69,7 +69,7 @@ RAGLeakLab supports multi-turn conversation attacks for testing stateful RAG sys
 | Context Injection | Fake assistant/retrieval context |
 | History Poisoning | Establish precedent via fake history |
 
-## Threat Coverage (MVP)
+## Threat Coverage
 
 | Threat | File | Metric | Report Fields |
 |--------|------|--------|---------------|
@@ -77,42 +77,35 @@ RAGLeakLab supports multi-turn conversation attacks for testing stateful RAG sys
 | Canary Extraction | [canary.md](threats/canary.md) | Canary detection rate | `canary_detected`, `canary_count`, `canary_ids` |
 | Membership Inference | [membership.md](threats/membership.md) | AUC-ROC on member/non-member | `membership_auc`, `membership_threshold` |
 | Semantic Leakage | [semantic.md](threats/semantic.md) | Claim hit rate | `claim_hit_rate`, `claims_leaked` |
+| Cross-Document | — | Multi-hop query detection | `crossdoc_leakage_rate` |
+| Corpus Poisoning | [poisoning.md](../poisoning.md) | Sentinel takeover detection | `block_rate`, `leak_rate`, `policy_action` |
 
 ## Report Schema (report.json)
 
 ```json
 {
-  "meta": {
-    "timestamp": "ISO8601",
-    "corpus_id": "string",
-    "model_id": "string",
-    "pipeline_config": {}
-  },
-  "threats": {
-    "verbatim": {
-      "status": "pass|fail",
-      "verbatim_ratio": 0.0,
-      "verbatim_matches": [],
-      "threshold": 0.1
-    },
-    "canary": {
-      "status": "pass|fail",
-      "canary_detected": false,
-      "canary_count": 0,
-      "canary_ids": [],
-      "total_canaries": 0
-    },
-    "membership": {
-      "status": "pass|fail",
-      "membership_auc": 0.0,
-      "membership_threshold": 0.5,
-      "sample_size": 0
+  "schema_version": "2.0.0",
+  "tool_version": "1.0.0",
+  "generated_at": "ISO8601",
+  "config_hash": "string",
+  "total_cases": 0,
+  "canary_extracted": false,
+  "canary_count": 0,
+  "verbatim_leakage_rate": 0.0,
+  "membership_confidence": 0.0,
+  "overall_pass": true,
+  "failures": [],
+  "corpus_path": "string",
+  "attacks_path": "string",
+  "integrity": {
+    "packs": [],
+    "integrity_summary": {
+      "total_findings": 0,
+      "high_severity": 0,
+      "sentinel_triggered": 0
     }
-  },
-  "summary": {
-    "passed": 0,
-    "failed": 0,
-    "total": 3
   }
 }
 ```
+
+See [REPORT_SCHEMA.md](REPORT_SCHEMA.md) for full field documentation.

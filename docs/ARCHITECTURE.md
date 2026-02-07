@@ -55,13 +55,14 @@ The `ragleaklab.cli` package splits the CLI into one file per command group:
 | `cli/app.py` | Root Typer app, wires sub-apps & top-level commands |
 | `cli/run.py` | `run` — execute attack test cases |
 | `cli/diff.py` | `diff` — compare reports for regressions |
-| `cli/bench.py` | `bench time` / `bench bundle` |
+| `cli/bench.py` | `bench time` / `bench bundle` / `bench publish` / `bench validate-results` |
 | `cli/attacks.py` | `attacks coverage` |
 | `cli/assets.py` | `assets build` / `assets validate` |
 | `cli/verify.py` | `verify determinism` |
 | `cli/report.py` | `report summarize` / `report annotate` |
 | `cli/calibrate.py` | `calibrate` — threshold calibration |
 | `cli/delta.py` | `delta run` — ingestion gate |
+| `cli/config_cmd.py` | `config validate` — config validation & JSON schema export |
 | `cli/version.py` | `version` — show version info |
 
 `__main__.py` re-exports `app` from `cli/app.py` and remains the entry-point.
@@ -133,13 +134,21 @@ attacks/*.yaml
 
 | Module | Location | Purpose |
 |--------|----------|---------|
+| **core** | `src/ragleaklab/core/` | Contracts (pydantic models), determinism engine, version, plugin system |
+| **config** | `src/ragleaklab/config/` | YAML config loading, validation, JSON schema export |
 | **corpus** | `src/ragleaklab/corpus/` | Load documents, chunk text, inject canaries |
 | **rag** | `src/ragleaklab/rag/` | TF-IDF retrieval, context building, mock generation |
 | **attacks** | `src/ragleaklab/attacks/` | Test case schema, strategy catalog, execution runner |
-| **targets** | `src/ragleaklab/targets/` | Adapters for in-process and HTTP RAG systems |
-| **metrics** | `src/ragleaklab/metrics/` | Canary detection, verbatim overlap, membership inference |
-| **reporting** | `src/ragleaklab/reporting/` | Report schema and output formatting |
+| **packs** | `src/ragleaklab/packs/` | Built-in threat packs (canary, verbatim, membership, semantic, crossdoc) |
+| **targets** | `src/ragleaklab/targets/` | Adapters for in-process, HTTP (with SSRF protection), and mock targets |
+| **metrics** | `src/ragleaklab/metrics/` | Canary detection, verbatim overlap, membership inference, semantic claims |
+| **reporting** | `src/ragleaklab/reporting/` | Report schema (JSON, SARIF, JUnit) and secret redaction |
 | **regression** | `src/ragleaklab/regression/` | Baseline comparison for CI gates |
+| **bench** | `src/ragleaklab/bench/` | Benchmark bundles, results publishing, validation |
+| **calibration** | `src/ragleaklab/calibration/` | Threshold calibration on labeled test sets |
+| **poisoning** | `src/ragleaklab/poisoning/` | Corpus poisoning detection (sentinel takeover, relevance hijack) |
+| **analysis** | `src/ragleaklab/analysis/` | Attack coverage analysis |
+| **assets** | `src/ragleaklab/assets/` | Asset generation and validation |
 
 ## Core Contracts
 

@@ -4,18 +4,45 @@ This document outlines planned features for upcoming RAGLeakLab releases.
 
 > [!NOTE]
 > This roadmap is subject to change based on community feedback and priorities.
+> For proposing new features, see [RFC.md](RFC.md).
 
 ---
 
-## v0.2.0 — Semantic Leakage Stabilization
+## v1.0.0 — Released ✅
 
-**Target:** Q1 2026
+The first stable release with a complete security testing toolkit.
 
-Focus on stabilizing and expanding semantic leakage detection.
+### Shipped Features
+
+- [x] Five leakage threat packs (canary, verbatim, membership, semantic, cross-document)
+- [x] Corpus poisoning detection (sentinel-takeover-safe pack)
+- [x] CI regression gates (`diff` command)
+- [x] Delta ingestion gates (corpus change detection)
+- [x] SARIF + JUnit + Markdown output formats
+- [x] Determinism verification (`verify determinism`)
+- [x] Cassette record/replay for HTTP targets
+- [x] Benchmark bundles (`bench bundle` / `bench publish`)
+- [x] Threshold calibration (`calibrate` command)
+- [x] Secret redaction (emails, API keys, canary tokens)
+- [x] Parallel execution (`--jobs N`)
+- [x] Query minimization (`--minimize-on-fail`)
+- [x] Plugin system (entry-point based)
+- [x] SSRF protection and domain allowlisting for HTTP targets
+- [x] Asset validation (`assets validate`)
+- [x] Config validation with JSON Schema export
+- [x] Docker support
+
+---
+
+## v1.1.0 — Semantic Leakage Expansion
+
+**Target:** Q2 2026
+
+Focus on deepening semantic leakage detection and improving claim taxonomy.
 
 ### Features
 
-- [ ] Extended semantic claim taxonomy (financial, medical, legal)
+- [ ] Extended semantic claim taxonomy (financial, medical, legal, PII)
 - [ ] Claim confidence scoring improvements
 - [ ] Semantic pack v2 with 80+ test cases
 - [ ] Improved attribution for semantic leaks
@@ -28,28 +55,7 @@ Focus on stabilizing and expanding semantic leakage detection.
 
 ---
 
-## v0.3.0 — Cross-Document Leakage
-
-**Target:** Q2 2026
-
-Detect information leakage that combines data from multiple documents.
-
-### Features
-
-- [ ] Cross-document inference detection
-- [ ] Multi-hop query attack strategies
-- [ ] Document relationship graph analysis
-- [ ] New metric: `cross_doc_leakage_rate`
-
-### Attack Strategies
-
-- [ ] `multi_doc_synthesis` — combine facts from separate docs
-- [ ] `implicit_relation` — infer relationships not explicitly stated
-- [ ] `temporal_correlation` — exploit document ordering
-
----
-
-## v0.4.0 — Membership Inference v2
+## v1.2.0 — Advanced Membership Inference
 
 **Target:** Q3 2026
 
@@ -70,16 +76,20 @@ Advanced membership inference with statistical rigor.
 
 ---
 
-## Future Ideas (Unscheduled)
+## v2.0.0 — Multi-Modal & Streaming
 
-- **Multi-modal support**: Image/audio in RAG pipelines
-- **Streaming detection**: Real-time leakage monitoring
-- **Policy engine**: Define allowed/forbidden disclosures
-- **LLM provider adapters**: OpenAI, Anthropic, local models
-- **Differential testing**: Compare RAG configurations
+**Target:** 2027
+
+### Features
+
+- [ ] Multi-modal support: image/audio in RAG pipelines
+- [ ] Streaming detection: real-time leakage monitoring
+- [ ] Policy engine: define allowed/forbidden disclosures
+- [ ] LLM provider adapters: OpenAI, Anthropic, local models
+- [ ] Differential testing: compare RAG configurations
 
 ---
 
 ## Contributing
 
-Have ideas for the roadmap? Open a [discussion](https://github.com/mishabar410/RAGLeakLab/discussions) or check [CONTRIBUTING.md](../CONTRIBUTING.md).
+Have ideas for the roadmap? Open a [discussion](https://github.com/mishabar410/RAGLeakLab/discussions), file an [RFC](RFC.md), or check [CONTRIBUTING.md](../CONTRIBUTING.md).

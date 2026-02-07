@@ -12,7 +12,7 @@ from ragleaklab.cli.verify import verify_app
 
 app = typer.Typer(
     name="ragleaklab",
-    help="RAGLeakLab - MVP security testing framework for RAG systems",
+    help="RAGLeakLab - Security testing framework for RAG systems",
     add_completion=False,
 )
 
@@ -41,5 +41,7 @@ _register_version(app)
 def main(ctx: typer.Context) -> None:
     """RAGLeakLab - Security testing framework for RAG systems."""
     if ctx.invoked_subcommand is None:
-        typer.echo("RAGLeakLab v0.1.0 - Security testing framework for RAG systems")
+        from ragleaklab import __version__
+
+        typer.echo(f"RAGLeakLab v{__version__} - Security testing framework for RAG systems")
         typer.echo("Use --help for available commands.")
