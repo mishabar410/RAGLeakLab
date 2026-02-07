@@ -116,12 +116,17 @@ def register(app: typer.Typer) -> None:
         # Determine mode: config file or CLI args
         if config is not None:
             from ragleaklab.config import HttpTargetConfig, load_config
+            from ragleaklab.config.load import ConfigError
 
             if not config.exists():
                 typer.echo(f"❌ Config file not found: {config}", err=True)
                 raise typer.Exit(1)
 
-            cfg = load_config(config)
+            try:
+                cfg = load_config(config)
+            except ConfigError as exc:
+                typer.echo(str(exc), err=True)
+                raise typer.Exit(1) from None
 
             # Get paths from config
             if cfg.corpus is None:

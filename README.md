@@ -194,6 +194,7 @@ target:
 |----------|-------------|
 | [docs/threat_model.md](docs/threat_model.md) | Formal threat model |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Module structure and data flow |
+| [docs/CONFIG.md](docs/CONFIG.md) | Configuration reference and schema |
 | [docs/REPORT_SCHEMA.md](docs/REPORT_SCHEMA.md) | Report field descriptions |
 | [docs/STABILITY.md](docs/STABILITY.md) | Stability policy and versioning |
 | [docs/EXTENDING.md](docs/EXTENDING.md) | Writing plugins |

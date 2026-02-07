@@ -5,6 +5,7 @@ import typer
 from ragleaklab.cli.assets import assets_app
 from ragleaklab.cli.attacks import attacks_app
 from ragleaklab.cli.bench import bench_app
+from ragleaklab.cli.config_cmd import config_app
 from ragleaklab.cli.delta import delta_app
 from ragleaklab.cli.report import report_app
 from ragleaklab.cli.verify import verify_app
@@ -19,6 +20,7 @@ app = typer.Typer(
 app.add_typer(bench_app, name="bench")
 app.add_typer(attacks_app, name="attacks")
 app.add_typer(assets_app, name="assets")
+app.add_typer(config_app, name="config")
 app.add_typer(verify_app, name="verify")
 app.add_typer(report_app, name="report")
 app.add_typer(delta_app, name="delta")
