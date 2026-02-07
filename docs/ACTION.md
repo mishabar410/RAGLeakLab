@@ -1,12 +1,11 @@
 # GitHub Action
 
-RAGLeakLab provides a composite GitHub Action for easy CI integration.
+RAGLeakLab provides a reusable composite GitHub Action. Use it with `uses: mishabar410/RAGLeakLab@v1`.
 
 ## Quick Start
 
 ```yaml
 name: RAG Security Audit
-
 on:
   push:
     branches: [main]
@@ -19,10 +18,10 @@ jobs:
       - uses: actions/checkout@v4
 
       - name: Run RAGLeakLab
-        uses: ./.github/actions/ragleaklab
+        uses: mishabar410/RAGLeakLab@v1
         with:
-          corpus_path: data/corpus
           pack: canary-basic
+          corpus_path: data/corpus
           out_dir: out/security
 ```
 
@@ -30,12 +29,14 @@ jobs:
 
 | Name | Required | Default | Description |
 |------|----------|---------|-------------|
-| `config_path` | No | — | Path to `ragleaklab.yaml` config file |
 | `pack` | No | — | Attack pack: `canary-basic`, `verbatim-basic`, `semantic-basic` |
+| `config_path` | No | — | Path to `ragleaklab.yaml` config file |
 | `corpus_path` | No | — | Path to corpus directory |
 | `attacks_path` | No | — | Path to attacks YAML file or directory |
-| `baseline_path` | No | — | Path to baseline `report.json` for regression |
-| `out_dir` | **Yes** | — | Output directory for reports |
+| `baseline_dir` | No | — | Path to baseline directory (contains `report.json`) |
+| `out_dir` | No | `out` | Output directory for reports |
+| `fail_on_findings` | No | `true` | Fail the step if findings are detected |
+| `summary_top` | No | `20` | Number of top findings in step summary |
 | `python_version` | No | `3.12` | Python version |
 | `upload_artifacts` | No | `true` | Upload reports as GitHub artifacts |
 | `artifact_name` | No | `ragleaklab-reports` | Name for uploaded artifact |
@@ -51,49 +52,97 @@ jobs:
 
 ## Examples
 
-### Using a Config File
+### PR Security Gate
 
 ```yaml
-- uses: ./.github/actions/ragleaklab
-  with:
-    config_path: ragleaklab.yaml
-    out_dir: out/
+name: Security Gate
+on: [pull_request]
+
+jobs:
+  audit:
+    runs-on: ubuntu-latest
+    permissions:
+      security-events: write    # for SARIF upload
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run audit
+        id: audit
+        uses: mishabar410/RAGLeakLab@v1
+        with:
+          pack: canary-basic
+          corpus_path: data/corpus
+          out_dir: out/
+          fail_on_findings: true
+
+      - name: Upload SARIF
+        if: always()
+        uses: github/codeql-action/upload-sarif@v3
+        with:
+          sarif_file: ${{ steps.audit.outputs.sarif_path }}
 ```
 
 ### With Baseline Regression
 
 ```yaml
-- uses: ./.github/actions/ragleaklab
+- name: Run audit
+  uses: mishabar410/RAGLeakLab@v1
   with:
+    pack: canary-basic
     corpus_path: data/corpus
-    attacks_path: data/attacks
-    baseline_path: baselines/v1/report.json
+    baseline_dir: baselines/v1
     out_dir: out/
 ```
 
-### Multiple Packs
+### Config File Mode
 
 ```yaml
-- uses: ./.github/actions/ragleaklab
+- name: Run audit
+  uses: mishabar410/RAGLeakLab@v1
   with:
-    corpus_path: data/corpus
-    pack: canary-basic
-    out_dir: out/canary
+    config_path: ragleaklab.yaml
+    out_dir: out/
+```
 
-- uses: ./.github/actions/ragleaklab
-  with:
-    corpus_path: data/corpus
-    pack: semantic-basic
-    out_dir: out/semantic
+### Nightly Benchmark Bundle (schedule)
+
+```yaml
+name: Nightly Bench
+on:
+  schedule:
+    - cron: "0 3 * * *"
+
+jobs:
+  bench:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - uses: astral-sh/setup-uv@v4
+
+      - name: Install
+        run: uv sync --frozen
+
+      - name: Run benchmark bundle
+        run: uv run python -m ragleaklab bench run --manifest bench/bundle.yaml --out out/bench
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: bench-results
+          path: out/bench/
 ```
 
 ### Using Outputs
 
 ```yaml
-- uses: ./.github/actions/ragleaklab
+- uses: mishabar410/RAGLeakLab@v1
   id: audit
   with:
-    corpus_path: data/corpus
     pack: canary-basic
     out_dir: out/
 
@@ -105,74 +154,39 @@ jobs:
 
 ## Features
 
-- **Automatic exports**: Generates `report.json`, `junit.xml`, and `results.sarif`
+- **Auto setup**: Installs Python, uv, and dependencies
+- **Multiple formats**: Generates `report.json`, `junit.xml`, and `results.sarif`
 - **Artifact upload**: Reports uploaded as GitHub artifacts by default
-- **SARIF integration**: Findings appear in GitHub Security tab
-- **Regression support**: Compare against baseline with `baseline_path`
+- **Step summary**: Findings appear in Actions tab summary (markdown)
+- **PR annotations**: Inline `::error::` / `::warning::` annotations in PR diffs
+- **SARIF integration**: Findings in GitHub Security tab
+- **Regression support**: Compare against baseline with `baseline_dir`
+- **Configurable gate**: `fail_on_findings` controls whether findings fail the job
 
 ## SARIF Integration
 
-The action automatically uploads SARIF results to GitHub's Code Scanning. Findings will appear under **Security → Code scanning alerts**.
+The action generates SARIF results. Upload them with `github/codeql-action/upload-sarif` to populate the **Security → Code scanning alerts** tab.
 
 > [!NOTE]
-> SARIF upload requires the repository to have GitHub Advanced Security enabled, or be a public repository.
+> SARIF upload requires GitHub Advanced Security enabled, or a public repository.
 
 ## Step Summary
 
-When the action runs, a detailed markdown summary is automatically written to `$GITHUB_STEP_SUMMARY`. This appears in the **Actions** tab without needing to download artifacts:
-
-**What's shown:**
-- Overall pass/fail status with metrics
-- Top 20 findings with what leaked and why
-- Attribution categories (root cause analysis)
+A markdown summary is automatically written to `$GITHUB_STEP_SUMMARY` showing:
+- Overall pass/fail status
+- Top findings with evidence
+- Attribution categories
 - Remediation hints
-- Integrity findings from poisoning packs
-
-**CLI command used:**
-```bash
-ragleaklab report summarize --in $OUT_DIR --top 20 --format md
-```
-
-## PR Annotations
-
-Security findings appear as inline annotations in Pull Requests using GitHub's workflow commands:
-
-```
-::error title=Canary Token Leaked::Test xyz leaked canary token in answer
-::warning title=Integrity::Query corrupted claim detected (medium)
-```
-
-**CLI command used:**
-```bash
-ragleaklab report annotate --in $OUT_DIR --max 30
-```
-
-> [!TIP]
-> Annotations show directly in the PR diff and Files changed tabs, making it easy to see what failed without clicking through to the action logs.
 
 ## CLI Commands for CI
 
-### Generate MD Summary
-
 ```bash
-ragleaklab report summarize --in out/ --top 20 --format md
-```
-
-### Emit GitHub Annotations
-
-```bash
-ragleaklab report annotate --in out/ --max 50
-```
-
-### Complete CI Flow
-
-```bash
-# Run security audit
-ragleaklab run --pack canary-basic --out out/
+# Run scan
+ragleaklab run --pack canary-basic --out out/ --format sarif --format junit
 
 # Write step summary
-ragleaklab report summarize --in out/ --format md >> $GITHUB_STEP_SUMMARY
+ragleaklab report summarize --in out/ --top 20 --format md >> $GITHUB_STEP_SUMMARY
 
 # Emit PR annotations
-ragleaklab report annotate --in out/
+ragleaklab report annotate --in out/ --max 30
 ```

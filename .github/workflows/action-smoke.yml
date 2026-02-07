@@ -1,0 +1,35 @@
+# Action smoke test — verifies the composite action works locally.
+# Uses `uses: ./` to test the root action.yml without publishing.
+name: Action Smoke
+
+on:
+  workflow_dispatch:
+  # Not in PR CI by default; uncomment to run on push:
+  # push:
+  #   branches: [main]
+
+jobs:
+  action-smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Run RAGLeakLab action (basic pack)
+        id: audit
+        uses: ./
+        with:
+          pack: canary-basic
+          out_dir: out/action-smoke
+          fail_on_findings: false
+          upload_artifacts: false
+
+      - name: Verify outputs
+        run: |
+          echo "Status: ${{ steps.audit.outputs.status }}"
+          echo "Report: ${{ steps.audit.outputs.report_path }}"
+
+          # report.json must exist
+          test -f "${{ steps.audit.outputs.report_path }}" \
+            || { echo "❌ report.json not found"; exit 1; }
+
+          echo "✅ Action smoke passed"

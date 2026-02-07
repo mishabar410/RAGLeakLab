@@ -1,0 +1,183 @@
+name: "RAGLeakLab Security Audit"
+description: "Run RAGLeakLab security scans against a RAG system and produce reports."
+author: "mishabar410"
+
+branding:
+  icon: "shield"
+  color: "red"
+
+inputs:
+  pack:
+    description: "Attack pack to run (e.g. canary-basic, verbatim-basic, semantic-basic)."
+    required: false
+    default: ""
+  config_path:
+    description: "Path to ragleaklab.yaml config file."
+    required: false
+    default: ""
+  corpus_path:
+    description: "Path to corpus directory (when not using config)."
+    required: false
+    default: ""
+  attacks_path:
+    description: "Path to attacks YAML file or directory (when not using config)."
+    required: false
+    default: ""
+  baseline_dir:
+    description: "Path to baseline report.json for regression comparison."
+    required: false
+    default: ""
+  out_dir:
+    description: "Output directory for reports."
+    required: false
+    default: "out"
+  fail_on_findings:
+    description: "Fail the action if findings are detected."
+    required: false
+    default: "true"
+  summary_top:
+    description: "Number of top findings to show in step summary."
+    required: false
+    default: "20"
+  python_version:
+    description: "Python version to use."
+    required: false
+    default: "3.12"
+  upload_artifacts:
+    description: "Upload reports as GitHub artifacts."
+    required: false
+    default: "true"
+  artifact_name:
+    description: "Name for uploaded artifact."
+    required: false
+    default: "ragleaklab-reports"
+
+outputs:
+  report_path:
+    description: "Path to report.json"
+    value: ${{ steps.paths.outputs.report_path }}
+  sarif_path:
+    description: "Path to results.sarif"
+    value: ${{ steps.paths.outputs.sarif_path }}
+  junit_path:
+    description: "Path to junit.xml"
+    value: ${{ steps.paths.outputs.junit_path }}
+  status:
+    description: "Audit result: pass or fail"
+    value: ${{ steps.run.outputs.status }}
+
+runs:
+  using: "composite"
+  steps:
+    # ── setup ────────────────────────────────────────────────────
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: ${{ inputs.python_version }}
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v4
+
+    - name: Install dependencies
+      shell: bash
+      run: uv sync --frozen
+
+    # ── run scan ─────────────────────────────────────────────────
+    - name: Run RAGLeakLab
+      id: run
+      shell: bash
+      run: |
+        set +e
+        ARGS="--out ${{ inputs.out_dir }} --format sarif --format junit"
+
+        if [ -n "${{ inputs.config_path }}" ]; then
+          ARGS="--config ${{ inputs.config_path }} $ARGS"
+        fi
+
+        if [ -n "${{ inputs.pack }}" ]; then
+          ARGS="--pack ${{ inputs.pack }} $ARGS"
+        fi
+
+        if [ -n "${{ inputs.corpus_path }}" ]; then
+          ARGS="--corpus ${{ inputs.corpus_path }} $ARGS"
+        fi
+
+        if [ -n "${{ inputs.attacks_path }}" ]; then
+          ARGS="--attacks ${{ inputs.attacks_path }} $ARGS"
+        fi
+
+        uv run python -m ragleaklab run $ARGS
+        RUN_EXIT=$?
+
+        if [ $RUN_EXIT -eq 0 ]; then
+          echo "status=pass" >> "$GITHUB_OUTPUT"
+        else
+          echo "status=fail" >> "$GITHUB_OUTPUT"
+        fi
+
+        # Propagate failure only if fail_on_findings is true
+        if [ "${{ inputs.fail_on_findings }}" = "true" ] && [ $RUN_EXIT -ne 0 ]; then
+          SHOULD_FAIL=true
+        else
+          SHOULD_FAIL=false
+        fi
+        echo "should_fail=$SHOULD_FAIL" >> "$GITHUB_OUTPUT"
+
+    # ── regression diff ──────────────────────────────────────────
+    - name: Regression diff
+      if: inputs.baseline_dir != ''
+      shell: bash
+      run: |
+        uv run python -m ragleaklab diff \
+          --baseline ${{ inputs.baseline_dir }}/report.json \
+          --current ${{ inputs.out_dir }}/report.json || true
+
+    # ── step summary ─────────────────────────────────────────────
+    - name: Generate step summary
+      shell: bash
+      run: |
+        if [ -f "${{ inputs.out_dir }}/report.json" ]; then
+          uv run python -m ragleaklab report summarize \
+            --in ${{ inputs.out_dir }} \
+            --top ${{ inputs.summary_top }} \
+            --format md >> "$GITHUB_STEP_SUMMARY" 2>/dev/null || true
+        fi
+
+    # ── PR annotations ───────────────────────────────────────────
+    - name: Emit PR annotations
+      shell: bash
+      run: |
+        if [ -f "${{ inputs.out_dir }}/report.json" ]; then
+          uv run python -m ragleaklab report annotate \
+            --in ${{ inputs.out_dir }} --max 30 2>/dev/null || true
+        fi
+
+    # ── output paths ─────────────────────────────────────────────
+    - name: Set output paths
+      id: paths
+      shell: bash
+      run: |
+        echo "report_path=${{ inputs.out_dir }}/report.json" >> "$GITHUB_OUTPUT"
+        echo "sarif_path=${{ inputs.out_dir }}/results.sarif" >> "$GITHUB_OUTPUT"
+        echo "junit_path=${{ inputs.out_dir }}/junit.xml" >> "$GITHUB_OUTPUT"
+
+    # ── upload artifacts ─────────────────────────────────────────
+    - name: Upload reports
+      if: inputs.upload_artifacts == 'true'
+      uses: actions/upload-artifact@v4
+      with:
+        name: ${{ inputs.artifact_name }}
+        path: |
+          ${{ inputs.out_dir }}/report.json
+          ${{ inputs.out_dir }}/results.sarif
+          ${{ inputs.out_dir }}/junit.xml
+          ${{ inputs.out_dir }}/runs.jsonl
+        if-no-files-found: warn
+
+    # ── fail gate ────────────────────────────────────────────────
+    - name: Fail on findings
+      if: steps.run.outputs.should_fail == 'true'
+      shell: bash
+      run: |
+        echo "❌ RAGLeakLab found security issues. See step summary above."
+        exit 1
