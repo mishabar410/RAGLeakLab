@@ -84,8 +84,7 @@ def validate_suppressions(
 
         if expires <= now:
             errors.append(
-                f"Suppression {s.id} ({s.type.value}={s.value}): "
-                f"expired at {expires.isoformat()}"
+                f"Suppression {s.id} ({s.type.value}={s.value}): expired at {expires.isoformat()}"
             )
 
     return errors

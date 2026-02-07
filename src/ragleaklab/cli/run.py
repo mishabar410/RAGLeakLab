@@ -458,9 +458,7 @@ def register(app: typer.Typer) -> None:
             if remaining_failures:
                 effective_verdict = "fail"
                 # Rebuild FailureReason list from remaining
-                failures = [
-                    FailureReason(**f) for f in remaining_failures
-                ]
+                failures = [FailureReason(**f) for f in remaining_failures]
             else:
                 effective_verdict = "pass" if not remaining_failures else "fail"
                 failures = [FailureReason(**f) for f in remaining_failures]
@@ -657,8 +655,7 @@ def register(app: typer.Typer) -> None:
 
         if suppression_summary and suppression_summary.applied_suppressions > 0:
             typer.echo(
-                f"   Suppressed: {suppression_summary.applied_suppressions} finding(s) "
-                f"(known risk)"
+                f"   Suppressed: {suppression_summary.applied_suppressions} finding(s) (known risk)"
             )
 
         if not report.overall_pass:

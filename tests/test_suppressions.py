@@ -96,9 +96,7 @@ class TestSuppressionSchema:
 
     def test_all_types(self):
         for t in SuppressionType:
-            s = Suppression(
-                id="x", type=t, value="v", reason="r", expires_at=FUTURE
-            )
+            s = Suppression(id="x", type=t, value="v", reason="r", expires_at=FUTURE)
             assert s.type == t
 
     def test_optional_owner(self):
@@ -293,9 +291,7 @@ class TestApplier:
             expires_at=FUTURE,
         )
         case = {"test_id": "canary-001", "canary_detected": True}
-        is_suppressed, record = apply_suppressions_to_case(
-            case, [sup], now=NOW
-        )
+        is_suppressed, record = apply_suppressions_to_case(case, [sup], now=NOW)
         assert is_suppressed
         assert record is not None
         assert record.suppression_id == "s1"
@@ -309,9 +305,7 @@ class TestApplier:
             expires_at=FUTURE,
         )
         case = {"test_id": "canary-001"}
-        is_suppressed, record = apply_suppressions_to_case(
-            case, [sup], now=NOW
-        )
+        is_suppressed, record = apply_suppressions_to_case(case, [sup], now=NOW)
         assert not is_suppressed
         assert record is None
 
@@ -324,9 +318,7 @@ class TestApplier:
             expires_at=PAST,
         )
         case = {"test_id": "canary-001"}
-        is_suppressed, _record = apply_suppressions_to_case(
-            case, [sup], now=NOW
-        )
+        is_suppressed, _record = apply_suppressions_to_case(case, [sup], now=NOW)
         assert not is_suppressed
 
     def test_suppress_metric_failure(self):
@@ -341,9 +333,7 @@ class TestApplier:
             {"threat": "canary", "reason": "Canary detected", "value": 1, "threshold": 0},
             {"threat": "verbatim", "reason": "High overlap", "value": 0.5, "threshold": 0.1},
         ]
-        remaining, applied = apply_suppressions_to_failures(
-            failures, [sup], now=NOW
-        )
+        remaining, applied = apply_suppressions_to_failures(failures, [sup], now=NOW)
         assert len(remaining) == 1
         assert remaining[0]["threat"] == "verbatim"
         assert len(applied) == 1
@@ -361,17 +351,13 @@ class TestApplier:
         failures = [
             {"threat": "canary", "reason": "Canary", "value": 1, "threshold": 0},
         ]
-        remaining, applied = apply_suppressions_to_failures(
-            failures, [sup], now=NOW
-        )
+        remaining, applied = apply_suppressions_to_failures(failures, [sup], now=NOW)
         assert len(remaining) == 0
         assert len(applied) == 1
 
         # Build summary
         sf = SuppressionFile(suppressions=[sup])
-        summary = build_suppression_summary(
-            sf, applied, "fail", "pass", now=NOW
-        )
+        summary = build_suppression_summary(sf, applied, "fail", "pass", now=NOW)
         assert summary.verdict_changed
         assert summary.original_verdict == "fail"
         assert summary.effective_verdict == "pass"

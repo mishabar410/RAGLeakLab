@@ -199,6 +199,26 @@ Integration recipes show how to connect RAGLeakLab to specific RAG frameworks.
 
 ---
 
+## Baseline Update Rules
+
+Files under `baselines/` are regression anchors — changing them requires
+a strict, auditable process.  **Do not** update baselines inside feature PRs.
+
+### Requirements for a baseline update PR
+
+1. **Dedicated PR** — no `src/` changes (docs/changelog only)
+2. **`baseline-approved` label** — applied by a maintainer after review
+3. **`docs/baseline_update.md`** in the PR diff, containing:
+   - What changed and why
+   - Reference to a `calibration_report.json`
+4. **Calibration report** — proves the new values are correct
+
+CI will **automatically reject** baseline PRs that don't meet these conditions.
+
+See [docs/BASELINE_POLICY.md](docs/BASELINE_POLICY.md) for the full policy.
+
+---
+
 ## Definition of Done
 
 Before a PR can be merged, **all of the following must pass**:

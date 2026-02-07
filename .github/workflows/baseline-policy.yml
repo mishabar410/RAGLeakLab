@@ -1,0 +1,173 @@
+name: Baseline Policy
+
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - "baselines/**"
+
+jobs:
+  baseline-policy-check:
+    name: Baseline Update Policy
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Detect baseline changes
+        id: detect
+        run: |
+          # Get list of changed files in this PR
+          CHANGED=$(git diff --name-only origin/main...HEAD)
+          echo "::group::Changed files"
+          echo "$CHANGED"
+          echo "::endgroup::"
+
+          # Check if baselines are changed
+          BASELINE_CHANGES=$(echo "$CHANGED" | grep '^baselines/' || true)
+          if [ -n "$BASELINE_CHANGES" ]; then
+            echo "has_baseline_changes=true" >> $GITHUB_OUTPUT
+            echo "baseline_files<<EOF" >> $GITHUB_OUTPUT
+            echo "$BASELINE_CHANGES" >> $GITHUB_OUTPUT
+            echo "EOF" >> $GITHUB_OUTPUT
+          else
+            echo "has_baseline_changes=false" >> $GITHUB_OUTPUT
+          fi
+
+          # Check if src/ is also changed (warning)
+          SRC_CHANGES=$(echo "$CHANGED" | grep '^src/' || true)
+          if [ -n "$SRC_CHANGES" ]; then
+            echo "has_src_changes=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_src_changes=false" >> $GITHUB_OUTPUT
+          fi
+
+          # Check if justification file exists in diff
+          JUSTIFICATION=$(echo "$CHANGED" | grep '^docs/baseline_update.md$' || true)
+          if [ -n "$JUSTIFICATION" ]; then
+            echo "has_justification=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_justification=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Check for baseline-approved label
+        if: steps.detect.outputs.has_baseline_changes == 'true'
+        id: label
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const labels = context.payload.pull_request.labels.map(l => l.name);
+            const hasLabel = labels.includes('baseline-approved');
+            core.setOutput('has_label', hasLabel.toString());
+            if (!hasLabel) {
+              core.warning('PR is missing the "baseline-approved" label');
+            }
+
+      - name: Validate justification content
+        if: >-
+          steps.detect.outputs.has_baseline_changes == 'true'
+          && steps.detect.outputs.has_justification == 'true'
+        id: validate_justification
+        run: |
+          JUSTIFICATION_FILE="docs/baseline_update.md"
+          if [ ! -f "$JUSTIFICATION_FILE" ]; then
+            echo "has_calibration_ref=false" >> $GITHUB_OUTPUT
+            exit 0
+          fi
+
+          # Check for calibration report reference
+          if grep -qi 'calibration_report' "$JUSTIFICATION_FILE"; then
+            echo "has_calibration_ref=true" >> $GITHUB_OUTPUT
+          else
+            echo "has_calibration_ref=false" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Enforce baseline policy
+        if: steps.detect.outputs.has_baseline_changes == 'true'
+        run: |
+          ERRORS=0
+          echo "======================================"
+          echo "  Baseline Policy Check"
+          echo "======================================"
+          echo ""
+          echo "Changed baseline files:"
+          echo "${{ steps.detect.outputs.baseline_files }}"
+          echo ""
+
+          # Check 1: Label
+          if [ "${{ steps.label.outputs.has_label }}" != "true" ]; then
+            echo "❌ Missing label: baseline-approved"
+            echo "   → Ask a maintainer to add the 'baseline-approved' label to this PR"
+            ERRORS=$((ERRORS + 1))
+          else
+            echo "✅ Label 'baseline-approved' present"
+          fi
+
+          # Check 2: Justification file
+          if [ "${{ steps.detect.outputs.has_justification }}" != "true" ]; then
+            echo "❌ Missing file: docs/baseline_update.md"
+            echo "   → Add a justification document explaining the baseline changes"
+            echo "   → See docs/BASELINE_POLICY.md for the required format"
+            ERRORS=$((ERRORS + 1))
+          else
+            echo "✅ Justification file present"
+          fi
+
+          # Check 3: Calibration report reference
+          if [ "${{ steps.detect.outputs.has_justification }}" == "true" ]; then
+            CALIB="${{ steps.validate_justification.outputs.has_calibration_ref }}"
+            if [ "$CALIB" != "true" ]; then
+              echo "❌ Justification missing calibration_report reference"
+              echo "   → docs/baseline_update.md must reference a calibration_report.json"
+              ERRORS=$((ERRORS + 1))
+            else
+              echo "✅ Calibration report referenced"
+            fi
+          fi
+
+          # Check 4: Source code changes (warning only)
+          if [ "${{ steps.detect.outputs.has_src_changes }}" == "true" ]; then
+            echo "⚠️  Warning: src/ files changed alongside baselines"
+            echo "   → Baseline updates should be in dedicated PRs (no feature code)"
+          fi
+
+          echo ""
+          if [ $ERRORS -gt 0 ]; then
+            echo "======================================"
+            echo "❌ Baseline Policy Check FAILED ($ERRORS error(s))"
+            echo "======================================"
+            echo ""
+            echo "To update baselines:"
+            echo "  1. Add docs/baseline_update.md with justification"
+            echo "  2. Include a calibration_report reference"
+            echo "  3. Request the 'baseline-approved' label from a maintainer"
+            echo "  4. Push again"
+            exit 1
+          else
+            echo "======================================"
+            echo "✅ Baseline Policy Check PASSED"
+            echo "======================================"
+          fi
+
+      - name: Generate step summary
+        if: always() && steps.detect.outputs.has_baseline_changes == 'true'
+        run: |
+          cat >> $GITHUB_STEP_SUMMARY <<'EOF'
+          ## Baseline Policy Check
+
+          | Condition | Status |
+          |-----------|--------|
+          | Label `baseline-approved` | ${{ steps.label.outputs.has_label == 'true' && '✅' || '❌' }} |
+          | Justification file | ${{ steps.detect.outputs.has_justification == 'true' && '✅' || '❌' }} |
+          | Calibration reference | ${{ steps.validate_justification.outputs.has_calibration_ref == 'true' && '✅' || '❌ or N/A' }} |
+          | No src/ changes | ${{ steps.detect.outputs.has_src_changes == 'true' && '⚠️' || '✅' }} |
+
+          **Changed baselines:**
+          ```
+          ${{ steps.detect.outputs.baseline_files }}
+          ```
+
+          See [Baseline Policy](docs/BASELINE_POLICY.md) for details.
+          EOF
