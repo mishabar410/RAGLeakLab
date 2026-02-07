@@ -1,11 +1,13 @@
 name: Feature Request
-description: Suggest a new feature or enhancement
+description: Suggest a new feature, threat pack, metric, or integration
 labels: ["enhancement"]
 body:
   - type: markdown
     attributes:
       value: |
         Thanks for your feature suggestion!
+        For new threat packs, metrics, or schema changes, consider using the
+        [RFC process](../../docs/RFC.md).
 
   - type: textarea
     id: problem
@@ -36,13 +38,42 @@ body:
     attributes:
       label: Category
       options:
-        - New attack type
+        - New threat pack
         - New metric
+        - New claim type
+        - New integration recipe
         - CLI improvement
         - CI/CD integration
         - Documentation
         - Performance
         - Other
+    validations:
+      required: true
+
+  - type: dropdown
+    id: baseline_impact
+    attributes:
+      label: Baseline Impact
+      description: Would this change affect existing report outputs or baselines?
+      options:
+        - "No — additive only"
+        - "Yes — new fields in reports"
+        - "Yes — changes existing metrics"
+        - "Yes — breaking change"
+        - "Not sure"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: determinism
+    attributes:
+      label: Determinism
+      description: Can this feature be implemented deterministically (no network, seeded randomness)?
+      options:
+        - "Yes — fully offline and deterministic"
+        - "Mostly — needs network for setup but runs offline"
+        - "No — requires live network"
+        - "Not sure"
     validations:
       required: true
 
@@ -57,7 +88,7 @@ body:
     attributes:
       label: Checklist
       options:
-        - label: I have searched existing issues for duplicates
+        - label: I have searched existing issues and RFCs for overlap
           required: true
         - label: I would be willing to submit a PR for this feature
           required: false

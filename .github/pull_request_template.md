@@ -10,17 +10,42 @@
 
 - [ ] Bug fix (non-breaking change that fixes an issue)
 - [ ] New feature (non-breaking change that adds functionality)
+- [ ] New threat pack
+- [ ] New metric
+- [ ] New integration recipe
 - [ ] Breaking change (fix or feature that changes existing behavior)
 - [ ] Documentation update
 - [ ] Refactoring (no functional changes)
+
+## Packs Affected
+
+<!-- Which packs does this change affect? "None" if not pack-related -->
+
+
+## Baseline / Output Impact
+
+<!-- Does this change affect report.json, runs.jsonl, SARIF, or JUnit outputs? -->
+<!-- If yes, describe what changed and include a diff: -->
+
+```diff
+<!-- Paste output diff here if applicable -->
+```
+
+## Determinism
+
+- [ ] I have verified this produces identical output across 2+ runs
+- [ ] All randomness uses explicit seeds
+- [ ] No new network calls in tests
 
 ## Checklist
 
 - [ ] My code follows the project's style guidelines (`ruff format`, `ruff check`)
 - [ ] I have added tests that prove my fix/feature works
-- [ ] All existing tests pass (`pytest`)
+- [ ] All existing tests pass (`uv run pytest -q`)
+- [ ] Asset validation passes (`uv run ragleaklab assets validate --path .`)
 - [ ] I have updated documentation if needed
 - [ ] My commits follow conventional commit format
+- [ ] No secrets or PII in code or test data
 
 ## Testing
 
@@ -29,8 +54,9 @@
 ```bash
 # Commands used to test
 uv run pytest tests/test_...
+bash scripts/ci_smoke.sh
 ```
 
 ## Screenshots (if applicable)
 
-<!-- Add screenshots for UI/output changes -->
+<!-- Add screenshots for output/format changes -->

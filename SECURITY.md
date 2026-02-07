@@ -38,9 +38,10 @@ This policy covers the RAGLeakLab codebase. For vulnerabilities in:
 
 ## Supported Versions
 
-| Version | Supported |
-|---------|-----------|
-| 0.1.x   | ✅ Yes    |
+| Version | Supported          |
+|---------|--------------------|
+| 1.0.x   | ✅ Yes (current)   |
+| 0.1.x   | ⚠️ Security only   |
 
 ## Security Features
 

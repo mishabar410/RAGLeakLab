@@ -48,7 +48,7 @@ We use [Conventional Commits](https://www.conventionalcommits.org/):
 
 **Types:**
 | Type | Use for |
-|------|---------|
+|---------|---------|
 | `feat` | New feature |
 | `fix` | Bug fix |
 | `docs` | Documentation only |
@@ -91,6 +91,114 @@ test: add fuzz tests for YAML parsing
 - Performance improvements
 - CI/tooling enhancements
 
+---
+
+## Contributing Threat Packs
+
+Threat packs are the core units of RAGLeakLab's security testing.
+Each pack contains attack queries, expected corpora, and pass/fail logic.
+
+### How to Add a New Pack
+
+1. Create a directory under `data/attacks/` or as a standalone pack YAML:
+   ```
+   data/attacks/my_new_pack/
+   ├── pack.yaml          # Pack manifest
+   ├── queries.jsonl       # Attack queries
+   └── expected.jsonl      # Expected outcomes (optional)
+   ```
+
+2. The `pack.yaml` must validate against the pack schema:
+   ```yaml
+   name: my_new_pack
+   version: "1.0"
+   claim_type: verbatim     # verbatim | membership | canary | semantic
+   description: "Tests for ..."
+   ```
+
+3. Run asset validation: `uv run ragleaklab assets validate --path data/attacks/my_new_pack/`
+
+4. Add a test in `tests/` that exercises your pack with a mock target.
+
+5. Verify determinism: run twice, compare outputs.
+
+### Pack Guidelines
+
+- **One claim type per pack** — don't mix verbatim and membership tests
+- **Synthetic data only** — never include real PII, secrets, or customer data
+- **Deterministic queries** — no random generation without explicit seeds
+- **Document thresholds** — explain what pass/fail means for your pack
+
+---
+
+## Contributing Metrics
+
+Metrics evaluate RAG responses against leakage criteria.
+
+### How to Add a New Metric
+
+1. Create a module in `src/ragleaklab/metrics/`:
+   ```python
+   # src/ragleaklab/metrics/my_metric.py
+   from ragleaklab.metrics.base import MetricResult
+
+   def compute_my_metric(response: str, reference: str, **kwargs) -> MetricResult:
+       score = ...
+       return MetricResult(name="my_metric", score=score, passed=score < threshold)
+   ```
+
+2. Register in `src/ragleaklab/metrics/__init__.py`.
+
+3. Add tests — at minimum:
+   - Known-pass case
+   - Known-fail case
+   - Edge cases (empty strings, very long text, unicode)
+
+4. Update `docs/V1_CONTRACTS.md` if this metric becomes part of the public API.
+
+### Metric Guidelines
+
+- **Pure functions** — no side effects, no network calls
+- **Deterministic** — same inputs → same outputs, always
+- **Bounded scores** — output scores in `[0, 1]` range
+- **Document interpretation** — what does 0.0 mean? What does 1.0 mean?
+
+---
+
+## Contributing Integration Recipes
+
+Integration recipes show how to connect RAGLeakLab to specific RAG frameworks.
+
+### How to Add a Recipe
+
+1. Create a directory under `integrations/`:
+   ```
+   integrations/my_framework/
+   ├── README.md           # How to run, config example, expected outputs
+   └── ragleaklab.yaml     # Working config example
+   ```
+
+2. The `ragleaklab.yaml` must validate against `ConfigRoot`:
+   ```bash
+   uv run python -c "from ragleaklab.config import load_config; load_config('integrations/my_framework/ragleaklab.yaml')"
+   ```
+
+3. The README must include:
+   - **Prerequisites** — what the user needs installed
+   - **How to Run** — exact commands
+   - **Config Example** — explanation of key fields
+   - **What Outputs to Expect** — sample output description
+
+4. Tests in `tests/test_integrations.py` will auto-discover your config.
+
+### Recipe Guidelines
+
+- **No network in tests** — integration smoke tests validate config only
+- **Use `${ENV_VAR}`** — never hardcode credentials
+- **Link, don't copy** — if there's an existing example, reference it
+
+---
+
 ## Definition of Done
 
 Before a PR can be merged, **all of the following must pass**:
@@ -103,7 +211,7 @@ Before a PR can be merged, **all of the following must pass**:
 | ✅ Asset validation | `uv run python -m ragleaklab assets validate --path .` |
 | ✅ E2E tests | `uv run pytest tests/test_cli_e2e.py` |
 
-You can run all CI checks locally with: `make ci`
+You can run all CI checks locally with: `bash scripts/ci_smoke.sh`
 
 ## Determinism Rules
 
@@ -127,6 +235,15 @@ To ensure reproducible builds and tests:
 ### 4. Schema Version Bumping
 - Changes to report schema require bumping `SCHEMA_VERSION` in `src/ragleaklab/reporting/schema.py`
 - Document schema changes in the PR description
+
+## RFC Process
+
+For proposing new threat packs, metrics, or major features, see [docs/RFC.md](docs/RFC.md).
+
+## Good First Issues
+
+New to the project? See [docs/GOOD_FIRST_ISSUES.md](docs/GOOD_FIRST_ISSUES.md) for
+beginner-friendly tasks.
 
 ## Questions?
 
