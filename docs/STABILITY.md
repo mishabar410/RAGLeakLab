@@ -112,3 +112,19 @@ When modifying public artifact structure:
 
 > [!CAUTION]
 > Breaking changes to public artifacts require a major schema version bump and must be documented as breaking changes.
+
+## V1 Breaking Change Policy
+
+Starting with **v1.0.0**, all contracts listed in [V1_CONTRACTS.md](V1_CONTRACTS.md)
+are frozen. Any breaking change requires **all** of the following:
+
+1. **MAJOR bump** to `schema_version` in reports (e.g. `2.0.0` → `3.0.0`)
+2. **Update golden samples** in `tests/contracts/golden/` to reflect the new schema
+3. **Update contract tests** — all tests in `tests/contracts/` must pass
+4. **Release note** with the label **"Breaking"** in CHANGELOG.md
+5. **PR title** prefixed with `breaking:` to ensure visibility in review
+
+> [!IMPORTANT]
+> Adding new **optional** fields is not a breaking change and requires only a
+> MINOR bump to `schema_version`. Removing or renaming any field documented in
+> `V1_CONTRACTS.md` is always considered breaking.
