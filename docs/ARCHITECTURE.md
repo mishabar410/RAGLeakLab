@@ -7,7 +7,10 @@ RAGLeakLab follows a modular pipeline architecture for security testing of RAG s
 ```
 ┌─────────────────────────────────────────────────────────────────┐
 │                           CLI Layer                              │
-│                    (ragleaklab run / diff)                       │
+│  __main__.py → cli/app.py (router)                              │
+│  ┌─────┐ ┌─────┐ ┌─────┐ ┌──────┐ ┌──────┐ ┌──────┐          │
+│  │ run │ │diff │ │bench│ │report│ │assets│ │ ...  │          │
+│  └─────┘ └─────┘ └─────┘ └──────┘ └──────┘ └──────┘          │
 └─────────────────────────┬───────────────────────────────────────┘
                           │
 ┌─────────────────────────▼───────────────────────────────────────┐
@@ -42,6 +45,26 @@ RAGLeakLab follows a modular pipeline architecture for security testing of RAG s
 │           report.json (summary) + runs.jsonl (details)          │
 └─────────────────────────────────────────────────────────────────┘
 ```
+
+### CLI Module Structure
+
+The `ragleaklab.cli` package splits the CLI into one file per command group:
+
+| Module | Description |
+|--------|-------------|
+| `cli/app.py` | Root Typer app, wires sub-apps & top-level commands |
+| `cli/run.py` | `run` — execute attack test cases |
+| `cli/diff.py` | `diff` — compare reports for regressions |
+| `cli/bench.py` | `bench time` / `bench bundle` |
+| `cli/attacks.py` | `attacks coverage` |
+| `cli/assets.py` | `assets build` / `assets validate` |
+| `cli/verify.py` | `verify determinism` |
+| `cli/report.py` | `report summarize` / `report annotate` |
+| `cli/calibrate.py` | `calibrate` — threshold calibration |
+| `cli/delta.py` | `delta run` — ingestion gate |
+| `cli/version.py` | `version` — show version info |
+
+`__main__.py` re-exports `app` from `cli/app.py` and remains the entry-point.
 
 ## Data Flow
 
