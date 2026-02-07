@@ -188,14 +188,27 @@ target:
 > [!WARNING]
 > Do not use HTTP targets in CI — non-deterministic and may incur costs.
 
+## Adoption
+
+New to RAGLeakLab? Start here → **[docs/ADOPTION.md](docs/ADOPTION.md)**
+
+Covers 30-minute quick integration, delta ingestion gates, failure triage,
+baseline updates, security posture, and a phased rollout plan
+(dry-run → warn-only → block merges).
+
+See also: [docs/SELL_SHEET.md](docs/SELL_SHEET.md) — one-page feature overview.
+
 ## Documentation
 
 | Document | Description |
 |----------|-------------|
+| [docs/ADOPTION.md](docs/ADOPTION.md) | Enterprise adoption guide |
+| [docs/SELL_SHEET.md](docs/SELL_SHEET.md) | One-page feature overview |
 | [docs/threat_model.md](docs/threat_model.md) | Formal threat model |
 | [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) | Module structure and data flow |
 | [docs/CONFIG.md](docs/CONFIG.md) | Configuration reference and schema |
 | [docs/REPORT_SCHEMA.md](docs/REPORT_SCHEMA.md) | Report field descriptions |
+| [docs/V1_CONTRACTS.md](docs/V1_CONTRACTS.md) | V1 public contract catalogue |
 | [docs/STABILITY.md](docs/STABILITY.md) | Stability policy and versioning |
 | [docs/EXTENDING.md](docs/EXTENDING.md) | Writing plugins |
 | [docs/CI.md](docs/CI.md) | CI integration guide |
