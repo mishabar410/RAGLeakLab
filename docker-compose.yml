@@ -1,0 +1,28 @@
+# Minimal compose for local development and testing.
+# NOT required for CI — use Dockerfile directly.
+
+services:
+  ragleaklab:
+    build: .
+    volumes:
+      - ./data:/work/data:ro
+      - ./out:/work/out
+    working_dir: /work
+    # Override command as needed:
+    #   docker compose run ragleaklab run --pack basic --out out/basic
+    command: ["--help"]
+
+  mock-target:
+    build: .
+    entrypoint: ["python", "-m", "uvicorn"]
+    command:
+      - "examples.mock_leaky_server:app"
+      - "--host=0.0.0.0"
+      - "--port=8001"
+    ports:
+      - "8001:8001"
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/health')"]
+      interval: 5s
+      timeout: 3s
+      retries: 3

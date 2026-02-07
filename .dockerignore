@@ -1,0 +1,36 @@
+# Version control
+.git
+.gitignore
+
+# Python
+__pycache__
+*.pyc
+*.pyo
+.venv
+*.egg-info
+
+# Output & temporary
+out/
+*.log
+
+# IDE
+.vscode
+.idea
+*.swp
+
+# Docker
+Dockerfile
+docker-compose.yml
+.dockerignore
+
+# Docs (not needed in image)
+docs/
+*.md
+!pyproject.toml
+
+# CI/CD
+.github/
+.pre-commit-config.yaml
+
+# Baselines (regenerated per run)
+baselines/
