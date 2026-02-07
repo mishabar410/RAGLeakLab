@@ -10,6 +10,11 @@ from urllib.parse import urlparse
 import requests
 
 from ragleaklab.targets.base import TargetResponse
+from ragleaklab.targets.cassette import (
+    CassetteRecord,
+    CassetteRecorder,
+    CassetteReplayer,
+)
 from ragleaklab.targets.ssrf import SSRFValidationError, validate_url
 
 __all__ = ["AllowlistRequiredError", "HttpTarget", "SSRFValidationError"]
@@ -34,6 +39,11 @@ class HttpTarget:
     - Allowlist enforcement (require_allowlist=True by default)
     - Localhost blocking (allow_localhost=False by default)
     - Rate limiting (max_rps controls requests per second)
+
+    Record/replay modes:
+    - live: Normal HTTP requests (default)
+    - record: HTTP requests + save responses to cassette JSONL
+    - replay: No network, responses from cassette file
     """
 
     def __init__(
@@ -52,6 +62,8 @@ class HttpTarget:
         require_allowlist: bool = True,
         allow_localhost: bool = False,
         max_rps: float = 1.0,
+        http_mode: str = "live",
+        cassette_path: str | None = None,
     ) -> None:
         """Initialize HTTP target.
 
@@ -70,6 +82,8 @@ class HttpTarget:
             require_allowlist: If True, raise error when allowed_domains is empty.
             allow_localhost: If True, allow localhost/127.0.0.1 targets.
             max_rps: Maximum requests per second (rate limiting).
+            http_mode: live | record | replay.
+            cassette_path: Path to cassette JSONL file (required for record/replay).
 
         Raises:
             AllowlistRequiredError: If require_allowlist=True and no allowed_domains.
@@ -80,30 +94,34 @@ class HttpTarget:
         self.allow_localhost = allow_localhost
         self.max_rps = max_rps
         self._last_request_time: float = 0.0
+        self.http_mode = http_mode
+        self.cassette_path = cassette_path
 
-        # Check localhost
-        parsed = urlparse(url)
-        is_localhost = parsed.hostname in ("localhost", "127.0.0.1", "::1", "0.0.0.0")
-        if is_localhost and not allow_localhost:
-            raise SSRFValidationError(
-                f"Localhost URLs blocked by default. Set allow_localhost=True to enable: {url}"
-            )
+        # In replay mode, skip network validation entirely
+        if http_mode != "replay":
+            # Check localhost
+            parsed = urlparse(url)
+            is_localhost = parsed.hostname in ("localhost", "127.0.0.1", "::1", "0.0.0.0")
+            if is_localhost and not allow_localhost:
+                raise SSRFValidationError(
+                    f"Localhost URLs blocked by default. Set allow_localhost=True to enable: {url}"
+                )
 
-        # Check allowlist requirement (skip for allowed localhost)
-        if (
-            require_allowlist
-            and not self.allowed_domains
-            and not (is_localhost and allow_localhost)
-        ):
-            raise AllowlistRequiredError(
-                "HTTP target requires explicit allowed_domains list. "
-                "Set require_allowlist=False to disable (not recommended) or "
-                "add allowed_domains=['example.com'] to your config."
-            )
+            # Check allowlist requirement (skip for allowed localhost)
+            if (
+                require_allowlist
+                and not self.allowed_domains
+                and not (is_localhost and allow_localhost)
+            ):
+                raise AllowlistRequiredError(
+                    "HTTP target requires explicit allowed_domains list. "
+                    "Set require_allowlist=False to disable (not recommended) or "
+                    "add allowed_domains=['example.com'] to your config."
+                )
 
-        # Validate URL for SSRF before storing (skip for localhost when allowed)
-        if not (is_localhost and allow_localhost):
-            validate_url(url, self.allowed_domains if self.allowed_domains else None)
+            # Validate URL for SSRF before storing (skip for localhost when allowed)
+            if not (is_localhost and allow_localhost):
+                validate_url(url, self.allowed_domains if self.allowed_domains else None)
 
         self.url = url
         self.method = method.upper()
@@ -115,6 +133,17 @@ class HttpTarget:
         self.headers = headers or {"Content-Type": "application/json"}
         self.timeout = timeout
         self.request_json = request_json
+
+        # Setup cassette recorder/replayer
+        self._recorder: CassetteRecorder | None = None
+        self._replayer: CassetteReplayer | None = None
+
+        if http_mode == "record" and cassette_path:
+            self._recorder = CassetteRecorder(cassette_path)
+        elif http_mode == "replay" and cassette_path:
+            self._replayer = CassetteReplayer(cassette_path)
+        elif http_mode in ("record", "replay") and not cassette_path:
+            raise ValueError(f"cassette_path is required when http_mode={http_mode!r}")
 
     def _rate_limit(self) -> None:
         """Apply rate limiting between requests."""
@@ -153,6 +182,8 @@ class HttpTarget:
             require_allowlist=config.require_allowlist,
             allow_localhost=config.allow_localhost,
             max_rps=config.max_rps,
+            http_mode=config.http_mode,
+            cassette_path=config.cassette_path,
         )
 
     def _build_payload(self, query: str) -> dict:
@@ -180,6 +211,10 @@ class HttpTarget:
     def ask(self, query: str) -> TargetResponse:
         """Query the HTTP RAG service.
 
+        In replay mode, returns responses from cassette without network.
+        In record mode, makes real HTTP requests and saves to cassette.
+        In live mode, makes normal HTTP requests.
+
         Args:
             query: The query string.
 
@@ -187,12 +222,31 @@ class HttpTarget:
             TargetResponse parsed from HTTP response.
 
         Raises:
-            requests.RequestException: On HTTP errors.
+            requests.RequestException: On HTTP errors (live/record modes).
+            CassetteLookupError: If no matching cassette record (replay mode).
         """
-        # Apply rate limiting
-        self._rate_limit()
-
         payload = self._build_payload(query)
+
+        # ── replay mode: return from cassette, no network ────────
+        if self._replayer is not None:
+            record = self._replayer.lookup(self.method, self.url, payload)
+            data = record.response.get("parsed", {})
+            answer = data.get(self.answer_field, "")
+            context = data.get(self.context_field, "") if self.context_field else ""
+            retrieved_ids = (
+                data.get(self.retrieved_ids_field, []) if self.retrieved_ids_field else []
+            )
+            scores = data.get(self.scores_field, []) if self.scores_field else []
+            return TargetResponse(
+                answer=answer,
+                context=context,
+                retrieved_ids=retrieved_ids,
+                scores=scores,
+                metadata={"raw_response": data, "cassette": "replay"},
+            )
+
+        # ── live / record mode: real HTTP request ────────────────
+        self._rate_limit()
 
         if self.method == "POST":
             response = requests.post(
@@ -211,6 +265,19 @@ class HttpTarget:
 
         response.raise_for_status()
         data = response.json()
+
+        # Record to cassette if in record mode
+        if self._recorder is not None:
+            record = CassetteRecord.create(
+                method=self.method,
+                url=self.url,
+                body=payload,
+                headers=self.headers,
+                status=response.status_code,
+                response_body=response.text,
+                parsed=data,
+            )
+            self._recorder.append(record)
 
         # Extract fields with defaults
         answer = data.get(self.answer_field, "")

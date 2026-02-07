@@ -147,6 +147,14 @@ class HttpTargetConfig(BaseModel):
         default=True,
         description="Redact secrets in outputs.",
     )
+    http_mode: Literal["live", "record", "replay"] = Field(
+        default="live",
+        description="HTTP mode: live (normal), record (save cassette), replay (use cassette, no network).",
+    )
+    cassette_path: str | None = Field(
+        default=None,
+        description="Path to cassette JSONL file. Required for record/replay modes.",
+    )
 
 
 class MockTargetConfig(BaseModel):

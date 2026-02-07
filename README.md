@@ -202,6 +202,7 @@ target:
 | [docs/DOCKER.md](docs/DOCKER.md) | Container build and run |
 | [docs/ACTION.md](docs/ACTION.md) | GitHub Action usage |
 | [docs/INTEGRATIONS.md](docs/INTEGRATIONS.md) | HTTP target examples |
+| [docs/RECORD_REPLAY.md](docs/RECORD_REPLAY.md) | Cassette record/replay for HTTP |
 | [docs/threats/](docs/threats/) | Individual threat specifications |
 | [CONTRIBUTING.md](CONTRIBUTING.md) | How to contribute |
 | [SECURITY.md](SECURITY.md) | Security policy |
