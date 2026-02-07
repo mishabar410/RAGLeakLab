@@ -115,6 +115,53 @@ The schema (`ExternalResult`) is defined in
 4. **Schema enforcement** — Pydantic validation ensures only the expected
    fields and types are present.
 
+## How the leaderboard is built
+
+[`TABLE.md`](TABLE.md) is **auto-generated** from the JSON files in this
+directory by:
+
+```bash
+uv run ragleaklab results build-table \
+  --in external_results/ \
+  --out external_results/TABLE.md
+```
+
+### Column mapping
+
+Pack categories are mapped to table columns:
+
+| Pack category | Table column |
+|---------------|-------------|
+| `canary` | **Canary Leaks** — average `fail_rate` |
+| `semantic` | **Semantic Leakage** — average `fail_rate` |
+| `poisoning` | **Poisoning Indicators** — average `fail_rate` |
+| `crossdoc` | **ACL Breaches** — average `fail_rate` |
+
+Other categories (e.g. `sentinel`) are not mapped to a column but are
+included in the overall risk score.
+
+### Sorting
+
+Rows are sorted by **risk score descending** (worst first).  Ties are
+broken by system name alphabetically for stable ordering.
+
+### CI enforcement
+
+The GitHub Actions workflow `.github/workflows/external-results.yml`
+runs on every PR that touches `external_results/`:
+
+1. Validates all `*.json` files via `bench validate-external`
+2. Regenerates `TABLE.md`
+3. **Fails** if the committed `TABLE.md` doesn't match the regenerated one
+
+This means you must regenerate the table locally before pushing:
+
+```bash
+uv run ragleaklab results build-table \
+  --in external_results/ \
+  --out external_results/TABLE.md
+```
+
 ## Legal / safety notice
 
 > **Do not publish results that contain private, proprietary, or

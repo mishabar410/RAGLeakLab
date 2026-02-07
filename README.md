@@ -259,6 +259,10 @@ uv run ragleaklab bench validate-external \
 See [`external_results/README.md`](external_results/README.md) for the
 full schema, safety guarantees, and contribution guide.
 
+📊 **Leaderboard:** [`external_results/TABLE.md`](external_results/TABLE.md)
+*(auto-generated — regenerate with
+`uv run ragleaklab results build-table --in external_results/ --out external_results/TABLE.md`)*
+
 ---
 
 ## Updating Baseline
