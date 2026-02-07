@@ -83,9 +83,7 @@ class TestExportJunit:
     def test_aggregate_failures(self, tmp_path):
         report = _make_report(
             failures=[
-                FailureReason(
-                    threat="canary", reason="Canary leaked", value=True, threshold=False
-                )
+                FailureReason(threat="canary", reason="Canary leaked", value=True, threshold=False)
             ]
         )
         out = tmp_path / "junit.xml"
@@ -210,9 +208,7 @@ class TestHelperFunctions:
         assert _get_evidence_type({"triggered": True}) == "SentinelIntegrityEvidence"
 
     def test_get_evidence_type_claim(self):
-        assert (
-            _get_evidence_type({"matched_poison_claims": []}) == "ClaimIntegrityEvidence"
-        )
+        assert _get_evidence_type({"matched_poison_claims": []}) == "ClaimIntegrityEvidence"
 
     def test_get_evidence_type_unknown(self):
         assert _get_evidence_type({}) == "unknown"

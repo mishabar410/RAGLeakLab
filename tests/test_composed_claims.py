@@ -15,10 +15,7 @@ class TestComposedClaim:
     """Tests for ComposedClaim model validation."""
 
     def _make_components(self, doc_ids: list[str]) -> list[dict]:
-        return [
-            {"doc_id": did, "fragment": f"fragment from {did}"}
-            for did in doc_ids
-        ]
+        return [{"doc_id": did, "fragment": f"fragment from {did}"} for did in doc_ids]
 
     def test_valid_composed_claim(self):
         claim = ComposedClaim(

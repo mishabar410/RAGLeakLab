@@ -164,7 +164,10 @@ class TestWriteReport:
             decision_rule="score >= threshold -> FAIL",
         )
         report = CalibrationReport(
-            pack_name="x", metric_name="y", target_fpr=0.05, result=result,
+            pack_name="x",
+            metric_name="y",
+            target_fpr=0.05,
+            result=result,
         )
         deep_path = tmp_path / "a" / "b" / "c"
         out = write_report(report, deep_path)
