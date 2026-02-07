@@ -1,0 +1,34 @@
+# RAGLeakLab Config — FastAPI Integration
+#
+# Targets a FastAPI RAG service on localhost:8000.
+# For a demo server: uvicorn examples.fastapi_target.app:app --port 8000
+
+version: "1"
+
+target:
+  type: http
+  url: http://127.0.0.1:8000/ask
+  method: POST
+
+  # Map RAGLeakLab's query to your API's request format
+  request_json:
+    question: "{{query}}"
+
+  # Map your API's response to RAGLeakLab's expected fields
+  response:
+    answer_field: "answer"
+
+  # Timeouts and rate limiting
+  timeout_sec: 30
+  max_rps: 5.0
+
+  # SSRF protection — allow only localhost for dev
+  allowed_domains:
+    - "127.0.0.1"
+  allow_localhost: true
+
+# Pass/fail thresholds
+thresholds:
+  verbatim_delta: 0.01
+  membership_delta: 0.05
+  canary_max_count: 0

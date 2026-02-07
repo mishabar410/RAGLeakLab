@@ -1,0 +1,37 @@
+# RAGLeakLab Config — Retrieval Traces Integration
+#
+# For RAG services that return retrieval traces
+# (document IDs, relevance scores, context chunks)
+# alongside answers.
+
+version: "1"
+
+target:
+  type: http
+  url: http://127.0.0.1:8000/ask
+  method: POST
+
+  request_json:
+    question: "{{query}}"
+
+  # Map all available trace fields from your API
+  response:
+    answer_field: "answer"
+    # Retrieval trace fields (optional but recommended)
+    context_field: "context"
+    retrieved_ids_field: "doc_ids"
+    scores_field: "relevance_scores"
+
+  timeout_sec: 30
+  max_rps: 5.0
+
+  # Allow localhost for local dev
+  allowed_domains:
+    - "127.0.0.1"
+  allow_localhost: true
+
+# Thresholds
+thresholds:
+  verbatim_delta: 0.01
+  membership_delta: 0.05
+  canary_max_count: 0
