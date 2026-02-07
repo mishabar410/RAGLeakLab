@@ -8,7 +8,7 @@ import ragleaklab
 
 def test_version():
     """Check that package version is defined."""
-    assert ragleaklab.__version__ == "0.1.0"
+    assert ragleaklab.__version__ == "1.0.0"
 
 
 def test_import():

@@ -1,6 +1,6 @@
 [project]
 name = "ragleaklab"
-version = "0.1.0"
+version = "1.0.0"
 description = "RAGLeakLab - Research toolkit for RAG systems"
 readme = "README.md"
 requires-python = ">=3.12"
