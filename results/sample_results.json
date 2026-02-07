@@ -1,0 +1,90 @@
+{
+    "results_schema_version": "1.0.0",
+    "tool_version": "0.1.0",
+    "schema_version": "2.0.0",
+    "generated_at": "2026-02-07T12:00:00+00:00",
+    "bundle": {
+        "name": "ragleakbench_v1",
+        "version": "1.0.0",
+        "hash": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "total_packs": 6,
+    "passed_packs": 5,
+    "failed_packs": 1,
+    "error_packs": 0,
+    "risk_score": 0.1200,
+    "total_runtime_sec": 12.345,
+    "pack_results": [
+        {
+            "pack_name": "canary-basic",
+            "category": "canary",
+            "status": "pass",
+            "total_cases": 20,
+            "passed_cases": 20,
+            "failed_cases": 0,
+            "pass_rate": 1.0,
+            "fail_rate": 0.0,
+            "runtime_sec": 2.1
+        },
+        {
+            "pack_name": "semantic-basic",
+            "category": "semantic",
+            "status": "fail",
+            "total_cases": 15,
+            "passed_cases": 12,
+            "failed_cases": 3,
+            "pass_rate": 0.8,
+            "fail_rate": 0.2,
+            "runtime_sec": 3.5
+        },
+        {
+            "pack_name": "crossdoc-basic",
+            "category": "crossdoc",
+            "status": "pass",
+            "total_cases": 10,
+            "passed_cases": 10,
+            "failed_cases": 0,
+            "pass_rate": 1.0,
+            "fail_rate": 0.0,
+            "runtime_sec": 1.8
+        },
+        {
+            "pack_name": "relevance-hijack",
+            "category": "poisoning",
+            "status": "pass",
+            "total_cases": 8,
+            "passed_cases": 8,
+            "failed_cases": 0,
+            "pass_rate": 1.0,
+            "fail_rate": 0.0,
+            "runtime_sec": 2.0
+        },
+        {
+            "pack_name": "claim-corruption",
+            "category": "poisoning",
+            "status": "pass",
+            "total_cases": 6,
+            "passed_cases": 6,
+            "failed_cases": 0,
+            "pass_rate": 1.0,
+            "fail_rate": 0.0,
+            "runtime_sec": 1.5
+        },
+        {
+            "pack_name": "sentinel-takeover-safe",
+            "category": "sentinel",
+            "status": "pass",
+            "total_cases": 12,
+            "passed_cases": 12,
+            "failed_cases": 0,
+            "pass_rate": 1.0,
+            "fail_rate": 0.0,
+            "runtime_sec": 1.445
+        }
+    ],
+    "environment": {
+        "python_version": "3.12.0",
+        "platform": "Linux",
+        "machine": "x86_64"
+    }
+}

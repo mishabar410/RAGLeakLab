@@ -211,3 +211,77 @@ def bench_bundle(
         raise typer.Exit(1)
     else:
         typer.echo("\n✅ Benchmark passed")
+
+
+@bench_app.command("publish")
+def bench_publish(
+    in_dir: Path = typer.Option(..., "--in", "-i", help="Bench output directory"),
+    bundle: Path = typer.Option(..., "--bundle", "-b", help="Path to bundle.yaml"),
+    out: Path = typer.Option(..., "--out", "-o", help="Output results.json path"),
+) -> None:
+    """Publish benchmark results in leaderboard-ready format.
+
+    Validates that the output directory matches the bundle, normalizes
+    results into a unified format, and writes results.json.
+    """
+    import json
+
+    from ragleaklab.bench.results import build_results
+
+    typer.echo("📊 RAGLeakLab Bench Publish")
+    typer.echo(f"   Input: {in_dir}")
+    typer.echo(f"   Bundle: {bundle}")
+    typer.echo(f"   Output: {out}")
+
+    try:
+        results = build_results(in_dir, bundle)
+    except (FileNotFoundError, ValueError) as e:
+        typer.echo(f"\n❌ {e}", err=True)
+        raise typer.Exit(1) from None
+
+    # Write results
+    out.parent.mkdir(parents=True, exist_ok=True)
+    with open(out, "w") as f:
+        json.dump(results.model_dump(), f, indent=2)
+
+    typer.echo(f"\n📄 Wrote {out}")
+    typer.echo(f"   Tool version: {results.tool_version}")
+    typer.echo(f"   Bundle: {results.bundle.name} v{results.bundle.version}")
+    typer.echo(f"   Packs: {results.total_packs}")
+    typer.echo(f"   Risk score: {results.risk_score:.4f}")
+    typer.echo(
+        f"   Environment: Python {results.environment.python_version} / {results.environment.platform}"
+    )
+    typer.echo("\n✅ Results published")
+
+
+@bench_app.command("validate-results")
+def bench_validate_results(
+    file: Path = typer.Option(..., "--file", "-f", help="Path to results.json"),
+) -> None:
+    """Validate a results.json file against the leaderboard schema.
+
+    Checks that the file conforms to BenchResultsSchema and prints
+    a summary of the validated contents.
+    """
+    from pydantic import ValidationError
+
+    from ragleaklab.bench.results import validate_results_file
+
+    typer.echo(f"🔍 Validating {file}")
+
+    try:
+        results = validate_results_file(file)
+    except FileNotFoundError as e:
+        typer.echo(f"\n❌ {e}", err=True)
+        raise typer.Exit(1) from None
+    except ValidationError as e:
+        typer.echo(f"\n❌ Schema validation failed:\n{e}", err=True)
+        raise typer.Exit(1) from None
+
+    typer.echo(f"   Schema version: {results.results_schema_version}")
+    typer.echo(f"   Tool version: {results.tool_version}")
+    typer.echo(f"   Bundle: {results.bundle.name} v{results.bundle.version}")
+    typer.echo(f"   Packs: {results.total_packs}")
+    typer.echo(f"   Risk score: {results.risk_score:.4f}")
+    typer.echo("\n✅ Valid")
