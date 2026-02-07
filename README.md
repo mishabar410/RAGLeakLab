@@ -237,6 +237,30 @@ uv run ragleaklab bench publish \
 
 ---
 
+## External Results
+
+Community benchmark results from third-party RAG systems live in
+[`external_results/`](external_results/).  All published results are
+**redacted** and **secret-scanned** — no emails, tokens, or API keys.
+
+```bash
+# Publish after running a benchmark bundle
+uv run ragleaklab bench publish-external \
+  --bench out/bench \
+  --system-name "My RAG System" \
+  --system-type oss \
+  --out external_results/my_system.json
+
+# Validate before submitting a PR
+uv run ragleaklab bench validate-external \
+  --file external_results/my_system.json
+```
+
+See [`external_results/README.md`](external_results/README.md) for the
+full schema, safety guarantees, and contribution guide.
+
+---
+
 ## Updating Baseline
 
 Baselines are updated manually to ensure human review:

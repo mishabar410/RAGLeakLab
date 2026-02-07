@@ -285,3 +285,121 @@ def bench_validate_results(
     typer.echo(f"   Packs: {results.total_packs}")
     typer.echo(f"   Risk score: {results.risk_score:.4f}")
     typer.echo("\n✅ Valid")
+
+
+@bench_app.command("publish-external")
+def bench_publish_external(
+    bench_dir: Path = typer.Option(
+        ..., "--bench", "-b", help="Bench output directory (contains bench_summary.json)"
+    ),
+    out: Path = typer.Option(
+        ..., "--out", "-o", help="Output path, e.g. external_results/my_system.json"
+    ),
+    bundle: Path = typer.Option(
+        None,
+        "--bundle",
+        help="Path to bundle.yaml (default: benchmarks/ragleakbench_v1/bundle.yaml)",
+    ),
+    system_name: str = typer.Option(..., "--system-name", "-n", help="Name of the tested system"),
+    system_type: str = typer.Option(
+        "oss", "--system-type", "-t", help="oss | commercial | internal"
+    ),
+    integration_type: str = typer.Option(
+        "inprocess", "--integration-type", help="inprocess | http | other"
+    ),
+    notes: str = typer.Option("", "--notes", help="Optional markdown notes"),
+    config_snippet: str = typer.Option("", "--config-snippet", help="Redacted config snippet"),
+    command: str = typer.Option("", "--command", help="Safe reproduction command"),
+) -> None:
+    """Publish external benchmark result (safe, redacted).
+
+    Reads bench_summary.json, applies redaction, scans for leftover
+    secrets, verifies the bundle hash, and writes a validated
+    external result JSON file.
+
+    Refuses to write if secrets are detected.
+    """
+    import json
+
+    from ragleaklab.bench.external import SecretLeakError, build_external_result
+
+    typer.echo("📤 RAGLeakLab Publish External Result")
+    typer.echo(f"   Bench dir: {bench_dir}")
+    typer.echo(f"   Output: {out}")
+    typer.echo(f"   System: {system_name} ({system_type})")
+
+    try:
+        result = build_external_result(
+            bench_dir,
+            system_name=system_name,
+            system_type=system_type,  # type: ignore[arg-type]
+            integration_type=integration_type,  # type: ignore[arg-type]
+            notes=notes,
+            config_snippet=config_snippet,
+            command=command,
+            bundle_path=bundle,
+        )
+    except FileNotFoundError as e:
+        typer.echo(f"\n❌ {e}", err=True)
+        raise typer.Exit(1) from None
+    except ValueError as e:
+        typer.echo(f"\n❌ {e}", err=True)
+        raise typer.Exit(1) from None
+    except SecretLeakError as e:
+        typer.echo(f"\n❌ {e}", err=True)
+        raise typer.Exit(2) from None
+
+    # Write output
+    out.parent.mkdir(parents=True, exist_ok=True)
+    with open(out, "w") as f:
+        json.dump(json.loads(result.model_dump_json()), f, indent=2)
+
+    typer.echo(f"\n📄 Wrote {out}")
+    typer.echo(f"   Schema version: {result.external_schema_version}")
+    typer.echo(f"   Bundle: {result.bundle.name} v{result.bundle.version}")
+    typer.echo(f"   Risk score: {result.results_summary.risk_score:.4f}")
+    typer.echo(f"   Packs: {result.results_summary.total_packs}")
+    typer.echo("   Redaction: ✅ applied")
+    typer.echo("\n✅ External result published")
+
+
+@bench_app.command("validate-external")
+def bench_validate_external(
+    file: Path = typer.Option(..., "--file", "-f", help="Path to external result JSON"),
+    bundle: Path = typer.Option(
+        None, "--bundle", "-b", help="Optional bundle.yaml for hash verification"
+    ),
+) -> None:
+    """Validate an external result JSON against schema and safety checks.
+
+    Used in CI to gate PRs that add files to external_results/.
+    Checks schema conformance, redaction flag, and scans for secrets.
+    """
+    from pydantic import ValidationError
+
+    from ragleaklab.bench.external import SecretLeakError, validate_external_result
+
+    typer.echo(f"🔍 Validating external result: {file}")
+
+    try:
+        result = validate_external_result(file, bundle_path=bundle)
+    except FileNotFoundError as e:
+        typer.echo(f"\n❌ {e}", err=True)
+        raise typer.Exit(1) from None
+    except ValidationError as e:
+        typer.echo(f"\n❌ Schema validation failed:\n{e}", err=True)
+        raise typer.Exit(1) from None
+    except ValueError as e:
+        typer.echo(f"\n❌ {e}", err=True)
+        raise typer.Exit(1) from None
+    except SecretLeakError as e:
+        typer.echo(f"\n❌ {e}", err=True)
+        raise typer.Exit(2) from None
+
+    typer.echo(f"   Schema version: {result.external_schema_version}")
+    typer.echo(f"   System: {result.system_name} ({result.system_type})")
+    typer.echo(f"   Bundle: {result.bundle.name} v{result.bundle.version}")
+    typer.echo(f"   Packs: {result.results_summary.total_packs}")
+    typer.echo(f"   Risk score: {result.results_summary.risk_score:.4f}")
+    typer.echo("   Redaction: ✅ confirmed")
+    typer.echo("\n✅ Valid")
