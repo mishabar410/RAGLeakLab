@@ -8,6 +8,8 @@
 Security testing framework for RAG systems. Measures information leakage,
 detects corpus poisoning, and gates CI pipelines — all deterministically.
 
+📄 **[Read the Whitepaper (PDF)](docs/whitepaper/whitepaper.pdf)** — threat model, methodology, and evaluation results.
+
 ---
 
 ## Table of Contents
