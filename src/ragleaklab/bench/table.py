@@ -86,7 +86,7 @@ def build_table_rows(
             with open(path) as f:
                 data = json.load(f)
             result = ExternalResult.model_validate(data)
-        except Exception as exc:
+        except (json.JSONDecodeError, ValueError, TypeError, KeyError) as exc:
             if not quiet:
                 print(f"⚠ Skipping {path.name}: {exc}", file=sys.stderr)
             continue

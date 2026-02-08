@@ -42,7 +42,7 @@ def validate_corpus_manifest(manifest_path: Path) -> list[ValidationError]:
     except FileNotFoundError:
         errors.append(ValidationError(manifest_path, "Manifest file not found"))
         return errors
-    except Exception as e:
+    except (ValueError, TypeError, KeyError) as e:
         errors.append(ValidationError(manifest_path, f"Invalid manifest: {e}"))
         return errors
 
@@ -57,7 +57,7 @@ def validate_corpus_manifest(manifest_path: Path) -> list[ValidationError]:
                     f"Hash mismatch: manifest={manifest.hash[:16]}... actual={actual_hash[:16]}...",
                 )
             )
-    except Exception as e:
+    except OSError as e:
         errors.append(ValidationError(manifest_path, f"Cannot compute hash: {e}"))
 
     return errors
@@ -72,7 +72,7 @@ def validate_attacks_manifest(manifest_path: Path) -> list[ValidationError]:
     except FileNotFoundError:
         errors.append(ValidationError(manifest_path, "Manifest file not found"))
         return errors
-    except Exception as e:
+    except (ValueError, TypeError, KeyError) as e:
         errors.append(ValidationError(manifest_path, f"Invalid manifest: {e}"))
         return errors
 
@@ -87,7 +87,7 @@ def validate_attacks_manifest(manifest_path: Path) -> list[ValidationError]:
                     f"Hash mismatch: manifest={manifest.hash[:16]}... actual={actual_hash[:16]}...",
                 )
             )
-    except Exception as e:
+    except OSError as e:
         errors.append(ValidationError(manifest_path, f"Cannot compute hash: {e}"))
 
     return errors
@@ -124,7 +124,7 @@ def validate_pack_manifest(
     except FileNotFoundError:
         errors.append(ValidationError(manifest_path, "Manifest file not found"))
         return errors
-    except Exception as e:
+    except (ValueError, TypeError, KeyError) as e:
         errors.append(ValidationError(manifest_path, f"Invalid manifest: {e}"))
         return errors
 
@@ -154,6 +154,7 @@ def validate_pack_manifest(
             "integrity.integrity_summary.retrieval_poisoned",
             "integrity.integrity_summary.claim_poisoned",
             "integrity.integrity_summary.sentinel_triggered",
+            "integrity.integrity_summary.acl_violated",
         }
         for field_ref in manifest.expected_report_fields:
             if field_ref not in valid_fields:

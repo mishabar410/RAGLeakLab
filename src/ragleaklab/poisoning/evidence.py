@@ -81,8 +81,33 @@ class SentinelIntegrityEvidence(BaseModel):
     details: dict[str, Any] = Field(default_factory=dict, description="Additional evidence details")
 
 
+class AclIntegrityEvidence(BaseModel):
+    """Evidence of ACL / tenant isolation violation.
+
+    Detects when a query from one tenant surfaces documents or canary
+    tokens belonging to another tenant, indicating broken access controls.
+    """
+
+    pack_id: str = Field(..., description="Pack that generated this evidence")
+    query_id: str = Field(..., description="Query ID within the pack")
+    severity: SeverityLevel = Field(..., description="Severity level")
+    querying_tenant: str = Field(..., description="Tenant that issued the query")
+    target_tenant: str = Field(..., description="Tenant whose data was targeted")
+    leaked_doc_ids: list[str] = Field(
+        default_factory=list, description="Doc IDs from the wrong tenant found in results"
+    )
+    canary_found: str | None = Field(None, description="Foreign canary token found in output")
+    confidence: float = Field(default=0.0, ge=0.0, le=1.0, description="Confidence score (0-1)")
+    details: dict[str, Any] = Field(default_factory=dict, description="Additional evidence details")
+
+
 # Union type for any integrity evidence
-IntegrityEvidence = RetrievalIntegrityEvidence | ClaimIntegrityEvidence | SentinelIntegrityEvidence
+IntegrityEvidence = (
+    RetrievalIntegrityEvidence
+    | ClaimIntegrityEvidence
+    | SentinelIntegrityEvidence
+    | AclIntegrityEvidence
+)
 
 
 class IntegritySummary(BaseModel):
@@ -97,6 +122,7 @@ class IntegritySummary(BaseModel):
     )
     claim_poisoned: int = Field(default=0, ge=0, description="Claim poisoning findings count")
     sentinel_triggered: int = Field(default=0, ge=0, description="Sentinel trigger findings count")
+    acl_violated: int = Field(default=0, ge=0, description="ACL / tenant isolation violation count")
     # Triage summary fields
     worst_poison_dominance: float = Field(
         default=0.0,
@@ -119,9 +145,12 @@ class IntegritySection(BaseModel):
     When present in a report, indicates that integrity testing was performed.
     """
 
-    packs: list[RetrievalIntegrityEvidence | ClaimIntegrityEvidence | SentinelIntegrityEvidence] = (
-        Field(default_factory=list, description="List of integrity evidence items")
-    )
+    packs: list[
+        RetrievalIntegrityEvidence
+        | ClaimIntegrityEvidence
+        | SentinelIntegrityEvidence
+        | AclIntegrityEvidence
+    ] = Field(default_factory=list, description="List of integrity evidence items")
     integrity_summary: IntegritySummary = Field(
         default_factory=IntegritySummary, description="Summary of integrity findings"
     )
@@ -161,6 +190,8 @@ class IntegritySection(BaseModel):
                 # Count triggered sentinels as failures
                 if evidence.triggered:
                     sentinel_failures += 1
+            elif isinstance(evidence, AclIntegrityEvidence):
+                summary.acl_violated += 1
 
         summary.worst_poison_dominance = worst_poison_dominance
         summary.worst_claim_corruption = worst_claim_corruption
@@ -170,7 +201,12 @@ class IntegritySection(BaseModel):
 
     def sorted_packs(
         self,
-    ) -> list[RetrievalIntegrityEvidence | ClaimIntegrityEvidence | SentinelIntegrityEvidence]:
+    ) -> list[
+        RetrievalIntegrityEvidence
+        | ClaimIntegrityEvidence
+        | SentinelIntegrityEvidence
+        | AclIntegrityEvidence
+    ]:
         """Return packs sorted deterministically: severity → pack_id → query_id."""
         severity_order = {"high": 0, "medium": 1, "low": 2}
         return sorted(

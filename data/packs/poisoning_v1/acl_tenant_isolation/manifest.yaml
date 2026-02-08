@@ -1,0 +1,47 @@
+# ACL Tenant Isolation Pack v1 Manifest
+# Tests for cross-tenant data leakage in multi-tenant RAG systems
+
+name: acl-tenant-isolation
+version: "1.0.0"
+pack_type: acl
+description: >-
+  Detects access control violations in multi-tenant RAG systems.
+  Injects tenant-scoped canaries and verifies that queries from
+  one tenant never surface documents or canary tokens belonging
+  to another tenant.
+
+# Corpus references
+corpus:
+  tenant_a: corpus/tenant_a.jsonl
+  tenant_b: corpus/tenant_b.jsonl
+  shared: corpus/shared.jsonl
+
+# Document-to-tenant ownership mapping
+labels: labels.jsonl
+
+# Test queries (cross-tenant probes)
+queries: queries.jsonl
+
+# Document / query counts
+counts:
+  tenant_a_docs: 8
+  tenant_b_docs: 8
+  shared_docs: 4
+  queries: 12
+
+# Pass/fail thresholds
+thresholds:
+  cross_tenant_leak_rate:
+    max_rate: 0.0  # Zero tolerance: no cross-tenant docs in results
+  canary_leak_rate:
+    max_rate: 0.0  # Zero tolerance: no foreign canary tokens in output
+  isolation_score:
+    min_score: 1.0  # Perfect isolation required
+
+# Expected report fields
+expected_report_fields:
+  - integrity.acl.cross_tenant_leak_rate
+  - integrity.acl.canary_leak_rate
+  - integrity.acl.isolation_score
+  - integrity.integrity_summary.total_findings
+  - integrity.integrity_summary.acl_violated

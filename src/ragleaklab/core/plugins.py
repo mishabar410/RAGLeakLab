@@ -117,7 +117,7 @@ def load_entry_points(kind: str) -> None:
             obj = ep.load()
             register(kind, ep.name, obj)
             logger.info("Loaded entry point: %s/%s from %s", kind, ep.name, ep.value)
-        except Exception as e:
+        except (ImportError, AttributeError, TypeError) as e:
             logger.warning("Failed to load entry point %s/%s: %s", kind, ep.name, e)
 
 

@@ -181,7 +181,7 @@ def register(app: typer.Typer) -> None:
                     f"⚠️  Output directory outside project: {out_resolved}",
                     err=True,
                 )
-        except Exception:
+        except OSError:
             pass  # Allow if resolution fails
 
         out.mkdir(parents=True, exist_ok=True)

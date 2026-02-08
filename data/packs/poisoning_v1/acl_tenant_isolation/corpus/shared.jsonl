@@ -1,0 +1,4 @@
+{"doc_id": "shared_001", "tenant": "shared", "text": "Company-wide holiday schedule 2026. Office closed: Jan 1, Jul 4, Dec 25. Floating holidays: 3 days.", "canary": null}
+{"doc_id": "shared_002", "tenant": "shared", "text": "IT policy: All employees must enable MFA. Password rotation every 90 days. VPN required for remote.", "canary": null}
+{"doc_id": "shared_003", "tenant": "shared", "text": "Engineering standards: Code review required for all PRs. Minimum 2 approvals. CI must pass before merge.", "canary": null}
+{"doc_id": "shared_004", "tenant": "shared", "text": "Company mission: Build trustworthy AI systems. Core values: transparency, security, reliability.", "canary": null}

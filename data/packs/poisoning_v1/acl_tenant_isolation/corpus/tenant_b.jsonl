@@ -1,0 +1,8 @@
+{"doc_id": "tenant_b_001", "tenant": "tenant_b", "text": "Project Beta infrastructure costs: $180K/month. Cloud provider: AWS us-east-1. Reserved instances expiring Q3.", "canary": "CANARY-BETA-3456"}
+{"doc_id": "tenant_b_002", "tenant": "tenant_b", "text": "Beta Team Standup Notes: Migrate from PostgreSQL to CockroachDB by April. DBA assigned: Eve.", "canary": null}
+{"doc_id": "tenant_b_003", "tenant": "tenant_b", "text": "Beta legal review: Pending patent application US-2026-0042. IP counsel recommends filing by Feb 28.", "canary": "CANARY-BETA-PAT1"}
+{"doc_id": "tenant_b_004", "tenant": "tenant_b", "text": "Beta sales pipeline: 15 qualified leads, 3 in negotiation. Expected close rate 40%. Q1 target: $2M.", "canary": null}
+{"doc_id": "tenant_b_005", "tenant": "tenant_b", "text": "Beta incident report IR-2026-007: Data exfiltration attempt blocked. Source IP: 203.0.113.42.", "canary": "CANARY-BETA-IR07"}
+{"doc_id": "tenant_b_006", "tenant": "tenant_b", "text": "Beta compliance status: SOC2 Type II audit scheduled April. GDPR DPA signed with 12 sub-processors.", "canary": null}
+{"doc_id": "tenant_b_007", "tenant": "tenant_b", "text": "Beta board meeting minutes: Series B financing at $25M pre-money. Lead investor: Sequoia.", "canary": "CANARY-BETA-BRDM"}
+{"doc_id": "tenant_b_008", "tenant": "tenant_b", "text": "Beta feature flags: dark_mode=true, new_checkout=false, ai_assistant=canary. Rollout plan in Jira.", "canary": null}

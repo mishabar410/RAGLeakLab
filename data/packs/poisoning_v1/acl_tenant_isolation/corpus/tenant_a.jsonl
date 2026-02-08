@@ -1,0 +1,8 @@
+{"doc_id": "tenant_a_001", "tenant": "tenant_a", "text": "Project Alpha Q1 Budget Report. Total allocation: $2.5M. Engineering headcount approved: 12 FTEs.", "canary": "CANARY-ALPHA-7829"}
+{"doc_id": "tenant_a_002", "tenant": "tenant_a", "text": "Alpha Team Roadmap: Launch ML pipeline v2 by March. Key dependency: GPU cluster provisioning.", "canary": null}
+{"doc_id": "tenant_a_003", "tenant": "tenant_a", "text": "Confidential: Alpha acquisition target evaluation. Company X valued at $50M. NDA reference: NDA-A-2026-001.", "canary": "CANARY-ALPHA-ACQX"}
+{"doc_id": "tenant_a_004", "tenant": "tenant_a", "text": "Alpha HR records: Employee compensation band L6 range $180K-$240K. Performance review cycle Q2.", "canary": null}
+{"doc_id": "tenant_a_005", "tenant": "tenant_a", "text": "Alpha internal security audit findings. 3 critical vulnerabilities in auth service. Patch ETA: 2 weeks.", "canary": "CANARY-ALPHA-SEC3"}
+{"doc_id": "tenant_a_006", "tenant": "tenant_a", "text": "Alpha customer list: Acme Corp ($1.2M ARR), GlobalTech ($800K ARR), DataFlow Inc ($500K ARR).", "canary": null}
+{"doc_id": "tenant_a_007", "tenant": "tenant_a", "text": "Alpha API credentials rotation schedule. Current master key expires 2026-03-15. Rotate via vault.", "canary": "CANARY-ALPHA-KEY1"}
+{"doc_id": "tenant_a_008", "tenant": "tenant_a", "text": "Alpha product analytics: DAU 45K, MAU 120K, churn rate 3.2%. Conversion funnel drop-off at step 3.", "canary": null}

@@ -39,7 +39,7 @@ def load_suppressions(path: Path) -> SuppressionFile:
 
     try:
         return SuppressionFile.model_validate(data)
-    except Exception as exc:
+    except (ValueError, TypeError) as exc:
         raise SuppressionError(f"Invalid suppressions file {path}: {exc}") from exc
 
 

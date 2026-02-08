@@ -93,7 +93,7 @@ def load_composed_claims(path: Path | str) -> list[ComposedClaim]:
                 claims.append(ComposedClaim.model_validate(data))
             except json.JSONDecodeError as e:
                 logger.warning("Invalid JSON on line %d: %s", line_num, e)
-            except Exception as e:
+            except (ValueError, TypeError) as e:
                 logger.warning("Failed to parse composed claim on line %d: %s", line_num, e)
 
     logger.info("Loaded %d composed claims from %s", len(claims), path)

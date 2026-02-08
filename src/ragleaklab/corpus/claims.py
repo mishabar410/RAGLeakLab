@@ -68,7 +68,7 @@ def load_claims(path: Path | str) -> list[Claim]:
                 claims.append(Claim.model_validate(data))
             except json.JSONDecodeError as e:
                 logger.warning("Invalid JSON on line %d: %s", line_num, e)
-            except Exception as e:
+            except (ValueError, TypeError) as e:
                 logger.warning("Failed to parse claim on line %d: %s", line_num, e)
 
     logger.info("Loaded %d claims from %s", len(claims), path)

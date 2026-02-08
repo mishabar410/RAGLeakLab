@@ -16,6 +16,7 @@ AVAILABLE_POISONING_PACKS = [
     "relevance-hijack",
     "claim-corruption",
     "sentinel-takeover-safe",
+    "acl-tenant-isolation",
 ]
 
 
@@ -44,31 +45,19 @@ def get_poisoning_pack_path(pack_name: str, version: str | None = None) -> Path:
         msg = f"Unknown poisoning pack '{pack_name}'. Available: {available}"
         raise ValueError(msg)
 
-    # Special handling for relevance-hijack (uses data/packs structure)
-    if pack_name == "relevance-hijack":
-        # Find project root (go up from src/ragleaklab/poisoning/packs/)
-        project_root = _get_packs_dir().parent.parent.parent.parent
-        path = project_root / "data" / "packs" / "poisoning_v1" / "relevance_hijack"
-        if not path.exists():
-            msg = f"Relevance hijack pack not found: {path}"
-            raise ValueError(msg)
-        return path
+    # Packs stored in data/packs/poisoning_v1/ directory
+    _data_packs = {
+        "relevance-hijack": "relevance_hijack",
+        "claim-corruption": "claim_corruption",
+        "sentinel-takeover-safe": "sentinel_takeover_safe",
+        "acl-tenant-isolation": "acl_tenant_isolation",
+    }
 
-    # Special handling for claim-corruption (uses data/packs structure)
-    if pack_name == "claim-corruption":
+    if pack_name in _data_packs:
         project_root = _get_packs_dir().parent.parent.parent.parent
-        path = project_root / "data" / "packs" / "poisoning_v1" / "claim_corruption"
+        path = project_root / "data" / "packs" / "poisoning_v1" / _data_packs[pack_name]
         if not path.exists():
-            msg = f"Claim corruption pack not found: {path}"
-            raise ValueError(msg)
-        return path
-
-    # Special handling for sentinel-takeover-safe (uses data/packs structure)
-    if pack_name == "sentinel-takeover-safe":
-        project_root = _get_packs_dir().parent.parent.parent.parent
-        path = project_root / "data" / "packs" / "poisoning_v1" / "sentinel_takeover_safe"
-        if not path.exists():
-            msg = f"Sentinel takeover safe pack not found: {path}"
+            msg = f"Poisoning pack not found: {path}"
             raise ValueError(msg)
         return path
 
