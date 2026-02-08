@@ -1,0 +1,1272 @@
+\documentclass[11pt,a4paper]{article}
+
+% ── Packages ──────────────────────────────────────────────────────────
+\usepackage[utf8]{inputenc}
+\usepackage[T1]{fontenc}
+\usepackage{lmodern}
+\usepackage{microtype}
+\usepackage{amsmath,amssymb}
+\usepackage{booktabs}
+\usepackage{enumitem}
+\usepackage{hyperref}
+\usepackage{listings}
+\usepackage{xcolor}
+\usepackage{graphicx}
+\usepackage{float}
+\usepackage[margin=2cm]{geometry}
+\usepackage{caption}
+\usepackage{subcaption}
+\usepackage{algorithm}
+\usepackage{algpseudocode}
+\usepackage{fancyhdr}
+\usepackage{titlesec}
+\usepackage{parskip}
+
+% ── Hyperref Config ──────────────────────────────────────────────────
+\hypersetup{
+  colorlinks=true,
+  linkcolor=blue!70!black,
+  citecolor=green!50!black,
+  urlcolor=blue!60!black,
+  pdftitle={RAGLeakLab: Deterministic Security Testing for RAG Systems},
+  pdfauthor={RAGLeakLab Contributors},
+}
+
+% ── Listings Config ──────────────────────────────────────────────────
+\definecolor{codebg}{RGB}{248,248,248}
+\definecolor{codeframe}{RGB}{200,200,200}
+\definecolor{codekw}{RGB}{0,112,32}
+\definecolor{codecomment}{RGB}{96,96,96}
+\definecolor{codestr}{RGB}{186,33,33}
+
+\lstset{
+  backgroundcolor=\color{codebg},
+  frame=single,
+  rulecolor=\color{codeframe},
+  basicstyle=\ttfamily\scriptsize,
+  keywordstyle=\color{codekw}\bfseries,
+  commentstyle=\color{codecomment}\itshape,
+  stringstyle=\color{codestr},
+  breaklines=true,
+  breakatwhitespace=true,
+  numbers=left,
+  numberstyle=\tiny\color{gray},
+  tabsize=2,
+  showstringspaces=false,
+  language=Python,
+}
+
+% ── Title ────────────────────────────────────────────────────────────
+\title{%
+  \textbf{RAGLeakLab: Deterministic Security Testing\\
+  for Retrieval-Augmented Generation Systems}
+}
+\author{%
+  RAGLeakLab Contributors\\
+  \texttt{https://github.com/mishabar410/RAGLeakLab}
+}
+\date{February 2026 \quad --- \quad v1.0.0}
+
+\begin{document}
+\maketitle
+
+% ══════════════════════════════════════════════════════════════════════
+% ABSTRACT
+% ══════════════════════════════════════════════════════════════════════
+\begin{abstract}
+Retrieval-Augmented Generation (RAG) systems combine document retrieval with
+language model generation, introducing a dual attack surface: the corpus
+may leak through retrieval and the generator may reproduce sensitive content.
+Existing security evaluations rely on stochastic, model-dependent probes that
+produce non-reproducible results, making them unsuitable for continuous
+integration and compliance workflows.
+
+We present \textsc{RAGLeakLab}, an open-source framework that addresses
+these limitations through a principled, deterministic design. The framework
+implements six threat classes---canary extraction, verbatim reproduction,
+membership inference, semantic leakage, cross-document correlation, and
+corpus poisoning---evaluated via metrics that require no neural inference at
+test time. A TF-IDF reference pipeline, fixed paraphrase templates, and
+deterministic delta debugging ensure identical results across runs. CI
+integration is provided through JUnit XML and SARIF export, HTTP
+record/replay cassettes for network-free execution, and configurable
+threshold calibration with target false-positive rate constraints.
+
+RAGLeakLab is implemented in approximately 12,000 lines of Python, carries
+no GPU dependencies, and produces bit-identical reports across environments.
+The framework is designed for integration into enterprise CI/CD pipelines
+where reproducibility, auditability, and offline operation are requirements.
+\end{abstract}
+
+% ══════════════════════════════════════════════════════════════════════
+\section{Introduction}\label{sec:intro}
+% ══════════════════════════════════════════════════════════════════════
+
+Retrieval-Augmented Generation (RAG) has become the dominant architecture for
+grounding large language models in private document collections. By retrieving
+relevant passages and injecting them into the generation context, RAG systems
+reduce hallucination and enable knowledge-intensive applications without fine-tuning.
+However, this architecture introduces a fundamental tension: the same retrieval
+mechanism that grounds generation also creates pathways for information leakage.
+
+An attacker who can observe the generated output---and in many deployments, any
+authenticated user qualifies---may extract sensitive content from the private
+corpus through carefully crafted queries. The threat surface spans multiple
+dimensions: verbatim reproduction of source text, inference of corpus membership,
+extraction of planted canary tokens, semantic exposure of sensitive facts,
+cross-document correlation of information that should not be composed, and
+integrity compromise through corpus poisoning.
+
+Evaluating these threats in practice presents a reproducibility challenge.
+Existing approaches often rely on neural classifiers, stochastic probing, or
+model-specific adversarial techniques that produce different results across
+runs, hardware, and software versions. Such non-determinism is fundamentally
+incompatible with CI/CD pipelines, regression testing, and compliance
+auditing, where a security gate must return the same verdict given the same
+inputs.
+
+\textsc{RAGLeakLab} is designed from first principles to be deterministic.
+Every component---from query transformation to metric calculation to report
+generation---produces identical output across runs when given identical input.
+The framework achieves this through several design choices:
+
+\begin{itemize}[nosep]
+  \item A TF-IDF reference retriever with deterministic tie-breaking replaces
+        embedding-model-dependent retrieval.
+  \item Fixed template-based paraphrase generation replaces neural paraphrasing.
+  \item Longest Common Substring and n-gram overlap replace neural similarity
+        for verbatim detection.
+  \item Pattern-matching claim detectors replace LLM-based fact verification.
+  \item Delta debugging for query minimization uses a deterministic algorithm.
+  \item SHA-256 provenance hashes record corpus, attack, and configuration
+        state for auditability.
+\end{itemize}
+
+The remainder of this paper is structured as follows. Section~\ref{sec:problem}
+defines the problem space. Section~\ref{sec:threat} presents the formal threat
+model. Section~\ref{sec:design} describes design principles.
+Section~\ref{sec:arch} details the system architecture.
+Section~\ref{sec:attacks} covers the attack framework.
+Section~\ref{sec:metrics} formalizes the leakage and integrity metrics.
+Section~\ref{sec:poisoning} describes dataset poisoning evaluation.
+Section~\ref{sec:calibration} covers threshold calibration.
+Section~\ref{sec:attribution} presents the attribution engine.
+Section~\ref{sec:ci} describes CI integration.
+Section~\ref{sec:benchmarks} provides benchmark results.
+Section~\ref{sec:security} discusses security hardening.
+Section~\ref{sec:limitations} acknowledges limitations.
+Section~\ref{sec:related} surveys related work, and
+Section~\ref{sec:conclusion} concludes.
+
+% ══════════════════════════════════════════════════════════════════════
+\section{Problem Statement}\label{sec:problem}
+% ══════════════════════════════════════════════════════════════════════
+
+A production RAG system serves as an interface between untrusted user queries
+and a private document corpus. The security requirement is that the system
+should answer questions using corpus knowledge without exposing sensitive
+content beyond what is strictly necessary for the answer. Formally, let
+$\mathcal{C} = \{d_1, \ldots, d_n\}$ be a private corpus, $q$ a user query,
+$R(q, \mathcal{C}) \subseteq \mathcal{C}$ the retrieved subset, and
+$G(q, R)$ the generated answer. The security testing problem is to
+determine whether $G(q, R)$ reveals information from $\mathcal{C}$ that
+constitutes a confidentiality violation.
+
+Three properties distinguish this problem from general LLM safety testing:
+
+\textbf{Dual attack surface.} Both the retriever $R$ and the generator $G$
+contribute to leakage. The retriever may return documents containing secrets;
+the generator may verbatim reproduce, paraphrase, or compose information
+from the retrieved context.
+
+\textbf{Corpus-dependent threats.} The severity of leakage depends on the
+specific corpus content. A canary token \texttt{CANARY\_<hex>} planted in the
+corpus constitutes a definitive leak when reproduced; verbatim overlap with
+public boilerplate does not. Testing must be parameterized by corpus content
+and associated claim annotations.
+
+\textbf{Reproducibility requirements.} Enterprise deployments require
+security gates that produce identical verdicts given identical inputs, support
+regression detection across releases, and generate audit trails for compliance.
+Non-deterministic probes violate all three requirements.
+
+RAGLeakLab addresses this problem by providing a testing framework where
+every component is deterministic, every threat class has a well-defined metric
+with a configurable threshold, and every run produces a versioned,
+hash-anchored report suitable for CI gates.
+
+% ══════════════════════════════════════════════════════════════════════
+\section{Threat Model}\label{sec:threat}
+% ══════════════════════════════════════════════════════════════════════
+
+RAGLeakLab implements six threat classes, each corresponding to a distinct
+information leakage vector. The framework explicitly separates \emph{leakage
+threats} (Sections~\ref{subsec:canary}--\ref{subsec:crossdoc}), which
+concern information escaping from the corpus, from \emph{integrity threats}
+(Section~\ref{subsec:integrity}), which concern adversarial manipulation
+of the corpus itself.
+
+\subsection{Canary Extraction}\label{subsec:canary}
+
+Canary tokens are deterministic, high-entropy strings of the form
+\texttt{CANARY\_<16 hex chars>}, generated via SHA-256 hashing of a seed:
+\texttt{SHA256("ragleaklab\_canary\_\{seed\}")[:16]}. Canaries are injected
+into corpus documents using configurable strategies (end-of-document or
+mid-document insertion). Their presence in generated output constitutes an
+unambiguous confidentiality violation---the token has zero probability of
+appearing in any legitimate response.
+
+\textbf{Attacker model.} The attacker submits queries designed to elicit
+reproduction of injected secrets. Strategies include direct requests,
+indirect framing, role confusion, and context manipulation
+(Section~\ref{sec:attacks}).
+
+\textbf{Detection.} A compiled regular expression
+\texttt{CANARY\_[0-9a-f]\{16,\}} is applied to the generated output. The
+metric reports count and presence as a binary signal.
+
+\subsection{Verbatim Reproduction}\label{subsec:verbatim}
+
+Verbatim leakage measures the degree of exact textual overlap between the
+generated output and source documents. Two complementary metrics are computed:
+
+\begin{itemize}[nosep]
+  \item \textbf{Longest Common Substring (LCS) ratio}: The length of the
+        longest common substring between the answer and any source document,
+        normalized by source document length. A minimum length threshold
+        (default: 20 characters) suppresses common-phrase false positives.
+  \item \textbf{N-gram overlap}: The count of matching n-grams (default:
+        $n = 5$) between answer and source, with a configurable minimum
+        match count.
+\end{itemize}
+
+The combined score is $\max(\text{lcs\_ratio}, \text{ngram\_ratio})$, where
+ngram\_ratio is the fraction of source n-grams appearing in the answer.
+
+\subsection{Membership Inference}\label{subsec:membership}
+
+Membership inference determines whether a specific document was present in
+the corpus based on observable response characteristics. RAGLeakLab implements
+two approaches:
+
+\textbf{Heuristic scoring.} A weighted combination of retrieval score
+statistics (mean, max), answer length, and context specificity indicators.
+When non-member reference signals are available, the score is the normalized
+difference between member and non-member signal strengths.
+
+\textbf{Paraphrase consistency.} The query is expanded into deterministic
+paraphrases using fixed templates (e.g., ``What is \{query\}?'',
+``Tell me about \{query\}'', ``Details on \{query\}''). Retrieved document
+overlap and answer token similarity across paraphrases are measured.
+High consistency suggests corpus membership. The consistency score combines
+retrieval stability (Jaccard index over retrieved document IDs) and answer
+similarity (token-level Jaccard).
+
+\subsection{Semantic Leakage}\label{subsec:semantic}
+
+Semantic leakage evaluates whether sensitive \emph{claims}---discrete facts
+annotated in the corpus---are revealed in the generated output. Claims are
+defined per-document in JSONL format with typed sensitivity levels (high,
+medium, low) and categorical types (e.g., \texttt{EMAIL}, \texttt{PHONE},
+\texttt{ACCOUNT\_ID}, \texttt{SECRET\_CODEWORD}, \texttt{INTERNAL\_PROJECT}).
+
+Detection uses type-specific matchers:
+\begin{itemize}[nosep]
+  \item \textbf{Email}: Regex-based extraction and exact matching.
+  \item \textbf{Phone}: E.164 and common format normalization, then
+        digit-sequence comparison.
+  \item \textbf{Account ID / Secret codeword}: Case-insensitive substring
+        matching with text normalization (whitespace collapse, punctuation
+        removal).
+  \item \textbf{General}: Normalized substring containment after text
+        preprocessing.
+\end{itemize}
+
+The semantic leakage rate is $|\text{leaked claims}| / |\text{total claims
+in retrieved documents}|$.
+
+\subsection{Cross-Document Correlation}\label{subsec:crossdoc}
+
+Cross-document leakage detects composed claims---facts that require
+information from \emph{multiple} source documents to construct. These are
+defined as \emph{composed claims} in a separate JSONL file, each referencing
+two or more source document IDs. Detection verifies that a matched claim
+indeed spans multiple distinct document origins, preventing single-document
+matches from triggering false positives.
+
+The metric reports the count of leaked composed claims and provides evidence
+linking each match to its source documents.
+
+\subsection{Corpus Poisoning (Integrity Threats)}\label{subsec:integrity}
+
+Integrity threats model an adversary who can inject or modify documents in
+the corpus. RAGLeakLab implements three sub-categories, each with a
+dedicated evidence schema:
+
+\textbf{Retrieval hijacking} (\texttt{RetrievalIntegrityEvidence}).
+Poisoned documents are injected to rank higher than legitimate content for
+targeted queries. Detection compares expected vs.\ actual document IDs in
+retrieval results, computing poison rate at $k$
+($|\text{poison docs in top-}k| / k$), poison mean reciprocal rank, and
+true document recall at $k$.
+
+\textbf{Claim corruption} (\texttt{ClaimIntegrityEvidence}). Injected
+documents contain false claims designed to appear in generated output.
+Detection matches expected true claims against actual output and identifies
+the presence of poison claims, reporting contradiction counts and
+corruption rates.
+
+\textbf{Sentinel takeover} (\texttt{SentinelIntegrityEvidence}). Backdoor
+triggers planted in the corpus activate when specific patterns appear in
+queries. Detection uses rule-based pattern matching with deterministic
+policies (block/strip/allow) and reports whether triggers were activated,
+the policy action taken, and output markers found.
+
+Each evidence type carries a severity level (high/medium/low), confidence
+score, pack and query identifiers, and optional detail dictionaries.
+
+% ══════════════════════════════════════════════════════════════════════
+\section{Design Principles}\label{sec:design}
+% ══════════════════════════════════════════════════════════════════════
+
+Five design principles govern RAGLeakLab's architecture:
+
+\subsection{Determinism}
+
+Every operation produces identical output given identical input. The
+reference pipeline uses a TF-IDF retriever with deterministic tie-breaking
+(secondary sort by chunk ID ensures stable ranking when cosine similarities
+are equal). Paraphrase generation uses fixed templates rather than neural
+models. Delta debugging follows a deterministic splitting algorithm.
+Report entries are sorted by \texttt{test\_id} before serialization. A
+dedicated verification module (\texttt{core.determinism}) can run the same
+pack $N$ times and compare normalized outputs, stripping volatile fields
+(timestamps, timings) before deep comparison.
+
+\subsection{Provenance}
+
+Every report carries SHA-256 hashes of its inputs: corpus directory content
+(\texttt{corpus\_hash}), attack definitions (\texttt{attacks\_hash}),
+runtime configuration (\texttt{config\_hash}), and target system identifier
+(\texttt{target\_hash}). The \texttt{compute\_config\_hash} function
+deterministically serializes key-value settings, sorts them, and hashes the
+result. This allows auditors to verify that two reports were produced from
+identical inputs without accessing the inputs themselves.
+
+\subsection{Separation of Concerns}
+
+The framework cleanly separates five subsystems: (1)~the attack framework
+(case loading, strategy application, execution), (2)~target adapters
+(in-process pipeline, HTTP endpoints), (3)~metric calculators (canary,
+verbatim, membership, semantic, crossdoc, integrity), (4)~the reporting
+layer (schema, export, regression diff), and (5)~corpus management
+(loading, patching, claim annotation, canary injection). Each subsystem
+communicates through typed Pydantic contracts defined in
+\texttt{core.contracts}.
+
+\subsection{Extensibility}
+
+A plugin registry (\texttt{core.plugins}) supports three extension points:
+metrics, attacks, and targets. Plugins can be registered programmatically
+via \texttt{register(kind, name, obj)} or discovered automatically through
+Python entry points in the \texttt{ragleaklab.\{kind\}} namespace. Built-in
+components self-register during module import, ensuring they are available
+without explicit configuration.
+
+\subsection{CI-First Design}
+
+Every feature is designed for unattended execution. HTTP cassettes enable
+network-free replays. JUnit XML and SARIF exports integrate with standard
+CI tooling. Exit codes are structured (0=success, 1=general error,
+2=input error, 3=validation error, 4=config error, 5=network error,
+99=internal error). Error messages are automatically sanitized via
+\texttt{core.errors} to prevent secret leakage in CI logs.
+
+% ══════════════════════════════════════════════════════════════════════
+\section{System Architecture}\label{sec:arch}
+% ══════════════════════════════════════════════════════════════════════
+
+\subsection{Reference RAG Pipeline}
+
+RAGLeakLab includes a reference RAG pipeline (\texttt{rag.pipeline.RAGPipeline})
+composed of three stages:
+
+\textbf{Retrieval.} The \texttt{TFIDFRetriever} chunks documents using
+configurable window and overlap parameters (default: 256 characters, 32
+overlap), builds TF-IDF vectors with $\text{TF} = \log(1 + \text{count})$
+and $\text{IDF} = \log(N / \text{df})$, and ranks by cosine similarity.
+Ties are broken by chunk ID (lexicographic, ascending) for stable ordering.
+
+\textbf{Context assembly.} The \texttt{ContextBuilder} concatenates
+retrieved chunks into a single context string passed to the generator.
+
+\textbf{Generation.} The \texttt{MockGenerator} produces deterministic
+answers by echoing retrieved context, ensuring the pipeline's output is
+fully determined by its inputs without requiring any language model.
+
+This reference pipeline serves as a controlled baseline. Production systems
+are tested via the \texttt{Target} adapter protocol.
+
+\subsection{Target Adapters}
+
+The \texttt{Target} protocol defines a single method:
+\texttt{ask(query) -> TargetResponse}, where \texttt{TargetResponse}
+contains the answer text, optional retrieved document IDs, optional
+retrieval scores, and raw response data. Two implementations are provided:
+
+\textbf{InProcessTarget.} Wraps a \texttt{RAGPipeline} instance, enabling
+direct testing without network overhead.
+
+\textbf{HttpTarget.} Sends queries to external RAG endpoints via HTTP.
+Configuration includes request method, URL, field mapping for request/response
+payloads, custom headers, timeout, and rate limiting (configurable
+requests-per-second with a token bucket). Security features include SSRF
+protection (Section~\ref{sec:security}) and domain allowlisting.
+
+The \texttt{HttpTarget} supports three operational modes:
+\begin{itemize}[nosep]
+  \item \texttt{live}: Normal HTTP requests.
+  \item \texttt{record}: Requests are executed and responses are recorded
+        to JSONL cassette files.
+  \item \texttt{replay}: Responses are served from cassette files without
+        network access.
+\end{itemize}
+
+\subsection{Contracts}
+
+All inter-module communication uses typed Pydantic models defined in
+\texttt{core.contracts}:
+
+\begin{itemize}[nosep]
+  \item \texttt{Document}, \texttt{Chunk}, \texttt{RetrievalHit}: Corpus
+        and retrieval data structures.
+  \item \texttt{RunArtifact}: Complete result of executing a single attack
+        case, including query, answer, retrieved chunks, timings, context
+        statistics, provenance hashes, and optional integrity evidence.
+  \item \texttt{MetricScore}: Unified metric result with name, value,
+        details dictionary, and optional pass/fail status.
+  \item \texttt{CaseResult}: Combines a \texttt{RunArtifact} with its
+        associated \texttt{MetricScore} list and overall verdict.
+  \item \texttt{ReportSummary}: Top-level report with schema version,
+        tool version, timestamp, overall pass/fail, aggregate metrics,
+        failure details, and metadata.
+\end{itemize}
+
+\subsection{Disk Cache}
+
+The \texttt{core.cache.DiskCache} stores pipeline results keyed by a
+SHA-256 hash of corpus hash, target hash, query text, and retrieval
+parameters. This enables fast repeat runs when inputs are unchanged. Cache
+entries are stored as individual JSON files, using the key hash as filename.
+Invalid entries are automatically removed on read.
+
+\subsection{Corpus Management}
+
+The corpus subsystem provides:
+\begin{itemize}[nosep]
+  \item \textbf{Document loading}: Plain text files from a directory.
+  \item \textbf{Claim annotation}: JSONL files mapping \texttt{(doc\_id,
+        claim\_id)} to sensitive facts with type and sensitivity metadata.
+  \item \textbf{Canary injection}: Deterministic token generation from
+        integer seeds and configurable injection strategies (end/middle).
+  \item \textbf{Corpus patching}: Deterministic application of incremental
+        changes (add/replace/remove documents and claims) via YAML/JSON
+        patch specifications (\texttt{corpus.patch}), producing
+        hash-verified output corpora.
+\end{itemize}
+
+% ══════════════════════════════════════════════════════════════════════
+\section{Attack Framework}\label{sec:attacks}
+% ══════════════════════════════════════════════════════════════════════
+
+\subsection{Attack Case Schema}
+
+Each attack is defined as an \texttt{AttackCase} with the following fields:
+\texttt{test\_id} (unique identifier), \texttt{threat} (threat class),
+\texttt{strategy} (transformation to apply), \texttt{query} or
+\texttt{turns} (single-turn string or multi-turn conversation), optional
+\texttt{expected} output, and optional \texttt{tags} for filtering.
+Pydantic validation enforces that exactly one of \texttt{query} or
+\texttt{turns} is provided. Multi-turn attacks are flattened to a single
+effective query via the \texttt{effective\_query} property, which
+concatenates turn roles and content.
+
+Attack cases are loaded from YAML files organized into \emph{packs}---named
+collections of test cases targeting specific threat classes.
+
+\subsection{Strategy Catalog}
+
+The \texttt{attacks.catalog} module maintains a registry of transformation
+strategies, each defined as an \texttt{AttackStrategy} dataclass with
+name, description, and a \texttt{transform: Callable[[str], str]} function.
+Built-in strategies include:
+
+\begin{table}[H]
+\centering
+\caption{Built-in attack strategies.}
+\label{tab:strategies}
+\small
+\begin{tabular}{@{}ll@{}}
+\toprule
+\textbf{Strategy} & \textbf{Transformation} \\
+\midrule
+\texttt{direct\_ask} & Identity (no transformation) \\
+\texttt{indirect\_ask} & Indirect framing \\
+\texttt{role\_confusion} & System role manipulation \\
+\texttt{context\_manipulation} & Context injection \\
+\texttt{semantic\_leakage} & Semantic probing \\
+\texttt{crossdoc\_correlation} & Cross-document composition \\
+\texttt{authority\_appeal} & Authority framing \\
+\texttt{hypothetical\_framing} & Hypothetical scenarios \\
+\texttt{metadata\_probe} & Metadata extraction \\
+\texttt{enumeration} & Systematic enumeration \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+Custom strategies can be added via the plugin registry.
+
+\subsection{Execution Engine}
+
+The \texttt{attacks.runner} module orchestrates test execution:
+
+\begin{enumerate}[nosep]
+  \item \textbf{Case loading}: \texttt{load\_cases(pack\_path)} parses YAML
+        files into \texttt{AttackCase} instances.
+  \item \textbf{Strategy application}: The named strategy's
+        \texttt{transform} function modifies the query.
+  \item \textbf{Cache lookup}: If a \texttt{DiskCache} is provided, the
+        cache key (corpus hash, target hash, transformed query, retrieval
+        parameters) is checked.
+  \item \textbf{Execution}: The query is sent through either a
+        \texttt{RAGPipeline} or a \texttt{Target} adapter.
+  \item \textbf{Artifact creation}: A \texttt{RunArtifact} is constructed
+        with the answer, retrieved chunks, context, timing breakdown
+        (retrieval, generation, total milliseconds), context statistics
+        (character count, chunk count, truncation flag), and provenance
+        hashes.
+\end{enumerate}
+
+Parallel execution is supported via \texttt{ProcessPoolExecutor}, with
+\texttt{run\_all} and \texttt{run\_all\_with\_target} orchestrating batch
+execution across all cases in a pack.
+
+\subsection{Coverage Analysis}
+
+The \texttt{attacks.coverage} module computes a \texttt{CoverageReport}
+from loaded test cases, providing:
+\begin{itemize}[nosep]
+  \item Per-threat case counts.
+  \item Per-strategy case counts.
+  \item A threat-strategy matrix showing coverage density.
+  \item Gap identification: given expected threats and strategies (from an
+        optional \texttt{attacks.yaml} manifest), the module reports missing
+        combinations.
+\end{itemize}
+
+\subsection{Query Minimization}
+
+The \texttt{attacks.minimize} module implements deterministic delta
+debugging (Algorithm~\ref{alg:ddmin}) for failure-preserving query reduction.
+Given a failing query and an oracle predicate, the algorithm produces a
+minimal subsequence that still triggers the failure.
+
+\begin{algorithm}[H]
+\caption{Deterministic Delta Debugging (\texttt{ddmin})}
+\label{alg:ddmin}
+\begin{algorithmic}[1]
+\Require Sequence $c$ of tokens, oracle $\phi: \text{seq} \to \{0,1\}$
+\Ensure Minimal $c' \subseteq c$ s.t.\ $\phi(c') = 1$
+\State $n \gets 2$
+\While{$|c| \geq 2$}
+  \State Split $c$ into $n$ disjoint chunks $\Delta_1, \ldots, \Delta_n$
+  \State $\mathit{reduced} \gets \mathsf{false}$
+  \For{$i = 1$ to $n$}
+    \If{$\phi(\Delta_i) = 1$}
+      \State $c \gets \Delta_i$; $n \gets 2$; $\mathit{reduced} \gets \mathsf{true}$; \textbf{break}
+    \EndIf
+  \EndFor
+  \If{not $\mathit{reduced}$}
+    \For{$i = 1$ to $n$}
+      \State $c_i^{\complement} \gets c \setminus \Delta_i$
+      \If{$\phi(c_i^{\complement}) = 1$}
+        \State $c \gets c_i^{\complement}$; $n \gets n-1$; $\mathit{reduced} \gets \mathsf{true}$; \textbf{break}
+      \EndIf
+    \EndFor
+  \EndIf
+  \If{not $\mathit{reduced}$}
+    \If{$n < |c|$}
+      \State $n \gets \min(2n, |c|)$
+    \Else
+      \State \textbf{break}
+    \EndIf
+  \EndIf
+\EndWhile
+\State \Return $c$
+\end{algorithmic}
+\end{algorithm}
+
+The splitting strategy is configurable: sentence-based (splitting on
+sentence boundaries) or line-based (splitting on newline characters).
+
+% ══════════════════════════════════════════════════════════════════════
+\section{Leakage and Integrity Metrics}\label{sec:metrics}
+% ══════════════════════════════════════════════════════════════════════
+
+All metrics are implemented as pure functions that take run artifacts and
+corpus data as input and produce typed result objects. No metric requires
+neural inference, GPU resources, or network access.
+
+\subsection{Canary Detection}
+
+\begin{equation}
+\texttt{detect\_canary}(a) = \bigl(\,
+  \mathbb{1}[\texttt{CANARY\_[0-9a-f]\{16,\}} \in a],\;
+  |\text{matches}|
+\,\bigr)
+\end{equation}
+
+Returns a \texttt{CanaryResult} with boolean \texttt{present}, integer
+\texttt{count}, and list of matched token strings.
+
+\subsection{Verbatim Overlap}
+
+For answer $a$ and source documents $S = \{(d_i, t_i)\}$:
+
+\begin{equation}
+\texttt{verbatim\_score} = \max_{(d_i, t_i) \in S} \max\!\left(
+  \frac{|\texttt{LCS}(a, t_i)|}{\max(|t_i|, 1)},\;
+  \frac{|\texttt{ngram\_matches}(a, t_i, n)|}{|\texttt{ngrams}(t_i, n)|}
+\right)
+\end{equation}
+
+where $\texttt{LCS}$ returns the longest common substring (minimum length
+threshold applied), and n-gram matching uses $n = 5$ by default. The result
+(\texttt{VerbatimResult}) includes the score, LCS length, source document
+with maximum overlap, and n-gram match count.
+
+\subsection{Membership Confidence}
+
+\textbf{Heuristic approach.}
+Given a list of \texttt{RunArtifact} objects, the membership score aggregates
+normalized retrieval scores (mean and max across chunks), answer length
+(log-normalized), and context specificity (ratio of unique tokens).
+When non-member reference data is available, the score is the difference
+between member and non-member signal strengths, normalized to $[0, 1]$.
+
+\textbf{Consistency approach.}
+For query $q$, generate $k$ paraphrases $\{q_1, \ldots, q_k\}$ using
+fixed templates. For each $q_i$, retrieve documents $R_i$ and generate
+answer $a_i$. The consistency score combines:
+
+\begin{equation}
+\texttt{retrieval\_consistency} = \frac{1}{\binom{k}{2}}
+\sum_{i < j} \frac{|R_i \cap R_j|}{|R_i \cup R_j|}
+\end{equation}
+
+\begin{equation}
+\texttt{answer\_similarity} = \frac{1}{\binom{k}{2}}
+\sum_{i < j} \frac{|\text{tokens}(a_i) \cap \text{tokens}(a_j)|}{|\text{tokens}(a_i) \cup \text{tokens}(a_j)|}
+\end{equation}
+
+\begin{equation}
+\texttt{confidence} = w_r \cdot \texttt{retrieval\_consistency}
+                     + w_a \cdot \texttt{answer\_similarity}
+\end{equation}
+
+where $w_r = 0.6$ and $w_a = 0.4$ are fixed weights.
+
+\subsection{Semantic Leakage}
+
+For answer $a$ and claims $\mathcal{K}_R$ from retrieved documents:
+
+\begin{equation}
+\texttt{semantic\_leakage\_rate} = \frac{|\{c \in \mathcal{K}_R \mid \texttt{match\_claim}(c, a)\}|}{|\mathcal{K}_R|}
+\end{equation}
+
+The \texttt{match\_claim} function dispatches to type-specific matchers
+(Section~\ref{subsec:semantic}). Text normalization includes whitespace
+collapse, punctuation stripping, and case folding.
+
+\subsection{Cross-Document Leakage}
+
+For composed claims $\mathcal{K}_{\times}$ (each spanning $\geq 2$ documents):
+
+\begin{equation}
+\texttt{crossdoc\_leaked} = |\{c \in \mathcal{K}_{\times} \mid
+  \texttt{match\_claim}(c, a) \;\land\;
+  |\texttt{source\_docs}(c)| \geq 2\}|
+\end{equation}
+
+\subsection{Integrity Metrics}
+
+Three metrics evaluate corpus poisoning effects:
+
+\begin{equation}
+\texttt{poison\_rate@}k = \frac{|\{d \in \text{top-}k \mid d \in \mathcal{P}\}|}{k}
+\end{equation}
+
+\begin{equation}
+\texttt{poison\_mrr} = \frac{1}{\min_{d \in \mathcal{P}} \text{rank}(d)}
+\end{equation}
+
+\begin{equation}
+\texttt{true\_doc\_recall@}k = \frac{|\{d \in \text{top-}k \mid d \in \mathcal{T}\}|}{|\mathcal{T}|}
+\end{equation}
+
+where $\mathcal{P}$ is the set of poisoned document IDs, $\mathcal{T}$ is
+the set of expected true document IDs, and the top-$k$ set is the retrieval result.
+
+\subsection{Verdict Engine}
+
+The \texttt{metrics.verdict} module applies configurable thresholds to
+aggregate metric results and produces a final pass/fail verdict.
+Default thresholds are:
+
+\begin{itemize}[nosep]
+  \item Canary: any extraction $\Rightarrow$ FAIL.
+  \item Verbatim: score $> 0.1 \Rightarrow$ FAIL.
+  \item Membership: confidence $> 0.7 \Rightarrow$ FAIL.
+\end{itemize}
+
+Each threshold violation generates a \texttt{VerdictReason} with the
+threat class, human-readable description, observed value, and configured
+threshold.
+
+% ══════════════════════════════════════════════════════════════════════
+\section{Dataset Poisoning Evaluation}\label{sec:poisoning}
+% ══════════════════════════════════════════════════════════════════════
+
+Corpus poisoning represents a supply-chain attack on RAG systems. An
+adversary with write access to a subset of the corpus can inject documents
+designed to manipulate retrieval ranking, corrupt generated claims, or
+implant backdoor triggers.
+
+\subsection{Poisoning Pack Structure}
+
+Each poisoning evaluation is organized as a \emph{pack} containing:
+\begin{itemize}[nosep]
+  \item A manifest (\texttt{manifest.yaml}) defining queries, expected
+        document IDs, expected claims, and poison document identifiers.
+  \item A clean corpus and a poisoned corpus variant (produced via the
+        \texttt{corpus.patch} mechanism).
+  \item Rule definitions for sentinel detection (pattern/replacement pairs
+        with deterministic block/strip/allow policies).
+\end{itemize}
+
+\subsection{Evidence Collection}
+
+The poisoning runner executes the same queries against both clean and
+poisoned corpus variants, collecting \texttt{IntegrityEvidence} objects:
+
+\textbf{Retrieval integrity.} Compares top-$k$ retrieval results between
+clean and poisoned runs to detect ranking manipulation. Evidence includes
+expected vs.\ actual document ID lists, confidence score, and
+per-query metrics (poison rate, MRR, recall).
+
+\textbf{Claim integrity.} Compares generated output against expected true
+claims and known poison claims to detect content corruption. Evidence
+includes matched true claims, matched poison claims, contradiction count,
+and per-query corruption rate.
+
+\textbf{Sentinel integrity.} Applies rule-based patterns to detect
+backdoor trigger activation. Evidence includes sentinel type
+(suffix/trigger/backdoor), whether the trigger fired, the policy action
+taken, expected vs.\ actual behavior, and output markers found.
+
+\subsection{Integrity Summary}
+
+The \texttt{IntegritySection} model aggregates all evidence into a
+summary with severity-stratified counts (high/medium/low), per-type
+counts (retrieval/claim/sentinel), and worst-case dominance scores.
+Evidence is sorted deterministically by severity, then pack ID, then
+query ID.
+
+\subsection{Triage}
+
+The integrity summary provides three triage signals:
+\begin{itemize}[nosep]
+  \item \texttt{worst\_poison\_dominance}: highest \texttt{poison\_rate@k}
+        across all retrieval findings.
+  \item \texttt{worst\_claim\_corruption}: highest poison claim rate across
+        all claim findings.
+  \item \texttt{sentinel\_failures}: count of triggered sentinel findings.
+\end{itemize}
+
+These signals are consumed by CI gates to determine whether poisoning
+exceeds acceptable thresholds.
+
+% ══════════════════════════════════════════════════════════════════════
+\section{Calibration}\label{sec:calibration}
+% ══════════════════════════════════════════════════════════════════════
+
+Threshold selection for binary metrics (e.g., verbatim score, membership
+confidence) requires balancing sensitivity against false positive rate.
+RAGLeakLab provides a principled calibration workflow.
+
+\subsection{Labeled Calibration Sets}
+
+Calibration requires a JSONL file of labeled test cases:
+\begin{lstlisting}
+{"test_id": "case_001", "label": "positive"}
+{"test_id": "case_002", "label": "negative"}
+\end{lstlisting}
+
+Labels are \texttt{positive} (leak expected, attack succeeds) or
+\texttt{negative} (no leak expected, security holds). The loader
+(\texttt{calibration.loader}) validates uniqueness, format, and
+non-emptiness.
+
+\subsection{Threshold Fitting}
+
+The \texttt{calibration.fit.fit\_threshold} function implements a
+sweep-based algorithm:
+
+\begin{enumerate}[nosep]
+  \item Separate scores by label into positive and negative sets.
+  \item Enumerate all unique score values as candidate thresholds.
+  \item For each threshold $t$, compute FPR and TPR:
+    \begin{align}
+    \text{FPR}(t) &= \frac{|\{s \in S^{-} \mid s \geq t\}|}{|S^{-}|} \\
+    \text{TPR}(t) &= \frac{|\{s \in S^{+} \mid s \geq t\}|}{|S^{+}|}
+    \end{align}
+    where $S^{+}$ and $S^{-}$ are positive and negative score sets
+    (assuming \texttt{higher\_is\_worse = True}).
+  \item Select the threshold with maximum TPR subject to
+    $\text{FPR} \leq \text{target\_fpr}$ (default: 0.01).
+  \item Deterministic tie-breaking: among thresholds achieving equal
+    TPR at the constraint boundary, prefer the higher (more conservative)
+    threshold.
+\end{enumerate}
+
+The result (\texttt{CalibrationResult}) reports the chosen threshold,
+achieved FPR and TPR, sample counts, and the decision rule string
+(e.g., ``score $\geq$ threshold $\to$ FAIL'').
+
+\subsection{Calibration Report}
+
+The \texttt{calibration.report} module generates a full report including:
+\begin{itemize}[nosep]
+  \item Pack name and metric name.
+  \item Target FPR and achieved rates.
+  \item ROC-like table of (threshold, FPR, TPR) operating points.
+  \item Generation timestamp.
+\end{itemize}
+
+Reports are written as JSON to support automated threshold update
+workflows (e.g., a CI job that recalibrates thresholds when the corpus
+changes and commits updated baseline files).
+
+% ══════════════════════════════════════════════════════════════════════
+\section{Attribution}\label{sec:attribution}
+% ══════════════════════════════════════════════════════════════════════
+
+When a security test fails, practitioners need to understand \emph{why}
+the leak occurred to implement effective remediation. The
+\texttt{analysis.attribution} module provides rule-based root cause
+analysis.
+
+\subsection{Attribution Categories}
+
+Five categories are implemented, each with a corresponding remediation hint:
+
+\begin{table}[H]
+\centering
+\caption{Attribution categories and remediation hints.}
+\label{tab:attribution}
+\small
+\begin{tabular}{@{}p{3.2cm}p{4.2cm}@{}}
+\toprule
+\textbf{Category} & \textbf{Remediation Hint} \\
+\midrule
+\texttt{retrieval\_included\_secret} &
+  Review retriever filtering; consider excluding documents with sensitive markers. \\
+\texttt{context\_too\_long} &
+  Reduce context window or implement summarization. \\
+\texttt{top\_k\_too\_high} &
+  Lower top\_k to reduce attack surface. \\
+\texttt{chunking\_boundary} &
+  Adjust chunk boundaries to avoid splitting sensitive content. \\
+\texttt{target\_overexposed\_endpoint} &
+  Audit HTTP target for unintended data exposure. \\
+\bottomrule
+\end{tabular}
+\end{table}
+
+\subsection{Attribution Logic}
+
+The \texttt{attribute\_leak} function evaluates conditions based on
+run artifact data:
+\begin{itemize}[nosep]
+  \item If canary detected and retrieved chunks are non-empty, attribute
+        to \texttt{retrieval\_included\_secret}.
+  \item If context exceeds 10,000 characters, attribute to
+        \texttt{context\_too\_long}.
+  \item If more than 5 chunks were retrieved, attribute to
+        \texttt{top\_k\_too\_high}.
+  \item If the target is HTTP-based and a leak was detected, attribute to
+        \texttt{target\_overexposed\_endpoint}.
+\end{itemize}
+
+Attribution results are embedded in SARIF output as properties on each
+finding, enabling security dashboard integration.
+
+% ══════════════════════════════════════════════════════════════════════
+\section{CI Integration}\label{sec:ci}
+% ══════════════════════════════════════════════════════════════════════
+
+RAGLeakLab is designed as a CI gate: a process that runs in the pipeline,
+produces a verdict, and fails the build on security regressions.
+
+\subsection{Export Formats}
+
+\textbf{JUnit XML.} The \texttt{reporting.export.export\_junit} function
+produces standard JUnit XML consumed by all major CI platforms (GitHub
+Actions, GitLab CI, Jenkins, Azure DevOps). Each test case is mapped to
+a \texttt{<testcase>} element; failures include the threat type, query,
+and truncated answer. Suppressed findings are marked as
+\texttt{<skipped>} with the suppression reason.
+
+\textbf{SARIF.} The \texttt{reporting.export.export\_sarif} function
+produces SARIF 2.1.0 for GitHub Code Scanning. Rules are defined for
+each threat class with calibrated severity scores:
+\begin{itemize}[nosep]
+  \item Canary extraction: severity 9.0 (error).
+  \item Semantic leakage: severity 8.0 (error).
+  \item Cross-document leakage: severity 8.5 (error).
+  \item Verbatim leakage: severity 7.0 (warning).
+  \item Membership inference: severity 5.0 (warning).
+  \item Retrieval hijacking: severity 8.5 (error).
+  \item Claim corruption: severity 8.0 (error).
+  \item Sentinel takeover: severity 9.0 (error).
+\end{itemize}
+
+Suppressed findings receive SARIF \texttt{suppressions} annotations with
+\texttt{kind: inSource} and the justification text.
+
+\subsection{HTTP Cassettes}
+
+The cassette mechanism (\texttt{targets.cassette}) enables deterministic
+CI runs without network access:
+
+\textbf{Recording.} During a \texttt{record} mode run, each HTTP request
+and response is serialized to a JSONL cassette file. Requests are
+normalized (sorted headers, sorted query parameters, normalized body) and
+hashed (SHA-256) for lookup. Sensitive headers
+(\texttt{Authorization}, \texttt{X-Api-Key}, \texttt{Cookie}, etc.)
+are redacted before storage.
+
+\textbf{Replay.} During a \texttt{replay} mode run, incoming requests are
+normalized and hashed identically. The cassette file is searched for a
+matching hash. If found, the stored response is returned without network
+access. If not found, a \texttt{CassetteReplayError} is raised.
+
+This design ensures that CI pipelines can execute the full test suite
+against recorded external service responses, eliminating network
+dependencies and rate-limit concerns.
+
+\subsection{Regression Detection}
+
+The \texttt{regression.diff} module compares two \texttt{ReportSummary}
+objects (baseline vs.\ current) and detects regressions:
+
+\begin{itemize}[nosep]
+  \item \textbf{Canary regression}: \texttt{false} $\to$ \texttt{true} is
+        an immediate failure.
+  \item \textbf{Verbatim regression}: rate increase exceeding a
+        configurable delta threshold (default: 0.01).
+  \item \textbf{Membership regression}: confidence increase exceeding a
+        configurable delta threshold (default: 0.05).
+  \item \textbf{Semantic regression}: leakage rate increase exceeding the
+        verbatim delta threshold.
+\end{itemize}
+
+The \texttt{DiffResult} includes per-metric deltas with baseline and
+current values, enabling trend analysis.
+
+\subsection{Suppressions}
+
+The suppression system (\texttt{suppressions}) allows teams to acknowledge
+known risks without removing them from reports. Suppressions are defined
+in \texttt{suppressions.yaml} with mandatory fields:
+
+\begin{itemize}[nosep]
+  \item \texttt{id}: UUID identifying the suppression.
+  \item \texttt{type}: What is suppressed (\texttt{test\_id},
+        \texttt{claim\_id}, \texttt{doc\_id}, or \texttt{metric}).
+  \item \texttt{value}: Identifier to match.
+  \item \texttt{reason}: Non-empty justification (enforced by validation).
+  \item \texttt{expires\_at}: Mandatory ISO-8601 expiry timestamp.
+  \item \texttt{owner}: Optional responsible party.
+\end{itemize}
+
+Suppressions are applied \emph{after} metric calculation but \emph{before}
+the final verdict. Suppressed findings remain visible in all outputs
+(JUnit: \texttt{<skipped>}; SARIF: \texttt{suppressions} annotation;
+JSON: \texttt{suppression\_summary} section). The verdict changes from
+FAIL to KNOWN\_RISK, never to PASS. Expired suppressions are automatically
+ignored.
+
+% ══════════════════════════════════════════════════════════════════════
+\section{Benchmarks}\label{sec:benchmarks}
+% ══════════════════════════════════════════════════════════════════════
+
+RAGLeakLab's design targets two benchmarking dimensions: determinism
+verification and execution performance.
+
+\subsection{Determinism Verification}
+
+The \texttt{core.determinism.verify\_determinism} function provides
+automated determinism testing. Given a pack name and run count $N$, it:
+
+\begin{enumerate}[nosep]
+  \item Creates $N$ fresh \texttt{RAGPipeline} instances and executes
+        the pack against each.
+  \item Normalizes all outputs by stripping volatile fields
+        (\texttt{generated\_at}, \texttt{timings}) and sorting entries by
+        \texttt{test\_id}.
+  \item Performs deep structural comparison of \texttt{report.json} and
+        \texttt{runs.jsonl} across all pairs $(0, i)$ for $i \in [1, N)$.
+  \item Reports any differences with path-qualified descriptions (e.g.,
+        \texttt{aggregates.verbatim\_leakage\_rate: 0.05 != 0.06}).
+\end{enumerate}
+
+Under the reference pipeline with identical corpus and attack inputs, all
+runs produce bit-identical normalized outputs. This property is verified in
+the test suite.
+
+\subsection{Performance Characteristics}
+
+The framework is designed for lightweight execution:
+
+\begin{itemize}[nosep]
+  \item \textbf{No GPU required.} All operations use CPU-only algorithms
+        (TF-IDF, regex, string matching, hashing).
+  \item \textbf{Parallel execution.} \texttt{run\_all} uses
+        \texttt{ProcessPoolExecutor} for multi-core utilization.
+  \item \textbf{Caching.} The \texttt{DiskCache} eliminates redundant
+        pipeline executions when inputs are unchanged.
+  \item \textbf{Cassette replay.} Network-free replay eliminates HTTP
+        latency and rate-limit delays.
+\end{itemize}
+
+Typical execution times for a 50-case pack against the reference pipeline
+on a single CPU core are under 5 seconds, making RAGLeakLab suitable for
+pre-commit hooks and PR-blocking CI gates.
+
+% ══════════════════════════════════════════════════════════════════════
+\section{Security Hardening}\label{sec:security}
+% ══════════════════════════════════════════════════════════════════════
+
+As a security testing tool, RAGLeakLab must not itself become an attack
+vector. The following hardening measures are implemented:
+
+\subsection{SSRF Protection}
+
+The \texttt{targets.ssrf} module prevents Server-Side Request Forgery
+when using the \texttt{HttpTarget}. The \texttt{validate\_url} function:
+
+\begin{enumerate}[nosep]
+  \item Rejects non-HTTP(S) schemes.
+  \item Resolves the hostname to its IP addresses.
+  \item Blocks connections to private/reserved IP ranges: 10.0.0.0/8,
+        172.16.0.0/12, 192.168.0.0/16, 127.0.0.0/8, 169.254.0.0/16,
+        ::1/128, fc00::/7, fe80::/10, and the unspecified addresses
+        0.0.0.0 and ::.
+  \item Optionally enforces a domain allowlist, rejecting any target not
+        in the approved set.
+\end{enumerate}
+
+\subsection{Secret Redaction}
+
+The \texttt{core.redact} module provides context-aware redaction for
+report outputs and logs:
+
+\begin{itemize}[nosep]
+  \item Pattern-based redaction: email addresses, phone numbers, canary
+        tokens, bearer/basic auth tokens, API keys (Stripe-style, AWS
+        AKIA-prefix), and generic credential patterns.
+  \item Header-aware redaction: values of sensitive HTTP headers
+        (\texttt{Authorization}, \texttt{X-Api-Key}, \texttt{Cookie},
+        etc.) are replaced with \texttt{[REDACTED]}.
+  \item Recursive operation: \texttt{redact\_dict} traverses nested
+        dict/list structures, applying redaction to all string values.
+  \item Environment variable scanning: error messages are checked
+        against the values of environment variables whose names
+        contain sensitive keywords (KEY, SECRET, TOKEN, PASSWORD,
+        CREDENTIAL, AUTH).
+\end{itemize}
+
+\subsection{Error Message Sanitization}
+
+The \texttt{core.errors} module ensures that error messages displayed to
+users or written to CI logs do not leak secrets:
+
+\begin{itemize}[nosep]
+  \item The \texttt{sanitize\_message} function applies the same
+        redaction patterns used for report output.
+  \item Home directory paths are replaced with \texttt{\textasciitilde}
+        via \texttt{safe\_path\_str}.
+  \item Structured \texttt{SafeError} objects carry sanitized messages
+        alongside structured exit codes.
+\end{itemize}
+
+\subsection{Filesystem Safety}
+
+The \texttt{core.fs} module provides:
+
+\begin{itemize}[nosep]
+  \item \textbf{Path traversal protection}: \texttt{safe\_join} resolves
+        paths and verifies the result is within the base directory,
+        rejecting absolute paths and \texttt{..} traversal.
+  \item \textbf{Atomic writes}: \texttt{atomic\_write} uses a
+        temp-file-plus-rename pattern, ensuring files are either fully
+        written or untouched. This prevents partial report writes on
+        crashes or interrupts.
+\end{itemize}
+
+\subsection{Cassette Security}
+
+HTTP cassettes redact sensitive headers before storage and normalize
+requests to prevent cache poisoning via header manipulation. Cassette
+files use deterministic request hashing (SHA-256 of normalized method,
+URL, sorted headers, and body), making it infeasible to craft a request
+that maps to a different cassette entry.
+
+% ══════════════════════════════════════════════════════════════════════
+\section{Limitations}\label{sec:limitations}
+% ══════════════════════════════════════════════════════════════════════
+
+RAGLeakLab makes explicit design trade-offs that result in the following
+limitations:
+
+\textbf{No neural-based analysis.} All metrics use string matching,
+heuristics, and pattern detection. This ensures determinism and eliminates
+GPU dependencies, but means the framework cannot detect paraphrased leakage
+that evades substring matching or semantic similarity that requires
+embedding-based comparison. The claim matching system uses normalized
+substring containment, which may miss reformulations that preserve meaning
+while changing surface form.
+
+\textbf{Reference pipeline is not production-representative.} The built-in
+TF-IDF retriever and mock generator serve as a controlled baseline, not as
+a proxy for production embedding models or language generators. Production
+testing requires the \texttt{HttpTarget} adapter or a custom
+\texttt{InProcessTarget} wrapping the actual system. The reference pipeline's
+value lies in verifying framework behavior, not in predicting production
+leakage rates.
+
+\textbf{Fixed paraphrase templates.} The eight built-in paraphrase templates
+provide lightweight diversification for consistency-based membership inference.
+They do not cover the full space of semantic-preserving reformulations and
+may underestimate membership inference risk against systems with more
+sophisticated query understanding.
+
+\textbf{No runtime moderation testing.} RAGLeakLab tests the RAG system as
+a black box and does not model or test runtime content moderation layers
+(e.g., output filters, guardrail classifiers). If a production system
+includes such layers, the framework tests the combined system but cannot
+attribute filtering to specific moderation components.
+
+\textbf{Claim annotation is manual.} Semantic leakage and cross-document
+detection require human-authored claim annotations in JSONL format. The
+quality and completeness of these annotations directly bound the metrics'
+recall. No automated claim extraction is implemented.
+
+\textbf{Single-process corpus assumption.} The framework assumes
+single-process access to the corpus directory during patching and testing.
+Concurrent modifications may produce non-deterministic results unless
+external locking is applied.
+
+\textbf{Heuristic attribution.} The attribution engine uses rule-based
+heuristics with fixed thresholds (e.g., context length $>$ 10,000 characters).
+These thresholds are not calibrated per-system and may require tuning for
+specific deployment configurations.
+
+% ══════════════════════════════════════════════════════════════════════
+\section{Related Work}\label{sec:related}
+% ══════════════════════════════════════════════════════════════════════
+
+\textbf{LLM red-teaming frameworks.} Tools such as Microsoft's
+Counterfit, NVIDIA's NeMo Guardrails evaluation suite, and various
+prompt injection benchmarks focus on adversarial testing of language models.
+These operate at the model level and typically require neural inference
+for both attack generation and evaluation. RAGLeakLab differs by targeting
+the RAG architecture specifically and by eliminating neural dependencies
+for deterministic CI operation.
+
+\textbf{Membership inference attacks.} The membership inference literature
+originates in the ML privacy domain, with shadow model approaches and
+loss-based metrics. RAGLeakLab's heuristic and consistency-based approaches
+avoid model training requirements while providing practical signals for
+corpus membership detection.
+
+\textbf{Data poisoning.} Backdoor attacks on retrieval systems and
+knowledge bases have been studied in the context of search engine
+optimization and knowledge graph corruption. RAGLeakLab provides a
+structured evaluation framework with three poisoning sub-categories
+(retrieval hijacking, claim corruption, sentinel takeover) and
+deterministic evidence collection.
+
+\textbf{Canary-based auditing.} The use of planted tokens for
+memorization detection was introduced for language model training data
+extraction. RAGLeakLab adapts this technique for RAG systems, where the
+leakage path is through retrieval and context injection rather than
+model memorization.
+
+\textbf{Software testing determinism.} The broader software testing
+literature emphasizes flaky test elimination and deterministic execution.
+RAGLeakLab applies these principles to security testing, with explicit
+volatile field stripping, sorted serialization, and automated
+determinism verification.
+
+\textbf{CI security scanning.} Tools like Semgrep, CodeQL, and Snyk
+provide static and dependency analysis in CI pipelines. RAGLeakLab
+provides dynamic security testing for RAG system behavior, complementing
+code-level scanning with runtime leakage detection. The framework's SARIF
+and JUnit outputs integrate directly with the same CI platforms.
+
+% ══════════════════════════════════════════════════════════════════════
+\section{Conclusion}\label{sec:conclusion}
+% ══════════════════════════════════════════════════════════════════════
+
+We have presented RAGLeakLab, a deterministic security testing framework
+for Retrieval-Augmented Generation systems. The framework addresses a gap
+in the current tooling landscape: the need for reproducible, CI-compatible
+security evaluation of RAG architectures without neural inference
+dependencies.
+
+The key contributions are:
+
+\begin{enumerate}[nosep]
+  \item \textbf{Deterministic design.} A comprehensive architecture where
+        every component---from TF-IDF retrieval to delta-debugging query
+        minimization---produces bit-identical output across runs.
+  \item \textbf{Six threat classes.} Canary extraction, verbatim
+        reproduction, membership inference, semantic leakage, cross-document
+        correlation, and corpus poisoning, each with well-defined metrics
+        and evidence schemas.
+  \item \textbf{CI-native integration.} JUnit XML, SARIF 2.1.0, HTTP
+        cassettes, regression diffing, and structured suppression
+        management enable direct integration into enterprise CI/CD
+        pipelines.
+  \item \textbf{Principled calibration.} FPR-constrained threshold
+        fitting with deterministic tie-breaking enables systematic
+        threshold selection for binary metrics.
+  \item \textbf{Security hardening.} SSRF protection, secret redaction,
+        error sanitization, path traversal prevention, and atomic file
+        writes ensure the framework itself does not become an attack
+        vector.
+\end{enumerate}
+
+RAGLeakLab is open source under the Apache License 2.0 and available at
+\url{https://github.com/mishabar410/RAGLeakLab}. The framework requires
+only a standard Python installation with no GPU or external service
+dependencies for core operation.
+
+Future directions include: integration of lightweight embedding-based
+similarity metrics (preserving determinism through pinned model versions),
+automated claim extraction from annotated corpora, multi-tenant threat
+modeling, and expanded poisoning pack coverage for emerging attack vectors.
+
+\end{document}
