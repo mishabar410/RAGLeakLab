@@ -8,13 +8,9 @@ Each is self-contained, well-scoped, and has clear acceptance criteria.
 
 ---
 
-## 1. Add a `semantic` Claim Type Stub
+## ~~1. Add a `semantic` Claim Type Stub~~ ✅ Shipped in v1.0.0
 
-**Area**: Metrics / Claim Types
-**Difficulty**: 🟢 Easy
-**What**: Add a placeholder `semantic` claim type alongside `verbatim`, `membership`, and `canary`. The implementation can return a fixed score — the goal is wiring up the type through the pack → runner → report pipeline.
-**Files**: `src/ragleaklab/metrics/`, pack schema, tests
-**Acceptance**: Pack with `claim_type: semantic` runs and produces a report.
+**Status**: Complete — semantic claims are a core pack (`semantic-basic`).
 
 ## 2. Write 5 New Canary Extraction Test Cases
 
@@ -48,13 +44,9 @@ Each is self-contained, well-scoped, and has clear acceptance criteria.
 **Files**: `src/ragleaklab/config/__init__.py`
 **Acceptance**: Bad config produces a 3-line error, not a traceback.
 
-## 6. Add JUnit Report Output
+## ~~6. Add JUnit Report Output~~ ✅ Shipped in v1.0.0
 
-**Area**: Reporting
-**Difficulty**: 🟡 Medium
-**What**: The `output.formats` config supports `"junit"` but may not be fully wired. Verify the JUnit XML output is valid and parseable by standard CI tools (Jenkins, GitHub Actions).
-**Files**: `src/ragleaklab/reporting/`
-**Acceptance**: `ragleaklab run --out out/` with `formats: [junit]` produces valid JUnit XML.
+**Status**: Complete — `formats: [junit]` produces valid JUnit XML.
 
 ## 7. Document All CLI Commands with Examples
 
@@ -64,21 +56,29 @@ Each is self-contained, well-scoped, and has clear acceptance criteria.
 **Files**: `docs/CLI_REFERENCE.md`
 **Acceptance**: All commands documented, help text matches.
 
-## 8. Add Markdown Report Template
+## ~~8. Add Markdown Report Template~~ ✅ Shipped in v1.0.0
 
-**Area**: Reporting
-**Difficulty**: 🟡 Medium
-**What**: The `"md"` output format should produce a human-readable Markdown report summarizing the run (metrics, verdicts, pack results). Implement or complete the Markdown reporter.
-**Files**: `src/ragleaklab/reporting/`
-**Acceptance**: `formats: [md]` produces a readable `.md` file with all key metrics.
+**Status**: Complete — `formats: [md]` produces a readable Markdown report.
 
-## 9. Add Config Schema JSON Export
+## ~~9. Add Config Schema JSON Export~~ ✅ Shipped in v1.0.0
 
-**Area**: CLI / Config
+**Status**: Complete — `ragleaklab config schema` outputs valid JSON Schema.
+
+## 8. Add Finding Suppression Documentation
+
+**Area**: Documentation
 **Difficulty**: 🟢 Easy
-**What**: Add a `ragleaklab config schema` command that prints the JSON Schema for `ConfigRoot` to stdout. This helps users validate configs in their editors.
-**Files**: `src/ragleaklab/cli/`, `src/ragleaklab/config/schema.py`
-**Acceptance**: `ragleaklab config schema` outputs valid JSON Schema.
+**What**: Document the suppression system in `docs/SUPPRESSIONS.md` with examples showing how to create allowlists, rule-based suppressions, and per-pack overrides.
+**Files**: `docs/SUPPRESSIONS.md`
+**Acceptance**: Examples cover all suppression types, cross-referenced from README.
+
+## 9. Add External Results Import Example
+
+**Area**: CLI / Integration
+**Difficulty**: 🟡 Medium
+**What**: Create an example recipe in `integrations/` showing how to import benchmark results from an external RAG evaluation tool into RAGLeakLab's `external_results/` directory and compare them with built-in benchmarks.
+**Files**: `integrations/external_import/`, `docs/BENCHMARKS.md`
+**Acceptance**: Example validates and can be diffed against internal baselines.
 
 ## 10. Add a "Writing Your First Pack" Tutorial
 

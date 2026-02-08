@@ -1,0 +1,207 @@
+{
+  "$defs": {
+    "BundleReference": {
+      "description": "Identifies the benchmark bundle used.",
+      "properties": {
+        "name": {
+          "title": "Name",
+          "type": "string"
+        },
+        "version": {
+          "title": "Version",
+          "type": "string"
+        },
+        "hash": {
+          "description": "SHA-256 of bundle.yaml",
+          "title": "Hash",
+          "type": "string"
+        }
+      },
+      "required": [
+        "name",
+        "version",
+        "hash"
+      ],
+      "title": "BundleReference",
+      "type": "object"
+    },
+    "ExternalPackMetrics": {
+      "description": "Per-pack aggregate metrics (rates + counts only).",
+      "properties": {
+        "pack_name": {
+          "title": "Pack Name",
+          "type": "string"
+        },
+        "category": {
+          "title": "Category",
+          "type": "string"
+        },
+        "status": {
+          "title": "Status",
+          "type": "string"
+        },
+        "total_cases": {
+          "default": 0,
+          "title": "Total Cases",
+          "type": "integer"
+        },
+        "passed_cases": {
+          "default": 0,
+          "title": "Passed Cases",
+          "type": "integer"
+        },
+        "failed_cases": {
+          "default": 0,
+          "title": "Failed Cases",
+          "type": "integer"
+        },
+        "pass_rate": {
+          "default": 0.0,
+          "title": "Pass Rate",
+          "type": "number"
+        },
+        "fail_rate": {
+          "default": 0.0,
+          "title": "Fail Rate",
+          "type": "number"
+        }
+      },
+      "required": [
+        "pack_name",
+        "category",
+        "status"
+      ],
+      "title": "ExternalPackMetrics",
+      "type": "object"
+    },
+    "ExternalReproduction": {
+      "description": "Reproduction hints (redacted, no secrets).",
+      "properties": {
+        "config_snippet": {
+          "default": "",
+          "title": "Config Snippet",
+          "type": "string"
+        },
+        "command": {
+          "default": "",
+          "title": "Command",
+          "type": "string"
+        }
+      },
+      "title": "ExternalReproduction",
+      "type": "object"
+    },
+    "ExternalResultsSummary": {
+      "description": "Aggregate metrics across all packs.",
+      "properties": {
+        "total_packs": {
+          "default": 0,
+          "title": "Total Packs",
+          "type": "integer"
+        },
+        "passed_packs": {
+          "default": 0,
+          "title": "Passed Packs",
+          "type": "integer"
+        },
+        "failed_packs": {
+          "default": 0,
+          "title": "Failed Packs",
+          "type": "integer"
+        },
+        "risk_score": {
+          "default": 0.0,
+          "title": "Risk Score",
+          "type": "number"
+        },
+        "pack_results": {
+          "items": {
+            "$ref": "#/$defs/ExternalPackMetrics"
+          },
+          "title": "Pack Results",
+          "type": "array"
+        }
+      },
+      "title": "ExternalResultsSummary",
+      "type": "object"
+    }
+  },
+  "description": "Top-level schema for a published external result.",
+  "properties": {
+    "external_schema_version": {
+      "default": "1.0.0",
+      "description": "Version of the external results format",
+      "title": "External Schema Version",
+      "type": "string"
+    },
+    "system_name": {
+      "description": "Human-readable name of the tested system",
+      "title": "System Name",
+      "type": "string"
+    },
+    "system_type": {
+      "description": "Category of the system",
+      "enum": [
+        "oss",
+        "commercial",
+        "internal"
+      ],
+      "title": "System Type",
+      "type": "string"
+    },
+    "integration_type": {
+      "description": "How RAGLeakLab connected to the system",
+      "enum": [
+        "inprocess",
+        "http",
+        "other"
+      ],
+      "title": "Integration Type",
+      "type": "string"
+    },
+    "ragleaklab_version": {
+      "description": "RAGLeakLab version used",
+      "title": "Ragleaklab Version",
+      "type": "string"
+    },
+    "bundle": {
+      "$ref": "#/$defs/BundleReference",
+      "description": "Bundle reference"
+    },
+    "results_summary": {
+      "$ref": "#/$defs/ExternalResultsSummary",
+      "description": "Aggregate benchmark metrics"
+    },
+    "notes": {
+      "default": "",
+      "description": "Optional markdown notes",
+      "title": "Notes",
+      "type": "string"
+    },
+    "redaction_applied": {
+      "default": true,
+      "description": "Must be true \u2014 confirms secrets were scrubbed",
+      "title": "Redaction Applied",
+      "type": "boolean"
+    },
+    "reproduction": {
+      "$ref": "#/$defs/ExternalReproduction",
+      "description": "Safe reproduction instructions"
+    },
+    "generated_at": {
+      "description": "ISO timestamp of generation",
+      "title": "Generated At",
+      "type": "string"
+    }
+  },
+  "required": [
+    "system_name",
+    "system_type",
+    "integration_type",
+    "ragleaklab_version",
+    "bundle",
+    "results_summary"
+  ],
+  "title": "ExternalResult",
+  "type": "object"
+}

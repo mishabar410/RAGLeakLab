@@ -2,6 +2,9 @@
 
 RAGLeakLab provides a plugin system for adding custom metrics, attack strategies, and target adapters.
 
+> **Quick start:** For a step-by-step walkthrough, see the [Plugin Cookbook](PLUGIN_COOKBOOK.md)
+> and the ready-to-copy scaffold in [`templates/plugin/`](../templates/plugin/).
+
 ## Plugin Architecture
 
 Plugins are registered via Python entry points or manual registration:

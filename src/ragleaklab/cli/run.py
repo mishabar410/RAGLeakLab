@@ -47,6 +47,11 @@ def register(app: typer.Typer) -> None:
         no_redact: bool = typer.Option(
             False, "--no-redact", help="Disable secret redaction (for local debug)"
         ),
+        suppressions_file: Path = typer.Option(
+            None,
+            "--suppressions",
+            help="Path to suppressions.yaml for controlled risk acceptance",
+        ),
     ) -> None:
         """Run attack test cases against a corpus and generate reports.
 
@@ -396,6 +401,87 @@ def register(app: typer.Typer) -> None:
             for r in verdict.reasons
         ]
 
+        # ── Suppressions ─────────────────────────────────────────────
+        suppression_summary = None
+        if suppressions_file is not None:
+            from ragleaklab.suppressions.applier import (
+                AppliedSuppression,
+                apply_suppressions_to_case,
+                apply_suppressions_to_failures,
+                build_suppression_summary,
+            )
+            from ragleaklab.suppressions.loader import (
+                SuppressionError,
+                load_suppressions,
+                validate_suppressions,
+            )
+
+            typer.echo(f"🔇 Loading suppressions from {suppressions_file}")
+            try:
+                sup_file = load_suppressions(suppressions_file)
+            except (FileNotFoundError, SuppressionError) as exc:
+                typer.echo(f"❌ {exc}", err=True)
+                raise typer.Exit(1) from None
+
+            # CI gate: expired or invalid suppressions → FAIL
+            sup_errors = validate_suppressions(sup_file)
+            if sup_errors:
+                typer.echo("❌ Suppression validation failed:", err=True)
+                for err_msg in sup_errors:
+                    typer.echo(f"   - {err_msg}", err=True)
+                raise typer.Exit(1)
+
+            active_sups = sup_file.suppressions
+            original_verdict = verdict.status
+
+            # Apply to aggregate failures (metric suppressions)
+            failure_dicts = [f.model_dump() for f in failures]
+            remaining_failures, failure_applied = apply_suppressions_to_failures(
+                failure_dicts, active_sups
+            )
+
+            # Apply to case-level findings (test_id suppressions)
+            case_applied: list[AppliedSuppression] = []
+            for cr in case_results:
+                cr_dict = cr.model_dump()
+                is_suppressed, record = apply_suppressions_to_case(cr_dict, active_sups)
+                if is_suppressed and record:
+                    case_applied.append(record)
+                    # Mark the case as suppressed in its details
+                    cr.details["suppressed"] = True
+                    cr.details["suppression_id"] = record.suppression_id
+                    cr.details["suppression_reason"] = record.reason
+
+            all_applied = failure_applied + case_applied
+
+            # Recompute verdict: if all failures are suppressed → pass (known risk)
+            if remaining_failures:
+                effective_verdict = "fail"
+                # Rebuild FailureReason list from remaining
+                failures = [FailureReason(**f) for f in remaining_failures]
+            else:
+                effective_verdict = "pass" if not remaining_failures else "fail"
+                failures = [FailureReason(**f) for f in remaining_failures]
+
+            suppression_summary = build_suppression_summary(
+                sup_file, all_applied, original_verdict, effective_verdict
+            )
+
+            # Update the verdict status
+            verdict_pass = effective_verdict == "pass"
+            typer.echo(
+                f"   Loaded: {suppression_summary.total_suppressions_loaded}, "
+                f"Active: {suppression_summary.active_suppressions}, "
+                f"Applied: {suppression_summary.applied_suppressions}"
+            )
+            if suppression_summary.verdict_changed:
+                typer.echo(
+                    f"   Verdict changed: {original_verdict} → {effective_verdict} "
+                    f"(suppressed findings remain as known risk)"
+                )
+        else:
+            verdict_pass = verdict.status == "pass"
+
         # Run poisoning packs if specified
         integrity_section = None
         if poisoning_pack_names:
@@ -491,7 +577,7 @@ def register(app: typer.Typer) -> None:
             canary_count=total_canary_count,
             verbatim_leakage_rate=avg_verbatim,
             membership_confidence=membership_result.score,
-            overall_pass=verdict.status == "pass",
+            overall_pass=verdict_pass,
             failures=failures,
             corpus_path=str(corpus_path.resolve()),
             attacks_path=str(attacks_path.resolve()) if attacks_path else "built-in packs",
@@ -506,6 +592,8 @@ def register(app: typer.Typer) -> None:
 
         report_path = out / "report.json"
         report_data = report.model_dump()
+        if suppression_summary is not None:
+            report_data["suppression_summary"] = suppression_summary.model_dump()
         if not no_redact:
             report_data = redact_dict(report_data)
         atomic_write(report_path, json.dumps(report_data, indent=2))
@@ -537,13 +625,23 @@ def register(app: typer.Typer) -> None:
                 from ragleaklab.reporting import export_junit
 
                 junit_path = out / "junit.xml"
-                export_junit(report, case_results, junit_path)
+                export_junit(
+                    report,
+                    case_results,
+                    junit_path,
+                    suppression_summary=suppression_summary,
+                )
                 typer.echo(f"📄 Wrote {junit_path}")
             elif fmt_lower == "sarif":
                 from ragleaklab.reporting import export_sarif
 
                 sarif_path = out / "results.sarif"
-                export_sarif(report, case_results, sarif_path)
+                export_sarif(
+                    report,
+                    case_results,
+                    sarif_path,
+                    suppression_summary=suppression_summary,
+                )
                 typer.echo(f"📄 Wrote {sarif_path}")
             else:
                 typer.echo(f"⚠️  Unknown format: {fmt}", err=True)
@@ -554,6 +652,11 @@ def register(app: typer.Typer) -> None:
         typer.echo(f"   Canary leaks: {total_canary_count}")
         typer.echo(f"   Verbatim rate: {avg_verbatim:.2%}")
         typer.echo(f"   Membership conf: {membership_result.score:.2%}")
+
+        if suppression_summary and suppression_summary.applied_suppressions > 0:
+            typer.echo(
+                f"   Suppressed: {suppression_summary.applied_suppressions} finding(s) (known risk)"
+            )
 
         if not report.overall_pass:
             typer.echo("\n⚠️  Failures:")

@@ -1,0 +1,75 @@
+name: External Results
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'external_results/**'
+  pull_request:
+    branches: [main]
+    paths:
+      - 'external_results/**'
+
+jobs:
+  validate-and-table:
+    name: Validate & Regenerate Table
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v4
+        with:
+          version: "latest"
+
+      - name: Set up Python
+        run: uv python install 3.12
+
+      - name: Install dependencies
+        run: uv sync --frozen --all-extras
+
+      # ── Step 1: validate every external result ──
+      - name: Validate all external results
+        run: |
+          shopt -s nullglob
+          failed=0
+          count=0
+          for f in external_results/*.json; do
+            # Skip non-result files (schema.json, etc.)
+            if [ "$(basename "$f")" = "schema.json" ]; then
+              continue
+            fi
+            echo "Validating: $f"
+            if uv run ragleaklab bench validate-external --file "$f"; then
+              echo "  ✅ Valid"
+            else
+              echo "  ❌ Invalid"
+              failed=1
+            fi
+            count=$((count + 1))
+          done
+          echo "Validated $count file(s)"
+          exit $failed
+
+      # ── Step 2: regenerate TABLE.md and check it's up to date ──
+      - name: Regenerate TABLE.md
+        run: |
+          uv run ragleaklab results build-table \
+            --in external_results/ \
+            --out external_results/TABLE.md \
+            --quiet
+
+      - name: Check TABLE.md is up to date
+        run: |
+          if git diff --exit-code external_results/TABLE.md; then
+            echo "✅ TABLE.md is up to date"
+          else
+            echo "❌ TABLE.md is out of date!"
+            echo ""
+            echo "Run locally:"
+            echo "  uv run ragleaklab results build-table --in external_results/ --out external_results/TABLE.md"
+            echo ""
+            echo "Then commit the updated TABLE.md."
+            exit 1
+          fi

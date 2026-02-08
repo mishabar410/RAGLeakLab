@@ -8,6 +8,7 @@ from ragleaklab.cli.bench import bench_app
 from ragleaklab.cli.config_cmd import config_app
 from ragleaklab.cli.delta import delta_app
 from ragleaklab.cli.report import report_app
+from ragleaklab.cli.results import results_app
 from ragleaklab.cli.verify import verify_app
 
 app = typer.Typer(
@@ -24,6 +25,7 @@ app.add_typer(config_app, name="config")
 app.add_typer(verify_app, name="verify")
 app.add_typer(report_app, name="report")
 app.add_typer(delta_app, name="delta")
+app.add_typer(results_app, name="results")
 
 # ── top-level commands (registered via function) ─────────────────────
 from ragleaklab.cli.calibrate import register as _register_calibrate  # noqa: E402

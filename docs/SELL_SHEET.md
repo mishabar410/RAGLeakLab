@@ -7,8 +7,9 @@ your RAG pipeline before it reaches production.
 
 ## Killer Features
 
-1. **Three threat vectors in one tool** — canary extraction, verbatim leakage,
-   and membership inference tested in a single run
+1. **Six threat packs in one tool** — canary extraction, verbatim leakage,
+   membership inference, semantic claims, cross-document leakage, and
+   sentinel-takeover poisoning tested in a single run
 2. **Poisoning detection** — sentinel-takeover and relevance-hijack packs
    catch corpus tampering attacks
 3. **CI-native** — `diff` command exits non-zero on regression; drop into any

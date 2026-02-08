@@ -1,0 +1,153 @@
+name: RFC Proposal
+description: Propose a new threat class, core metric, or breaking change
+labels: ["rfc"]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ## RFC Proposal
+
+        Use this template for changes that require an RFC:
+        - New threat classes
+        - New core metrics
+        - Breaking changes to reports, CLI, or contracts
+        - New claim types
+        - Removal or rename of existing features
+
+        See [docs/RFC.md](../../docs/RFC.md) for the full process.
+
+  - type: input
+    id: rfc_title
+    attributes:
+      label: RFC Title
+      description: "Short descriptive title (will be prefixed with 'RFC:')"
+      placeholder: "Add prompt-injection threat class"
+    validations:
+      required: true
+
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: One-paragraph description of what you're proposing.
+      placeholder: "This RFC proposes..."
+    validations:
+      required: true
+
+  - type: textarea
+    id: motivation
+    attributes:
+      label: Motivation
+      description: |
+        Why is this needed? What problem does it solve?
+        Link to real-world scenarios, existing issues, or CVEs.
+      placeholder: |
+        Currently RAGLeakLab does not detect...
+        This is a problem because...
+    validations:
+      required: true
+
+  - type: dropdown
+    id: change_type
+    attributes:
+      label: Type of Change
+      description: What kind of change is this?
+      options:
+        - New threat class
+        - New core metric
+        - New claim type
+        - Breaking change (schema/CLI/contracts)
+        - Removal or rename of existing feature
+        - Other (explain in Design section)
+    validations:
+      required: true
+
+  - type: textarea
+    id: design
+    attributes:
+      label: Design
+      description: |
+        Describe the technical design.
+
+        **For threat classes:** threat model, attack surface, evidence type, severity.
+        **For metrics:** input/output, score range, complexity, dependencies.
+        **For breaking changes:** what breaks, migration path, deprecation timeline.
+      placeholder: |
+        ### Threat Model
+        ...
+
+        ### Proposed API
+        ...
+    validations:
+      required: true
+
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives Considered
+      description: What other approaches were evaluated and why rejected?
+      placeholder: |
+        1. Alternative A — rejected because...
+        2. Alternative B — rejected because...
+
+  - type: textarea
+    id: risks
+    attributes:
+      label: Risks
+      description: Performance impact, complexity increase, maintenance burden.
+      placeholder: |
+        - Performance: ...
+        - Complexity: ...
+        - Maintenance: ...
+
+  - type: dropdown
+    id: breaking
+    attributes:
+      label: Is this a breaking change?
+      options:
+        - "No — fully additive"
+        - "Yes — changes existing behavior"
+        - "Yes — removes or renames existing API"
+        - "Not sure"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: determinism
+    attributes:
+      label: Determinism
+      description: Can this be implemented deterministically?
+      options:
+        - "Yes — fully offline, seeded randomness"
+        - "Mostly — needs network for setup only"
+        - "No — requires live network"
+        - "Not sure"
+    validations:
+      required: true
+
+  - type: dropdown
+    id: baseline_impact
+    attributes:
+      label: Baseline Impact
+      description: Would this require updating baselines?
+      options:
+        - "No — existing baselines unaffected"
+        - "Yes — new baselines needed for new pack"
+        - "Yes — existing baselines change"
+        - "Not sure"
+    validations:
+      required: true
+
+  - type: checkboxes
+    id: checklist
+    attributes:
+      label: Checklist
+      options:
+        - label: I have searched existing RFCs and issues for overlap
+          required: true
+        - label: This does not duplicate an existing pack or metric
+          required: true
+        - label: I have considered backward compatibility
+          required: true
+        - label: I am willing to implement this (or seeking help)
+          required: false

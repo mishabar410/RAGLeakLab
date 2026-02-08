@@ -36,18 +36,24 @@ make all              # sync + fmt + lint + test
 src/ragleaklab/
 ├── __init__.py         # Package metadata
 ├── __main__.py         # CLI entry point (typer app)
-├── config.py           # Configuration management
-├── analysis/           # Post-run analysis (attribution)
+├── analysis/           # Post-run analysis (attribution, coverage)
 ├── assets/             # Asset validation and utilities
 ├── attacks/            # Attack strategies and catalog
-├── core/               # Core contracts, errors, version, fs utilities
-├── corpus/             # Corpus loading and management
+├── bench/              # Benchmark bundles and results publishing
+├── calibration/        # Threshold calibration
+├── ci/                 # CI policy checks (baseline policy)
+├── cli/                # CLI commands (run, diff, bench, calibrate, ...)
+├── config/             # YAML config loading and validation
+├── core/               # Core contracts, errors, version, fs utilities, plugins
+├── corpus/             # Corpus loading, chunking, canary injection
 ├── metrics/            # Scoring metrics (canary, verbatim, membership, semantic)
 ├── packs/              # Test pack definitions (v1/)
+├── poisoning/          # Corpus poisoning detection
 ├── rag/                # RAG pipeline and mock implementations
 ├── regression/         # Baseline diffing and regression detection
 ├── reporting/          # Report generation (JSON, SARIF, JUnit)
-└── targets/            # HTTP target adapters
+├── suppressions/       # Finding suppression system
+└── targets/            # Target adapters (in-process, HTTP, mock)
 ```
 
 ## Packs
@@ -57,9 +63,11 @@ Located in `src/ragleaklab/packs/v1/`:
 | Pack | Description |
 |------|-------------|
 | `canary-basic` | Canary extraction attacks |
+| `verbatim-basic` | Verbatim extraction attacks |
 | `membership-basic` | Membership inference attacks |
 | `semantic-basic` | Semantic leakage attacks |
-| `verbatim-basic` | Verbatim extraction attacks |
+| `crossdoc-basic` | Cross-document leakage attacks |
+| `sentinel-takeover-safe` | Corpus poisoning detection (offline, deterministic) |
 
 ## Corpora
 

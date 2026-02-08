@@ -199,6 +199,26 @@ Integration recipes show how to connect RAGLeakLab to specific RAG frameworks.
 
 ---
 
+## Baseline Update Rules
+
+Files under `baselines/` are regression anchors — changing them requires
+a strict, auditable process.  **Do not** update baselines inside feature PRs.
+
+### Requirements for a baseline update PR
+
+1. **Dedicated PR** — no `src/` changes (docs/changelog only)
+2. **`baseline-approved` label** — applied by a maintainer after review
+3. **`docs/baseline_update.md`** in the PR diff, containing:
+   - What changed and why
+   - Reference to a `calibration_report.json`
+4. **Calibration report** — proves the new values are correct
+
+CI will **automatically reject** baseline PRs that don't meet these conditions.
+
+See [docs/BASELINE_POLICY.md](docs/BASELINE_POLICY.md) for the full policy.
+
+---
+
 ## Definition of Done
 
 Before a PR can be merged, **all of the following must pass**:
@@ -238,7 +258,17 @@ To ensure reproducible builds and tests:
 
 ## RFC Process
 
-For proposing new threat packs, metrics, or major features, see [docs/RFC.md](docs/RFC.md).
+Proposing new threat classes, core metrics, breaking changes, or new claim types
+requires an RFC. See [docs/RFC.md](docs/RFC.md) for the lightweight RFC-lite process,
+including templates, lifecycle, and acceptance criteria.
+
+You can submit an RFC via [GitHub Issue](https://github.com/mishabar410/RAGLeakLab/issues/new?template=rfc.yml)
+or [Pull Request](https://github.com/mishabar410/RAGLeakLab/pulls).
+
+## Plugin Development
+
+For building external plugins, use the ready-to-copy scaffold in [`templates/plugin/`](templates/plugin/)
+and follow the [Plugin Cookbook](docs/PLUGIN_COOKBOOK.md) for a step-by-step guide.
 
 ## Good First Issues
 

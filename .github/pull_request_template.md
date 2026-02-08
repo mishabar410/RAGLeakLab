@@ -37,6 +37,18 @@
 - [ ] All randomness uses explicit seeds
 - [ ] No new network calls in tests
 
+## Baseline Update
+
+<!-- Only complete this section if you are changing files under baselines/ -->
+
+- [ ] **This PR changes `baselines/`**
+  - [ ] This is a dedicated baseline-update PR (no feature code in `src/`)
+  - [ ] `docs/baseline_update.md` is included with justification
+  - [ ] Justification references a `calibration_report.json`
+  - [ ] I have requested the `baseline-approved` label from a maintainer
+
+<!-- See docs/BASELINE_POLICY.md for the full baseline update policy -->
+
 ## Checklist
 
 - [ ] My code follows the project's style guidelines (`ruff format`, `ruff check`)

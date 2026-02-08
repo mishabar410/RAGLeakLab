@@ -5,7 +5,7 @@ from __future__ import annotations
 import json
 from datetime import UTC, datetime
 from pathlib import Path
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 from xml.etree import ElementTree as ET
 
 if TYPE_CHECKING:
@@ -16,6 +16,8 @@ def export_junit(
     report: Report,
     case_results: list[CaseResult],
     output_path: Path,
+    *,
+    suppression_summary: Any | None = None,
 ) -> None:
     """Export report as JUnit XML.
 
@@ -34,10 +36,20 @@ def export_junit(
     failures = 0
     test_count = len(case_results)
 
+    # Build set of suppressed test_ids for quick lookup
+    suppressed_test_ids: dict[str, str] = {}
+    if suppression_summary is not None:
+        for sf in suppression_summary.suppressed_findings:
+            if sf.type == "test_id":
+                suppressed_test_ids[sf.value] = sf.reason
+
     for case in case_results:
         testcase = ET.SubElement(testsuite, "testcase")
         testcase.set("name", f"{case.threat}:{case.test_id}")
         testcase.set("classname", f"ragleaklab.{case.threat}")
+
+        # Check if this case is suppressed
+        is_suppressed = case.test_id in suppressed_test_ids
 
         # Determine if this case is a failure
         is_failure = False
@@ -50,7 +62,19 @@ def export_junit(
             is_failure = True
             failure_message = f"High verbatim overlap: {case.verbatim_score:.2%}"
 
-        if is_failure:
+        if is_failure and is_suppressed:
+            # Suppressed finding: mark as skipped with reason
+            skipped = ET.SubElement(testcase, "skipped")
+            skipped.set(
+                "message",
+                f"SUPPRESSED (known risk): {suppressed_test_ids[case.test_id]}",
+            )
+            skipped.text = (
+                f"Original finding: {failure_message}\n"
+                f"Query: {case.query}\n"
+                f"This finding is suppressed as known risk."
+            )
+        elif is_failure:
             failures += 1
             failure_elem = ET.SubElement(testcase, "failure")
             failure_elem.set("message", failure_message)
@@ -135,6 +159,8 @@ def export_sarif(
     report: Report,
     case_results: list[CaseResult],
     output_path: Path,
+    *,
+    suppression_summary: Any | None = None,
 ) -> None:
     """Export report as SARIF for GitHub Security.
 
@@ -158,7 +184,9 @@ def export_sarif(
                         "rules": _build_sarif_rules(),
                     }
                 },
-                "results": _build_sarif_results(report, case_results),
+                "results": _build_sarif_results(
+                    report, case_results, suppression_summary=suppression_summary
+                ),
             }
         ],
     }
@@ -264,9 +292,24 @@ def _build_sarif_rules() -> list[dict]:
     ]
 
 
-def _build_sarif_results(report: Report, case_results: list[CaseResult]) -> list[dict]:
+def _build_sarif_results(
+    report: Report,
+    case_results: list[CaseResult],
+    *,
+    suppression_summary: Any = None,
+) -> list[dict]:
     """Build SARIF results from report."""
     results = []
+
+    # Build suppressed test_id lookup
+    suppressed_test_ids: dict[str, str] = {}
+    suppressed_metrics: dict[str, str] = {}
+    if suppression_summary is not None:
+        for sf in suppression_summary.suppressed_findings:
+            if sf.type == "test_id":
+                suppressed_test_ids[sf.value] = sf.reason
+            elif sf.type == "metric":
+                suppressed_metrics[sf.value] = sf.reason
 
     # Add per-case findings
     for case in case_results:
@@ -279,33 +322,43 @@ def _build_sarif_results(report: Report, case_results: list[CaseResult]) -> list
                 attr_category = top_attr.get("category")
                 remediation_hint = top_attr.get("hint")
 
-            results.append(
-                {
-                    "ruleId": "canary-extraction",
-                    "level": "error",
-                    "message": {
-                        "text": f"Canary token extracted in test {case.test_id}. "
-                        f"Found {case.canary_count} canary tokens in output."
-                    },
-                    "locations": [
-                        {
-                            "physicalLocation": {
-                                "artifactLocation": {
-                                    "uri": "data/attacks",
-                                    "uriBaseId": "%SRCROOT%",
-                                },
+            result_entry: dict[str, Any] = {
+                "ruleId": "canary-extraction",
+                "level": "error",
+                "message": {
+                    "text": f"Canary token extracted in test {case.test_id}. "
+                    f"Found {case.canary_count} canary tokens in output."
+                },
+                "locations": [
+                    {
+                        "physicalLocation": {
+                            "artifactLocation": {
+                                "uri": "data/attacks",
+                                "uriBaseId": "%SRCROOT%",
                             },
-                            "message": {"text": f"Test case: {case.test_id}"},
-                        }
-                    ],
-                    "properties": {
-                        "test_id": case.test_id,
-                        "query": case.query,
-                        "attribution_category": attr_category,
-                        "remediation_hint": remediation_hint,
-                    },
-                }
-            )
+                        },
+                        "message": {"text": f"Test case: {case.test_id}"},
+                    }
+                ],
+                "properties": {
+                    "test_id": case.test_id,
+                    "query": case.query,
+                    "attribution_category": attr_category,
+                    "remediation_hint": remediation_hint,
+                },
+            }
+
+            # Add SARIF suppression annotation if suppressed
+            if case.test_id in suppressed_test_ids:
+                result_entry["suppressions"] = [
+                    {
+                        "kind": "inSource",
+                        "status": "accepted",
+                        "justification": suppressed_test_ids[case.test_id],
+                    }
+                ]
+
+            results.append(result_entry)
 
     # Add aggregate findings from failures
     for failure in report.failures:
