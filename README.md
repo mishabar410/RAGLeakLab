@@ -10,6 +10,28 @@ detects corpus poisoning, and gates CI pipelines — all deterministically.
 
 ---
 
+## Table of Contents
+
+- [Features](#features)
+- [Quickstart](#quickstart)
+- [CLI Commands](#cli-commands)
+- [CI Integration](#ci-integration)
+  - [Output Formats](#output-formats)
+  - [Regression Rules](#regression-rules)
+  - [If CI Fails](#if-ci-fails)
+- [Configuration](#configuration)
+- [Benchmark Bundles](#benchmark-bundles)
+- [External Results](#external-results)
+- [Updating Baseline](#updating-baseline)
+- [Adoption](#adoption)
+- [Documentation](#documentation)
+- [Project Governance](#project-governance)
+- [Development](#development)
+- [Local Gates](#local-gates)
+- [Project Structure](#project-structure)
+
+---
+
 ## Features
 
 ### Security Testing
